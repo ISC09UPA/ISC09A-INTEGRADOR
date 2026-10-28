@@ -1,16 +1,4 @@
-# =============================================================================
-# CI del backend de Invernadero Inteligente (.NET 10)
-# Ticket: SCRUM-14
-#
-# Compila la solución InvernaderoInteligente.slnx en cada push y en cada
-# Pull Request hacia la rama de integración del equipo Invernadero.
-#
-# Aislamiento del monorepo:
-#   - Solo se dispara cuando cambian archivos dentro de Invernadero/Backend/
-#     (o este mismo workflow), así no consume minutos con cambios de otros
-#     equipos ni se ejecuta sobre main.
-#   - Todos los comandos corren con working-directory = Invernadero/Backend.
-# =============================================================================
+
 name: Invernadero · Backend CI
 
 on:
@@ -29,12 +17,11 @@ on:
       - '.github/workflows/invernadero-backend-ci.yml'
   workflow_dispatch: {}
 
-# Si llegan dos pushes seguidos a la misma rama, cancela la ejecución anterior.
+# Si llegan dos pushes seguidos a la misma rama cancela la ejecución
 concurrency:
   group: invernadero-backend-${{ github.ref }}
   cancel-in-progress: true
 
-# Principio de mínimo privilegio: el job solo necesita leer el código.
 permissions:
   contents: read
 
@@ -75,7 +62,7 @@ jobs:
       - name: Compilar (Release, advertencias visibles)
         run: dotnet build "$SOLUTION" --configuration Release --no-restore
 
-      # Se ejecuta solo cuando exista al menos un proyecto de pruebas (*Tests.csproj).
+      # Se ejecuta solo cuando exista al menos un proyecto de pruebas
       - name: Pruebas unitarias
         run: |
           if find . -name '*Tests.csproj' | grep -q .; then
