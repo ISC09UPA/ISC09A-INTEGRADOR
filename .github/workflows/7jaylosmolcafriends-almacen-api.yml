@@ -1,0 +1,69 @@
+# API ASP.NET. También corre cuando cambia el Core, porque depende de él.
+name: API ASP.NET
+
+on:
+  push:
+    branches: [7jaylosmolcafriends-almacen-develop, 7jaylosmolcafriends-almacen-main]
+    paths:
+      - "Almacen/Backend/src/AlmacenInteligente.Api/**"
+      - "Almacen/Backend/src/AlmacenInteligente.Domain/**"
+      - "Almacen/Backend/src/AlmacenInteligente.Application/**"
+      - "Almacen/Backend/src/AlmacenInteligente.Infrastructure/**"
+      - "Almacen/Backend/Directory.Build.props"
+      - "Almacen/Backend/global.json"
+      - ".github/workflows/7jaylosmolcafriends-almacen-api.yml"
+  pull_request:
+    branches: [7jaylosmolcafriends-almacen-develop, 7jaylosmolcafriends-almacen-main]
+    paths:
+      - "Almacen/Backend/src/AlmacenInteligente.Api/**"
+      - "Almacen/Backend/src/AlmacenInteligente.Domain/**"
+      - "Almacen/Backend/src/AlmacenInteligente.Application/**"
+      - "Almacen/Backend/src/AlmacenInteligente.Infrastructure/**"
+      - "Almacen/Backend/Directory.Build.props"
+      - "Almacen/Backend/global.json"
+      - ".github/workflows/7jaylosmolcafriends-almacen-api.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: 7jaylosmolcafriends-almacen-api-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build:
+    name: Compilar y publicar
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Almacen/Backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: Almacen/Backend/global.json
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Almacen/Backend/**/*.csproj', 'Almacen/Backend/Directory.Build.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Compilar
+        run: dotnet build src/AlmacenInteligente.Api/AlmacenInteligente.Api.csproj -c Release
+
+      - name: Publicar
+        run: dotnet publish src/AlmacenInteligente.Api/AlmacenInteligente.Api.csproj -c Release --no-build -o publish/api
+
+      - name: Subir paquete publicado
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-publish
+          path: Almacen/Backend/publish/api
+          retention-days: 7

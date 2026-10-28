@@ -1,0 +1,65 @@
+# App móvil Expo: lint, chequeo de tipos y empaquetado del bundle JS.
+name: App móvil (Expo)
+
+on:
+  push:
+    branches: [7jaylosmolcafriends-almacen-develop, 7jaylosmolcafriends-almacen-main]
+    paths:
+      - "Almacen/Frontend/**"
+      - ".github/workflows/7jaylosmolcafriends-almacen-mobile.yml"
+  pull_request:
+    branches: [7jaylosmolcafriends-almacen-develop, 7jaylosmolcafriends-almacen-main]
+    paths:
+      - "Almacen/Frontend/**"
+      - ".github/workflows/7jaylosmolcafriends-almacen-mobile.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: 7jaylosmolcafriends-almacen-mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, tipos y bundle
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Almacen/Frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.15.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: Almacen/Frontend/pnpm-lock.yaml
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      # expo-env.d.ts está en .gitignore; Expo lo genera al arrancar, aquí lo creamos a mano.
+      - name: Generar expo-env.d.ts
+        run: echo '/// <reference types="expo/types" />' > expo-env.d.ts
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Chequeo de tipos
+        run: pnpm exec tsc --noEmit
+
+      - name: Empaquetar bundle Android
+        run: pnpm exec expo export --platform android --output-dir dist
+
+      - name: Subir bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-bundle-android
+          path: Almacen/Frontend/dist
+          retention-days: 7
