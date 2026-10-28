@@ -1,0 +1,74 @@
+# Entorno de desarrollo completo: docker compose up --build
+# API en http://localhost:8081, Blazor en http://localhost:8080, Mailpit en http://localhost:8026
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: almacen
+      POSTGRES_USER: almacen
+      POSTGRES_PASSWORD: almacen_dev
+    ports:
+      - "5433:5432" # 5433 para no chocar con un PostgreSQL local
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U almacen -d almacen"]
+      interval: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "8026:8025" # bandeja web
+      - "1025:1025" # SMTP
+
+  api:
+    build:
+      context: .
+      dockerfile: src/AlmacenInteligente.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Almacen: Host=postgres;Database=almacen;Username=almacen;Password=almacen_dev
+      Correo__Smtp__Host: mailpit
+      Correo__Smtp__Puerto: "1025"
+      Jwt__Clave: cambia-esta-clave-de-desarrollo-por-una-de-al-menos-32-caracteres
+      Jwt__Emisor: almacen-inteligente
+      Jwt__Audiencia: almacen-inteligente-app
+    ports:
+      - "8081:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  web:
+    build:
+      context: .
+      dockerfile: src/AlmacenInteligente.Web/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Almacen: Host=postgres;Database=almacen;Username=almacen;Password=almacen_dev
+      Correo__Smtp__Host: mailpit
+      Correo__Smtp__Puerto: "1025"
+      Archivos__Ruta: /data/imagenes
+      Api__Url: http://localhost:8081
+      Api__UrlInterna: http://api:8080
+      Jwt__Clave: cambia-esta-clave-de-desarrollo-por-una-de-al-menos-32-caracteres
+      Jwt__Emisor: almacen-inteligente
+      Jwt__Audiencia: almacen-inteligente-app
+    ports:
+      - "8080:8080"
+    volumes:
+      - imagenes:/data/imagenes
+      - llaves:/home/app/.aspnet/DataProtection-Keys
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+
+volumes:
+  pgdata:
+  imagenes:
+  llaves:
