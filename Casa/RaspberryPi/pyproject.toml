@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "casa-pi"
+version = "0.2.0"
+description = "Agente de casa domotica con adaptador simulado"
+requires-python = ">=3.9"
+dependencies = ["tomli>=2,<3; python_version < '3.11'"]
+
+[project.optional-dependencies]
+azure = ["azure-iot-device>=2.14,<3"]
+
+[project.scripts]
+casa-pi = "casa_pi.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

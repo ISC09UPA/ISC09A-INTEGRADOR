@@ -1,0 +1,12 @@
+device_id = "raspberry-sim"
+mode = "simulado"
+transport = "local"
+room_id = "sala"
+door_id = "principal"
+sample_seconds = 1.0
+report_seconds = 10.0
+light_on_below = 30.0
+light_off_above = 60.0
+max_open_ms = 3000
+max_events = 1000
+data_dir = "/var/lib/casa-pi"
