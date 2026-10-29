@@ -27,6 +27,11 @@ export default function AppTabs() {
           renderingMode="template"
         />
       </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="luces">
+        <NativeTabs.Trigger.Label>Luces</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="lightbulb" md="lightbulb" />
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
