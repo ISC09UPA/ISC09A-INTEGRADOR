@@ -1,34 +1,35 @@
-# App web Blazor. También corre cuando cambia el Core, porque depende de él.
-name: App web Blazor
+name: Backend CI (API y Blazor)
 
 on:
   push:
     branches: [7jaylosmolcafriends-almacen-develop, 7jaylosmolcafriends-almacen-main]
     paths:
+      - "Almacen/Backend/src/AlmacenInteligente.Api/**"
       - "Almacen/Backend/src/AlmacenInteligente.Web/**"
       - "Almacen/Backend/src/AlmacenInteligente.Domain/**"
       - "Almacen/Backend/src/AlmacenInteligente.Application/**"
       - "Almacen/Backend/src/AlmacenInteligente.Infrastructure/**"
       - "Almacen/Backend/Directory.Build.props"
       - "Almacen/Backend/global.json"
-      - ".github/workflows/7jaylosmolcafriends-almacen-web.yml"
+      - ".github/workflows/7jaylosmolcafriends-almacen-backend.yml"
   pull_request:
     branches: [7jaylosmolcafriends-almacen-develop, 7jaylosmolcafriends-almacen-main]
     paths:
+      - "Almacen/Backend/src/AlmacenInteligente.Api/**"
       - "Almacen/Backend/src/AlmacenInteligente.Web/**"
       - "Almacen/Backend/src/AlmacenInteligente.Domain/**"
       - "Almacen/Backend/src/AlmacenInteligente.Application/**"
       - "Almacen/Backend/src/AlmacenInteligente.Infrastructure/**"
       - "Almacen/Backend/Directory.Build.props"
       - "Almacen/Backend/global.json"
-      - ".github/workflows/7jaylosmolcafriends-almacen-web.yml"
+      - ".github/workflows/7jaylosmolcafriends-almacen-backend.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: 7jaylosmolcafriends-almacen-web-${{ github.ref }}
+  group: 7jaylosmolcafriends-almacen-backend-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -37,8 +38,18 @@ env:
 
 jobs:
   build:
-    name: Compilar y publicar
+    name: Compilar y publicar (${{ matrix.nombre }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nombre: API
+            proyecto: AlmacenInteligente.Api
+            salida: api
+          - nombre: Blazor
+            proyecto: AlmacenInteligente.Web
+            salida: web
     defaults:
       run:
         working-directory: Almacen/Backend
@@ -56,14 +67,14 @@ jobs:
           restore-keys: nuget-${{ runner.os }}-
 
       - name: Compilar
-        run: dotnet build src/AlmacenInteligente.Web/AlmacenInteligente.Web.csproj -c Release
+        run: dotnet build src/${{ matrix.proyecto }}/${{ matrix.proyecto }}.csproj -c Release
 
       - name: Publicar
-        run: dotnet publish src/AlmacenInteligente.Web/AlmacenInteligente.Web.csproj -c Release --no-build -o publish/web
+        run: dotnet publish src/${{ matrix.proyecto }}/${{ matrix.proyecto }}.csproj -c Release --no-build -o publish/${{ matrix.salida }}
 
       - name: Subir paquete publicado
         uses: actions/upload-artifact@v4
         with:
-          name: web-publish
-          path: Almacen/Backend/publish/web
+          name: ${{ matrix.salida }}-publish
+          path: Almacen/Backend/publish/${{ matrix.salida }}
           retention-days: 7
