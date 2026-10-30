@@ -1,8 +1,19 @@
 {
   "version": 2,
-  "dgSpecHash": "WGtTXxfKjT0=",
+  "dgSpecHash": "cycvm3Gvc0w=",
   "success": true,
-  "projectFilePath": "C:\\Users\\elise\\ISC09A-INTEGRADOR\\Estacionamiento\\Backend\\EstacionamientoInteligente.Application\\EstacionamientoInteligente.Application.csproj",
-  "expectedPackageFiles": [],
+  "projectFilePath": "C:\\Users\\icrye\\OneDrive\\Desktop\\ISC09A-INTEGRADOR\\Estacionamiento\\Backend\\EstacionamientoInteligente.Application\\EstacionamientoInteligente.Application.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\icrye\\.nuget\\packages\\fluentvalidation\\12.2.0\\fluentvalidation.12.2.0.nupkg.sha512",
+    "C:\\Users\\icrye\\.nuget\\packages\\fluentvalidation.dependencyinjectionextensions\\12.2.0\\fluentvalidation.dependencyinjectionextensions.12.2.0.nupkg.sha512",
+    "C:\\Users\\icrye\\.nuget\\packages\\mediatr\\14.2.0\\mediatr.14.2.0.nupkg.sha512",
+    "C:\\Users\\icrye\\.nuget\\packages\\mediatr.contracts\\2.0.1\\mediatr.contracts.2.0.1.nupkg.sha512",
+    "C:\\Users\\icrye\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\10.0.0\\microsoft.extensions.dependencyinjection.abstractions.10.0.0.nupkg.sha512",
+    "C:\\Users\\icrye\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\10.0.0\\microsoft.extensions.logging.abstractions.10.0.0.nupkg.sha512",
+    "C:\\Users\\icrye\\.nuget\\packages\\microsoft.identitymodel.abstractions\\8.14.0\\microsoft.identitymodel.abstractions.8.14.0.nupkg.sha512",
+    "C:\\Users\\icrye\\.nuget\\packages\\microsoft.identitymodel.jsonwebtokens\\8.14.0\\microsoft.identitymodel.jsonwebtokens.8.14.0.nupkg.sha512",
+    "C:\\Users\\icrye\\.nuget\\packages\\microsoft.identitymodel.logging\\8.14.0\\microsoft.identitymodel.logging.8.14.0.nupkg.sha512",
+    "C:\\Users\\icrye\\.nuget\\packages\\microsoft.identitymodel.tokens\\8.14.0\\microsoft.identitymodel.tokens.8.14.0.nupkg.sha512"
+  ],
   "logs": []
 }

@@ -1,0 +1,31 @@
+# ==============================================================================
+# requirements.txt: Dependencias del Agente Edge (Raspberry Pi 5)
+# Python 3.11+
+# ==============================================================================
+
+# Modelos de datos y configuración fuertemente tipada
+pydantic>=2.7.0
+pydantic-settings>=2.2.0
+
+# Inferencia de Visión y Procesamiento de Imágenes
+opencv-python-headless>=4.9.0.80
+onnxruntime>=1.17.0
+numpy>=1.26.4
+pillow>=10.3.0
+
+# Comunicación HTTP / mTLS y WebSockets
+requests>=2.31.0
+urllib3>=2.2.1
+certifi>=2024.2.2
+
+# Telemetría y Gemelo Digital en Azure IoT Hub
+azure-iot-device>=2.13.0
+
+# Base de datos local para modo degradado (SQLite viene en estándar library de Python)
+# Utilidades de hardware GPIO (para Raspberry Pi real)
+# RPi.GPIO>=0.7.1; platform_machine=="armv7l" or platform_machine=="aarch64"
+
+# Pruebas automatizadas de la máquina de estados edge
+pytest>=8.1.0
+pytest-mock>=3.14.0
+pytest-asyncio>=0.23.6

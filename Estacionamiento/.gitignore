@@ -1,0 +1,114 @@
+# ==============================================================================
+# .gitignore: Estacionamiento Inteligente de Aeropuerto
+# Repositorio Oficial: https://github.com/AlejandroMechE/-SmartParkingLotAirports.git
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Secretos, Credenciales y Certificados Sensibles (MÁXIMA SEGURIDAD)
+# ------------------------------------------------------------------------------
+# Variables de entorno
+.env
+.env.*
+!.env.example
+*.env
+
+# Certificados criptográficos, claves privadas y firmas
+*.pem
+*.pfx
+*.cer
+*.crt
+*.key
+*.p12
+*.keystore
+*.jks
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+
+# Certificados del agente Edge (Raspberry Pi mTLS)
+edge/certs/*
+!edge/certs/.gitkeep
+edge/config.json
+!edge/config.example.json
+edge/data/
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Configuración de servicios en la nube y móviles con secretos
+*.publishsettings
+azure.json
+credentials.json
+service-account*.json
+google-services.json
+GoogleService-Info.plist
+*.mobileprovision
+
+# ------------------------------------------------------------------------------
+# 2. .NET / C#
+# ------------------------------------------------------------------------------
+bin/
+obj/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+appsettings.*.local.json
+appsettings.Local.json
+appsettings.secrets.json
+secrets.json
+TestResults/
+.vs/
+_ReSharper*/
+
+# ------------------------------------------------------------------------------
+# 3. Node.js / React Native / Expo
+# ------------------------------------------------------------------------------
+node_modules/
+.expo/
+dist/
+web-build/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ------------------------------------------------------------------------------
+# 4. Python (Edge Raspberry Pi)
+# ------------------------------------------------------------------------------
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ------------------------------------------------------------------------------
+# 5. Docker y Volúmenes de Base de Datos Local
+# ------------------------------------------------------------------------------
+mysql_data/
+redis_data/
+*.dump
+*.sql.gz
+
+# ------------------------------------------------------------------------------
+# 6. Sistemas Operativos y Editores (IDE)
+# ------------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json

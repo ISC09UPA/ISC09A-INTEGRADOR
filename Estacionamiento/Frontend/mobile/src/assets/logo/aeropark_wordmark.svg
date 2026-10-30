@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 240" fill="none">
+  <!-- AeroPark Wordmark Only (White on Transparent Overlay) -->
+  <text x="600" y="150" 
+        text-anchor="middle"
+        fill="#FFFFFF" 
+        font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Helvetica Neue', sans-serif" 
+        font-size="88" 
+        font-weight="600" 
+        letter-spacing="0.30em">AEROPARK</text>
+</svg>

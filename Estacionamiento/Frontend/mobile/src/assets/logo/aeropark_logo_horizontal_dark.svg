@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 400" fill="none">
+  <!-- AeroPark Horizontal Lockup - Dark/Black for White Backgrounds -->
+  <!-- Delta Apex Emblem in Pure Black -->
+  <g transform="translate(60, 50) scale(0.586)">
+    <polygon points="246,92 82,368 194,318 246,389" fill="#000000" />
+    <polygon points="266,92 430,368 318,318 266,389" fill="#000000" />
+  </g>
+
+  <!-- Brand Typography -->
+  <text x="400" y="215" 
+        fill="#000000" 
+        font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'Helvetica Neue', sans-serif" 
+        font-size="96" 
+        font-weight="700" 
+        letter-spacing="0.22em">AEROPARK</text>
+        
+  <!-- Tagline -->
+  <text x="406" y="270" 
+        fill="#6E6E73" 
+        font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Helvetica Neue', sans-serif" 
+        font-size="26" 
+        font-weight="500" 
+        letter-spacing="0.45em">AIRPORT MOBILITY · CASHLESS</text>
+</svg>

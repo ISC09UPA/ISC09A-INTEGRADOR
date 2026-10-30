@@ -1,0 +1,40 @@
+{
+  "terminalId": "AGU-T1",
+  "laneId": "lane-entry-01",
+  "laneType": "ENTRY",
+  "backendUrl": "https://api.airportparking.aero/api/v1",
+  "iotHubHost": "airport-parking-hub.azure-devices.net",
+  "tls": {
+    "certPath": "./certs/device.crt",
+    "keyPath": "./certs/device.key",
+    "caPath": "./certs/ca.pem"
+  },
+  "camera": {
+    "rtspUrl": "rtsp://admin:pass@192.168.1.50:554/stream1",
+    "fps": 25,
+    "burstFrames": 5
+  },
+  "yolo": {
+    "modelPath": "./models/yolov8n-plate.onnx",
+    "confidenceThreshold": 0.85
+  },
+  "ocr": {
+    "cloudTimeoutMs": 800,
+    "minConfidence": 0.90
+  },
+  "offline": {
+    "sqliteDbPath": "./data/offline_events.db",
+    "cacheTtlMinutes": 15
+  },
+  "simulation": {
+    "totalBays": 4,
+    "bays": [
+      { "id": "bay-01", "name": "Cajón 01", "echoPin": 22, "trigPin": 23 },
+      { "id": "bay-02", "name": "Cajón 02", "echoPin": 24, "trigPin": 25 },
+      { "id": "bay-03", "name": "Cajón 03", "echoPin": 26, "trigPin": 27, "isEv": true },
+      { "id": "bay-04", "name": "Cajón 04", "echoPin": 28, "trigPin": 29 }
+    ],
+    "barrierServoPin": 18,
+    "inductiveLoopPin": 17
+  }
+}
