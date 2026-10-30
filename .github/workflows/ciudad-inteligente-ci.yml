@@ -1,0 +1,42 @@
+name: Ciudad-inteligente Backend CI
+
+on:
+  push:
+    branches: [Main-Ciudad]
+    paths:
+      - "Ciudad/Backend/**"
+      - ".github/workflows/ciudad-inteligente-ci.yml"
+  pull_request:
+    branches: [Main-Ciudad]
+    paths:
+      - "Ciudad/Backend/**"
+      - ".github/workflows/ciudad-inteligente-ci.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: Ciudad-inteligente-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Ciudad-inteligente Backend (.NET)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Ciudad/Backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore CiudadInteligente.slnx
+
+      - name: Build
+        run: dotnet build CiudadInteligente.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test CiudadInteligente.slnx --configuration Release --no-build --verbosity normal
