@@ -1,0 +1,83 @@
+@using AlmacenInteligente.Application.Usuarios
+@inherits PaginaBase
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudForm @ref="_form">
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_nombre" Label="Nombre completo" Required="true" RequiredError="Obligatorio" MaxLength="200" />
+                <MudTextField @bind-Value="_correo" Label="Correo" InputType="InputType.Email" Required="true" RequiredError="Obligatorio"
+                              Disabled="EsEdicion" HelperText="@(EsEdicion ? "Es el usuario para iniciar sesión; no se puede cambiar" : "Con este correo inicia sesión")" />
+                <MudSelect @bind-Value="_rol" Label="Rol" Required="true" RequiredError="Obligatorio" AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var rol in Roles.Todos)
+                    {
+                        <MudSelectItem Value="@rol">@Roles.Nombre(rol)</MudSelectItem>
+                    }
+                </MudSelect>
+                @if (EsEdicion)
+                {
+                    <MudSwitch @bind-Value="_activo" Color="Color.Primary" Label="@(_activo ? "Activo" : "Desactivado: no puede iniciar sesión")" />
+                }
+                else
+                {
+                    <MudTextField @bind-Value="_contrasena" Label="Contraseña inicial" InputType="InputType.Password" Required="true"
+                                  RequiredError="Obligatorio" HelperText="Mínimo 8 caracteres, con mayúscula, minúscula y número" />
+                }
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialogo.Cancel()" Disabled="_guardando">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="GuardarAsync" Disabled="_guardando">
+            @(_guardando ? "Guardando…" : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+
+    [Parameter] public UsuarioDto? Actual { get; set; }
+
+    private bool EsEdicion => Actual is not null;
+    private MudForm _form = default!;
+    private string _nombre = string.Empty;
+    private string _correo = string.Empty;
+    private string _rol = Roles.AgenteVentas;
+    private string _contrasena = string.Empty;
+    private bool _activo = true;
+    private string? _error;
+    private bool _guardando;
+
+    protected override Task AlIniciarAsync()
+    {
+        if (Actual is not null)
+            (_nombre, _correo, _rol, _activo) = (Actual.Nombre, Actual.Correo, Actual.Rol, Actual.Activo);
+        return Task.CompletedTask;
+    }
+
+    private async Task GuardarAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+            return;
+
+        _guardando = true;
+        _error = null;
+        var (valor, mensaje) = Actual is null
+            ? await EjecutarAsync(new CrearUsuario(_nombre, _correo, _rol, _contrasena))
+            : await EjecutarAsync(new ActualizarUsuario(Actual.Id, _nombre, _rol, _activo));
+        _guardando = false;
+
+        if (mensaje is not null)
+        {
+            _error = mensaje;
+            return;
+        }
+        Dialogo.Close(DialogResult.Ok(valor));
+    }
+}
