@@ -1,0 +1,13 @@
+@page "/proveedores"
+@attribute [Authorize(Policy = Permisos.Proveedores.Ver)]
+@using AlmacenInteligente.Application.Proveedores
+@using AlmacenInteligente.Web.Components.Terceros
+
+<PageTitle>Proveedores · Almacén inteligente</PageTitle>
+
+<ListaTerceros Titulo="Proveedores" Singular="proveedor" Descripcion="Empresas que surten mercancía en las recepciones."
+               PermisoCrear="@Permisos.Proveedores.Crear" PermisoEditar="@Permisos.Proveedores.Editar"
+               Listar="(texto, inactivos, pagina, tamano) => new ListarProveedores(texto, inactivos, pagina, tamano)"
+               Crear="datos => new CrearProveedor(datos)"
+               Editar="(id, datos) => new EditarProveedor(id, datos)"
+               CambiarEstado="(id, activo) => new CambiarEstadoProveedor(id, activo)" />

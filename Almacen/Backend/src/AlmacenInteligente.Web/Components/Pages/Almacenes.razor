@@ -1,0 +1,155 @@
+@page "/almacenes"
+@attribute [Authorize(Policy = Permisos.Almacenes.Ver)]
+@using AlmacenInteligente.Application.Almacenes
+@using AlmacenInteligente.Application.Consultas
+@inherits PaginaBase
+@inject IDialogService Dialogos
+
+<PageTitle>Almacenes · Almacén inteligente</PageTitle>
+
+<Encabezado Titulo="Almacenes" Descripcion="Lugares donde se guarda la mercancía y su valor de inventario.">
+    <Acciones>
+        @if (Puede(Permisos.Almacenes.Gestionar))
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="() => AbrirAsync(null)">Nuevo almacén</MudButton>
+        }
+    </Acciones>
+</Encabezado>
+
+<MudPaper Outlined="true" Elevation="0">
+    <MudTable T="AlmacenDto" Items="_almacenes" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm" Loading="_cargando"
+              LoadingProgressColor="Color.Primary" Elevation="0">
+        <ToolBarContent>
+            <MudSpacer />
+            <MudSwitch T="bool" Value="_inactivos" ValueChanged="CambiarInactivosAsync" Color="Color.Primary" Label="Mostrar inactivos" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Ubicación</MudTh>
+            <MudTh Style="text-align:right">Productos con existencia</MudTh>
+            <MudTh Style="text-align:right">Valor de inventario</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh Style="text-align:right">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Nombre"><b>@context.Nombre</b></MudTd>
+            <MudTd DataLabel="Ubicación"><span class="tabla-celda-secundaria">@context.Ubicacion</span></MudTd>
+            <MudTd DataLabel="Productos" Style="text-align:right">@context.Productos</MudTd>
+            <MudTd DataLabel="Valor" Style="text-align:right">@Formato.Dinero(context.ValorInventario)</MudTd>
+            <MudTd DataLabel="Estado"><Chip Texto="@(context.Activo ? "Activo" : "Inactivo")" Color="@(context.Activo ? Color.Success : Color.Default)" /></MudTd>
+            <MudTd DataLabel="Acciones" Style="text-align:right; white-space:nowrap">
+                @if (Puede(Permisos.Almacenes.VerExistencias))
+                {
+                    <MudTooltip Text="Ver existencias">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Inventory" Size="Size.Small" Href="@($"existencias?almacen={context.Id}")" aria-label="Ver existencias" />
+                    </MudTooltip>
+                }
+                @if (Puede(Permisos.Almacenes.Gestionar))
+                {
+                    <MudTooltip Text="Editar">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" OnClick="() => AbrirAsync(context)" aria-label="Editar" />
+                    </MudTooltip>
+                    <MudTooltip Text="@(context.Activo ? "Desactivar" : "Activar")">
+                        <MudIconButton Icon="@(context.Activo ? Icons.Material.Outlined.Block : Icons.Material.Outlined.CheckCircle)" Size="Size.Small"
+                                       OnClick="() => CambiarEstadoAsync(context)" aria-label="@(context.Activo ? "Desactivar" : "Activar")" />
+                    </MudTooltip>
+                }
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-6" Color="Color.Secondary">Todavía no hay almacenes.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+<MudDialog @bind-Visible="_dialogoVisible" Options="new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true }">
+    <TitleContent>@(_editando is null ? "Nuevo almacén" : $"Editar {_editando.Nombre}")</TitleContent>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudForm @ref="_form">
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_nombre" Label="Nombre" Required="true" RequiredError="Obligatorio" MaxLength="120" />
+                <MudTextField @bind-Value="_ubicacion" Label="Ubicación" Required="true" RequiredError="Obligatorio" MaxLength="300"
+                              HelperText="Dirección o referencia para encontrarlo" />
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _dialogoVisible = false">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="GuardarAsync" Disabled="_guardando">Guardar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private IReadOnlyList<AlmacenDto> _almacenes = [];
+    private bool _cargando = true;
+    private bool _inactivos;
+
+    private bool _dialogoVisible;
+    private AlmacenDto? _editando;
+    private MudForm _form = default!;
+    private string _nombre = string.Empty;
+    private string _ubicacion = string.Empty;
+    private string? _error;
+    private bool _guardando;
+
+    protected override Task AlIniciarAsync() => CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        _cargando = true;
+        var (_, almacenes) = await IntentarAsync(new ListarAlmacenes(_inactivos));
+        _almacenes = almacenes ?? [];
+        _cargando = false;
+    }
+
+    private async Task CambiarInactivosAsync(bool valor)
+    {
+        _inactivos = valor;
+        await CargarAsync();
+    }
+
+    private Task AbrirAsync(AlmacenDto? almacen)
+    {
+        _editando = almacen;
+        (_nombre, _ubicacion) = almacen is null ? (string.Empty, string.Empty) : (almacen.Nombre, almacen.Ubicacion);
+        _error = null;
+        _dialogoVisible = true;
+        return Task.CompletedTask;
+    }
+
+    private async Task GuardarAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+            return;
+        _guardando = true;
+        var (_, mensaje) = _editando is null
+            ? await EjecutarAsync(new CrearAlmacen(_nombre, _ubicacion))
+            : await EjecutarAsync(new EditarAlmacen(_editando.Id, _nombre, _ubicacion));
+        _guardando = false;
+        if (mensaje is not null)
+        {
+            _error = mensaje;
+            return;
+        }
+        _dialogoVisible = false;
+        Avisos.Add(_editando is null ? $"Almacén {_nombre} creado." : "Cambios guardados.", Severity.Success);
+        await CargarAsync();
+    }
+
+    private async Task CambiarEstadoAsync(AlmacenDto almacen)
+    {
+        if (almacen.Activo && await Dialogos.ShowMessageBoxAsync("Desactivar almacén",
+                $"{almacen.Nombre} ya no se podrá usar en nuevos documentos. Sus existencias e historial se conservan.",
+                yesText: "Desactivar", cancelText: "Cancelar") != true)
+            return;
+        var (exito, _) = await IntentarAsync(new CambiarEstadoAlmacen(almacen.Id, !almacen.Activo),
+            almacen.Activo ? $"{almacen.Nombre} se desactivó." : $"{almacen.Nombre} se activó.");
+        if (exito)
+            await CargarAsync();
+    }
+}
