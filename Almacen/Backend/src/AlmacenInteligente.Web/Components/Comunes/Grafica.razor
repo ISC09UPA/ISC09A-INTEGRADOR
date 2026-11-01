@@ -1,0 +1,26 @@
+@using AlmacenInteligente.Application.Consultas
+
+<MudPaper Outlined="true" Elevation="0" Class="pa-4 h-100">
+    <MudText Typo="Typo.subtitle1"><b>@Titulo</b></MudText>
+    @if (Puntos.Count == 0 || Puntos.All(p => p.Valor == 0))
+    {
+        <MudText Color="Color.Secondary" Class="py-6">Sin datos en el periodo.</MudText>
+    }
+    else if (Tipo is ChartType.Donut or ChartType.Pie)
+    {
+        <MudChart T="double" ChartType="Tipo" ChartSeries="Series" ChartLabels="Puntos.Select(p => p.Etiqueta).ToArray()" Width="100%" Height="280px" />
+    }
+    else
+    {
+        <MudChart T="double" ChartType="Tipo" ChartSeries="Series" ChartLabels="Pages.Reportes.Etiquetas(Puntos.Select(p => p.Etiqueta).ToList())" Width="100%" Height="300px" />
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string Titulo { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public IReadOnlyList<PuntoDto> Puntos { get; set; } = [];
+    [Parameter] public ChartType Tipo { get; set; } = ChartType.Bar;
+    [Parameter] public string Serie { get; set; } = "Valor";
+
+    private List<ChartSeries<double>> Series => [new() { Name = Serie, Data = Puntos.Select(p => (double)p.Valor).ToArray() }];
+}

@@ -1,0 +1,9 @@
+@inject NavigationManager Navegacion
+
+@code {
+    protected override void OnInitialized()
+    {
+        var regreso = Uri.EscapeDataString(Navegacion.ToBaseRelativePath(Navegacion.Uri));
+        Navegacion.NavigateTo($"cuenta/ingresar?ReturnUrl=%2F{regreso}", forceLoad: true);
+    }
+}

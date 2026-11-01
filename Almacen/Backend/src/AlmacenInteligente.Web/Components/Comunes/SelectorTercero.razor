@@ -1,0 +1,27 @@
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Application.Documentos
+@inherits PaginaBase
+
+<MudAutocomplete T="OpcionDto" Value="Value" ValueChanged="ValueChanged" Label="@Label" SearchFunc="BuscarAsync"
+                 ToStringFunc="@(o => o?.Texto)" DebounceInterval="300" ResetValueOnEmptyText="true" MinCharacters="0"
+                 MaxItems="20" Strict="true" Required="true" RequiredError="@($"Elige el {Label.ToLowerInvariant()}")"
+                 Placeholder="Nombre, código o RFC">
+    <NoItemsTemplate>
+        <MudText Class="pa-2" Typo="Typo.body2">No hay @(Clientes ? "clientes" : "proveedores") activos con ese texto.</MudText>
+    </NoItemsTemplate>
+</MudAutocomplete>
+
+@code {
+    [Parameter] public OpcionDto? Value { get; set; }
+    [Parameter] public EventCallback<OpcionDto?> ValueChanged { get; set; }
+    [Parameter] public bool Clientes { get; set; }
+    [Parameter] public string Label { get; set; } = "Cliente";
+
+    private async Task<IEnumerable<OpcionDto>> BuscarAsync(string? texto, CancellationToken ct)
+    {
+        var (_, opciones) = Clientes
+            ? await IntentarAsync(new BuscarClientesActivos(texto))
+            : await IntentarAsync(new BuscarProveedoresActivos(texto));
+        return opciones ?? [];
+    }
+}

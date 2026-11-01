@@ -1,0 +1,85 @@
+﻿<MudNavMenu Class="pt-2">
+    <MudNavLink Href="" Match="NavLinkMatch.All" Icon="@Icons.Material.Outlined.SpaceDashboard">Inicio</MudNavLink>
+
+    <AuthorizeView>
+        @{ var u = context.User; }
+
+        @if (Puede(u, Permisos.Ventas.Ver) || Puede(u, Permisos.Recepciones.Ver) || Puede(u, Permisos.Traspasos.Ver))
+        {
+            <Seccion Titulo="Operación" />
+            @if (Puede(u, Permisos.Ventas.Ver))
+            {
+                <MudNavLink Href="ventas" Icon="@Icons.Material.Outlined.PointOfSale">Ventas</MudNavLink>
+            }
+            @if (Puede(u, Permisos.Recepciones.Ver))
+            {
+                <MudNavLink Href="recepciones" Icon="@Icons.Material.Outlined.MoveToInbox">Recepciones</MudNavLink>
+            }
+            @if (Puede(u, Permisos.Traspasos.Ver))
+            {
+                <MudNavLink Href="traspasos" Icon="@Icons.Material.Outlined.SyncAlt">Traspasos</MudNavLink>
+            }
+        }
+
+        @if (Puede(u, Permisos.Almacenes.VerExistencias))
+        {
+            <Seccion Titulo="Inventario" />
+            <MudNavLink Href="existencias" Icon="@Icons.Material.Outlined.Inventory">Existencias</MudNavLink>
+            <MudNavLink Href="movimientos" Icon="@Icons.Material.Outlined.SwapVert">Movimientos</MudNavLink>
+            <MudNavLink Href="kardex" Icon="@Icons.Material.Outlined.ReceiptLong">Kardex</MudNavLink>
+        }
+
+        <Seccion Titulo="Catálogos" />
+        @if (Puede(u, Permisos.Productos.Ver))
+        {
+            <MudNavLink Href="productos" Icon="@Icons.Material.Outlined.Category">Productos</MudNavLink>
+        }
+        @if (Puede(u, Permisos.Productos.Aprobar))
+        {
+            <MudNavLink Href="productos/aprobaciones" Icon="@Icons.Material.Outlined.FactCheck">Aprobaciones</MudNavLink>
+        }
+        @if (Puede(u, Permisos.Almacenes.Ver))
+        {
+            <MudNavLink Href="almacenes" Icon="@Icons.Material.Outlined.Warehouse">Almacenes</MudNavLink>
+        }
+        @if (Puede(u, Permisos.Clientes.Ver))
+        {
+            <MudNavLink Href="clientes" Icon="@Icons.Material.Outlined.Groups">Clientes</MudNavLink>
+        }
+        @if (Puede(u, Permisos.Proveedores.Ver))
+        {
+            <MudNavLink Href="proveedores" Icon="@Icons.Material.Outlined.LocalShipping">Proveedores</MudNavLink>
+        }
+
+        @if (Puede(u, Permisos.Finanzas.Ver) || Puede(u, Permisos.Reportes.Ver))
+        {
+            <Seccion Titulo="Análisis" />
+            @if (Puede(u, Permisos.Reportes.Ver))
+            {
+                <MudNavLink Href="reportes" Icon="@Icons.Material.Outlined.Insights">Reportes</MudNavLink>
+            }
+            @if (Puede(u, Permisos.Finanzas.Ver))
+            {
+                <MudNavLink Href="finanzas" Icon="@Icons.Material.Outlined.AccountBalance">Movimientos financieros</MudNavLink>
+            }
+        }
+
+        @if (Puede(u, Permisos.Usuarios.Gestionar) || Puede(u, Permisos.Api.Acceder))
+        {
+            <Seccion Titulo="Administración" />
+            @if (Puede(u, Permisos.Usuarios.Gestionar))
+            {
+                <MudNavLink Href="usuarios" Icon="@Icons.Material.Outlined.ManageAccounts">Usuarios</MudNavLink>
+            }
+            @if (Puede(u, Permisos.Api.Acceder))
+            {
+                <MudNavLink Href="api-web" Icon="@Icons.Material.Outlined.Api">API web</MudNavLink>
+            }
+        }
+    </AuthorizeView>
+</MudNavMenu>
+
+@code {
+    private static bool Puede(System.Security.Claims.ClaimsPrincipal usuario, string permiso) =>
+        usuario.HasClaim(UsuarioActualPrincipal.ClaimPermiso, permiso);
+}
