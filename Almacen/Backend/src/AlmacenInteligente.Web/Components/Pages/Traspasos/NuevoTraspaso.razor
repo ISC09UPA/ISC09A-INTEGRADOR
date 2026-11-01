@@ -1,0 +1,132 @@
+@page "/traspasos/nueva"
+@page "/traspasos/nuevo"
+@attribute [Authorize(Policy = Permisos.Traspasos.Crear)]
+@using AlmacenInteligente.Application.Almacenes
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Application.Documentos
+@inherits PaginaBase
+@inject NavigationManager Navegacion
+
+<PageTitle>Nuevo traspaso · Almacén inteligente</PageTitle>
+
+<Encabezado Titulo="Nuevo traspaso" Volver="traspasos" Descripcion="La mercancía sale del almacén de origen y entra al de destino con el mismo costo." />
+
+<MudPaper Outlined="true" Elevation="0" Class="pa-4 mb-4">
+    <MudGrid Spacing="3">
+        <MudItem xs="12" sm="6" md="4">
+            <MudSelect T="Guid?" @bind-Value="_origen" Label="Almacén de origen" AnchorOrigin="Origin.BottomCenter">
+                @foreach (var a in _almacenes)
+                {
+                    <MudSelectItem T="Guid?" Value="@a.Id">@a.Nombre</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudSelect T="Guid?" @bind-Value="_destino" Label="Almacén de destino" AnchorOrigin="Origin.BottomCenter"
+                       Error="_origen is not null && _origen == _destino" ErrorText="Debe ser distinto al origen">
+                @foreach (var a in _almacenes)
+                {
+                    <MudSelectItem T="Guid?" Value="@a.Id">@a.Nombre</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudDatePicker DateFormat="dd/MM/yyyy" @bind-Date="_fecha" Label="Fecha" Culture="Formato.Mx" MaxDate="DateTime.Today" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudPaper Outlined="true" Elevation="0" Class="pa-4">
+    <MudText Typo="Typo.h6" Class="mb-2">Productos</MudText>
+    @foreach (var linea in _lineas)
+    {
+        var disponible = Disponible(linea);
+        var excede = linea.Producto is not null && linea.Cantidad > disponible;
+        <MudGrid Spacing="2" Class="mb-1 align-center">
+            <MudItem xs="12" md="6">
+                <SelectorProducto @bind-Value="linea.Producto" Dense="true" />
+            </MudItem>
+            <MudItem xs="6" md="3">
+                <MudNumericField T="decimal" @bind-Value="linea.Cantidad" Label="Cantidad" Min="0" Format="0.###" Immediate="true"
+                                 Error="excede" ErrorText="@($"En origen hay {Formato.Cantidad(disponible)}")" />
+            </MudItem>
+            <MudItem xs="4" md="2">
+                @if (linea.Producto is not null)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">En origen: @Formato.Cantidad(disponible) @linea.Producto.Unidad</MudText>
+                }
+            </MudItem>
+            <MudItem xs="2" md="1" Class="d-flex justify-end">
+                <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small" OnClick="() => _lineas.Remove(linea)" Disabled="_lineas.Count == 1" aria-label="Quitar línea" />
+            </MudItem>
+        </MudGrid>
+    }
+    <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Text" Color="Color.Primary" OnClick="() => _lineas.Add(new Linea())" Class="mt-2">Agregar producto</MudButton>
+
+    <MudDivider Class="my-4" />
+    <div class="d-flex flex-wrap justify-space-between align-center gap-4">
+        <div>
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@_error</MudAlert>
+            }
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="RegistrarAsync" Disabled="_guardando">
+            @(_guardando ? "Registrando…" : "Registrar traspaso")
+        </MudButton>
+    </div>
+</MudPaper>
+
+@code {
+    private sealed class Linea
+    {
+        public ProductoOpcionDto? Producto { get; set; }
+        public decimal Cantidad { get; set; }
+    }
+
+    private IReadOnlyList<AlmacenDto> _almacenes = [];
+    private Guid? _origen;
+    private Guid? _destino;
+    private DateTime? _fecha = DateTime.Today;
+    private readonly List<Linea> _lineas = [new()];
+    private string? _error;
+    private bool _guardando;
+
+    protected override async Task AlIniciarAsync()
+    {
+        var (_, almacenes) = await IntentarAsync(new ListarAlmacenes());
+        _almacenes = almacenes ?? [];
+    }
+
+    private decimal Disponible(Linea l) =>
+        l.Producto?.Existencias.FirstOrDefault(e => e.AlmacenId == _origen)?.Cantidad ?? 0;
+
+    private async Task RegistrarAsync()
+    {
+        _error = null;
+        if (_origen is null || _destino is null || _fecha is null)
+        {
+            _error = "Elige origen, destino y fecha.";
+            return;
+        }
+        if (_lineas.Any(l => l.Producto is null || l.Cantidad <= 0))
+        {
+            _error = "Cada línea necesita producto y cantidad mayor que cero.";
+            return;
+        }
+
+        _guardando = true;
+        var solicitud = new RegistrarTraspaso(_origen.Value, _destino.Value, DateOnly.FromDateTime(_fecha.Value),
+            _lineas.Select(l => new LineaTraspasoDto(l.Producto!.Id, l.Cantidad)).ToList());
+        var (registrado, mensaje) = await EjecutarAsync(solicitud);
+        _guardando = false;
+
+        if (mensaje is not null)
+        {
+            _error = mensaje;
+            return;
+        }
+        Avisos.Add($"Traspaso {Formato.Folio("TRA", registrado!.Folio)} registrado.", Severity.Success);
+        Navegacion.NavigateTo($"traspasos/{registrado.Id}");
+    }
+}

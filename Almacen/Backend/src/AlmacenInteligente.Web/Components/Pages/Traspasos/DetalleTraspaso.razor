@@ -1,0 +1,25 @@
+@page "/traspasos/{Id:guid}"
+@attribute [Authorize(Policy = Permisos.Traspasos.Ver)]
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Application.Documentos
+@using AlmacenInteligente.Web.Components.Documentos
+@inherits PaginaBase
+
+<PageTitle>Traspaso · Almacén inteligente</PageTitle>
+
+@if (_detalle is null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <DetalleDocumento Detalle="_detalle" PdfUrl="@($"pdf/traspasos/{Id}")" Nombre="Traspaso" Prefijo="TRA" Volver="traspasos" EtiquetaPrecio="Costo unitario" MostrarImportes="false" />
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private DocumentoDetalleDto? _detalle;
+
+    protected override async Task AlIniciarAsync() => (_, _detalle) = await IntentarAsync(new ObtenerTraspaso(Id));
+}

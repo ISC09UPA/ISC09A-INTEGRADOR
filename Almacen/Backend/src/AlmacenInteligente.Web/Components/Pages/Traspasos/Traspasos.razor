@@ -1,0 +1,10 @@
+@page "/traspasos"
+@attribute [Authorize(Policy = Permisos.Traspasos.Ver)]
+@using AlmacenInteligente.Application.Documentos
+@using AlmacenInteligente.Web.Components.Documentos
+
+<PageTitle>Traspasos · Almacén inteligente</PageTitle>
+
+<ListaDocumentos Titulo="Traspasos" Descripcion="Movimientos de mercancía entre almacenes al costo promedio de origen. No generan movimiento financiero."
+                 Prefijo="TRA" RutaBase="traspasos" PermisoCrear="@Permisos.Traspasos.Crear" TextoNuevo="Nuevo traspaso"
+                 EtiquetaTercero="Origen → destino" MostrarImportes="false" Listar="f => new ListarTraspasos(f)" />

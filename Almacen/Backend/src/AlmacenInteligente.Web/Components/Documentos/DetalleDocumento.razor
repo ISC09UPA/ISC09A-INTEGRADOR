@@ -1,0 +1,133 @@
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Domain.Documentos
+
+@* Vista de una recepción, venta o traspaso ya registrado. *@
+
+@{ var (estado, color) = Formato.Estado(Detalle.Estado); }
+
+<Encabezado Titulo="@($"{Nombre} {Formato.Folio(Prefijo, Detalle.Folio)}")" Volver="@Volver">
+    <Acciones>
+        <Chip Texto="@estado" Color="color" />
+        <MudButtonGroup Variant="Variant.Outlined" Color="Color.Primary">
+            <MudButton Href="@PdfUrl" Target="_blank" StartIcon="@Icons.Material.Outlined.PictureAsPdf">Ver PDF</MudButton>
+            <MudIconButton Href="@($"{PdfUrl}?descargar=true")" Icon="@Icons.Material.Outlined.Download" aria-label="Descargar PDF" title="Descargar PDF" />
+        </MudButtonGroup>
+        @if (PuedeCancelar && Detalle.Estado == EstadoDocumento.Confirmado)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Outlined.Cancel" OnClick="OnCancelar">Cancelar @Nombre.ToLowerInvariant()</MudButton>
+        }
+    </Acciones>
+</Encabezado>
+
+@if (Detalle.Estado == EstadoDocumento.Cancelado)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">
+        Cancelado por @Detalle.CanceladoPor el @(Detalle.CanceladoEn is { } f ? Formato.FechaHora(f) : "—"). Motivo: @Detalle.MotivoCancelacion
+    </MudAlert>
+}
+
+<MudGrid Spacing="3" Class="mb-4">
+    @if (Detalle.Tercero is not null)
+    {
+        <MudItem xs="12" md="5">
+            <MudPaper Outlined="true" Elevation="0" Class="pa-4 h-100">
+                <MudText Typo="Typo.overline" Color="Color.Secondary">@EtiquetaTercero</MudText>
+                <MudText Typo="Typo.h6">@Detalle.Tercero</MudText>
+                <MudText Typo="Typo.body2">RFC @Detalle.TerceroRfc</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@Detalle.TerceroCorreo</MudText>
+            </MudPaper>
+        </MudItem>
+    }
+    <MudItem xs="12" md="@(Detalle.Tercero is null ? 12 : 7)">
+        <MudPaper Outlined="true" Elevation="0" Class="pa-4 h-100">
+            <MudGrid Spacing="2">
+                <MudItem xs="6" sm="3">
+                    <MudText Typo="Typo.overline" Color="Color.Secondary">Fecha</MudText>
+                    <MudText>@Formato.Fecha(Detalle.Fecha)</MudText>
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudText Typo="Typo.overline" Color="Color.Secondary">@(Detalle.AlmacenDestino is null ? "Almacén" : "Origen")</MudText>
+                    <MudText>@Detalle.Almacen</MudText>
+                </MudItem>
+                @if (Detalle.AlmacenDestino is not null)
+                {
+                    <MudItem xs="6" sm="3">
+                        <MudText Typo="Typo.overline" Color="Color.Secondary">Destino</MudText>
+                        <MudText>@Detalle.AlmacenDestino</MudText>
+                    </MudItem>
+                }
+                <MudItem xs="6" sm="3">
+                    <MudText Typo="Typo.overline" Color="Color.Secondary">Registró</MudText>
+                    <MudText>@Detalle.CreadoPor</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@Formato.FechaHora(Detalle.CreadoEn)</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudPaper Outlined="true" Elevation="0">
+    <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                @if (AlmacenPorLinea)
+                {
+                    <th>Almacén</th>
+                }
+                <th class="numero">Cantidad</th>
+                <th class="numero">@EtiquetaPrecio</th>
+                @if (MostrarImportes)
+                {
+                    <th class="numero">IVA</th>
+                    <th class="numero">Subtotal</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var l in Detalle.Lineas)
+            {
+                <tr>
+                    <td><b>@l.Referencia</b> <span class="tabla-celda-secundaria">@l.Descripcion</span></td>
+                    @if (AlmacenPorLinea)
+                    {
+                        <td>@l.Almacen</td>
+                    }
+                    <td class="numero">@Formato.Cantidad(l.Cantidad) @l.Unidad</td>
+                    <td class="numero">@Formato.Costo(l.PrecioUnitario)</td>
+                    @if (MostrarImportes)
+                    {
+                        <td class="numero">@Formato.Porcentaje(l.TasaIva)</td>
+                        <td class="numero">@Formato.Dinero(l.Subtotal)</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+    @if (MostrarImportes)
+    {
+        <div class="d-flex justify-end pa-4">
+            <div class="totales">
+                <div class="fila"><span>Subtotal</span><span>@Formato.Dinero(Detalle.Subtotal)</span></div>
+                <div class="fila"><span>IVA</span><span>@Formato.Dinero(Detalle.Iva)</span></div>
+                <div class="fila total"><span>Total</span><span>@Formato.Dinero(Detalle.Total)</span></div>
+            </div>
+        </div>
+    }
+</MudPaper>
+
+@code {
+
+    [Parameter, EditorRequired] public DocumentoDetalleDto Detalle { get; set; } = default!;
+    [Parameter, EditorRequired] public string Nombre { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Prefijo { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Volver { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string PdfUrl { get; set; } = string.Empty;
+    [Parameter] public string EtiquetaTercero { get; set; } = "Cliente";
+    [Parameter] public string EtiquetaPrecio { get; set; } = "Precio unitario";
+    [Parameter] public bool AlmacenPorLinea { get; set; }
+    [Parameter] public bool MostrarImportes { get; set; } = true;
+    [Parameter] public bool PuedeCancelar { get; set; }
+    [Parameter] public EventCallback OnCancelar { get; set; }
+
+}
