@@ -4,22 +4,15 @@ on:
   push:
     branches: [7jaylosmolcafriends-almacen-develop, 7jaylosmolcafriends-almacen-main]
     paths:
-      - "Almacen/Backend/src/AlmacenInteligente.Api/**"
-      - "Almacen/Backend/src/AlmacenInteligente.Web/**"
-      - "Almacen/Backend/src/AlmacenInteligente.Domain/**"
-      - "Almacen/Backend/src/AlmacenInteligente.Application/**"
-      - "Almacen/Backend/src/AlmacenInteligente.Infrastructure/**"
+      - "Almacen/Backend/src/**"
       - "Almacen/Backend/Directory.Build.props"
       - "Almacen/Backend/global.json"
       - ".github/workflows/7jaylosmolcafriends-almacen-backend.yml"
   pull_request:
     branches: [7jaylosmolcafriends-almacen-develop, 7jaylosmolcafriends-almacen-main]
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
-      - "Almacen/Backend/src/AlmacenInteligente.Api/**"
-      - "Almacen/Backend/src/AlmacenInteligente.Web/**"
-      - "Almacen/Backend/src/AlmacenInteligente.Domain/**"
-      - "Almacen/Backend/src/AlmacenInteligente.Application/**"
-      - "Almacen/Backend/src/AlmacenInteligente.Infrastructure/**"
+      - "Almacen/Backend/src/**"
       - "Almacen/Backend/Directory.Build.props"
       - "Almacen/Backend/global.json"
       - ".github/workflows/7jaylosmolcafriends-almacen-backend.yml"
@@ -35,21 +28,15 @@ concurrency:
 env:
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
 
 jobs:
   build:
-    name: Compilar y publicar (${{ matrix.nombre }})
+    name: Compilar API y Blazor
+    # Los PR en borrador no gastan minutos; corren al marcarlos como listos.
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - nombre: API
-            proyecto: AlmacenInteligente.Api
-            salida: api
-          - nombre: Blazor
-            proyecto: AlmacenInteligente.Web
-            salida: web
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: Almacen/Backend
@@ -63,18 +50,33 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('Almacen/Backend/**/*.csproj', 'Almacen/Backend/Directory.Build.props') }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('Almacen/Backend/src/**/*.csproj', 'Almacen/Backend/Directory.Build.props') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      - name: Compilar
-        run: dotnet build src/${{ matrix.proyecto }}/${{ matrix.proyecto }}.csproj -c Release
+      # Un solo runner: Domain, Application e Infrastructure se compilan una vez y los dos hosts los reutilizan.
+      - name: Restaurar
+        run: |
+          dotnet restore src/AlmacenInteligente.Api/AlmacenInteligente.Api.csproj
+          dotnet restore src/AlmacenInteligente.Web/AlmacenInteligente.Web.csproj
 
+      - name: Compilar API
+        run: dotnet build src/AlmacenInteligente.Api/AlmacenInteligente.Api.csproj -c Release --no-restore
+
+      - name: Compilar Blazor
+        run: dotnet build src/AlmacenInteligente.Web/AlmacenInteligente.Web.csproj -c Release --no-restore
+
+      # Publicar y guardar artefactos solo al integrar en main; en PR y develop basta con compilar.
       - name: Publicar
-        run: dotnet publish src/${{ matrix.proyecto }}/${{ matrix.proyecto }}.csproj -c Release --no-build -o publish/${{ matrix.salida }}
+        if: github.event_name == 'push' && github.ref == 'refs/heads/7jaylosmolcafriends-almacen-main'
+        run: |
+          dotnet publish src/AlmacenInteligente.Api/AlmacenInteligente.Api.csproj -c Release --no-build -o publish/api
+          dotnet publish src/AlmacenInteligente.Web/AlmacenInteligente.Web.csproj -c Release --no-build -o publish/web
 
-      - name: Subir paquete publicado
+      - name: Subir paquetes publicados
+        if: github.event_name == 'push' && github.ref == 'refs/heads/7jaylosmolcafriends-almacen-main'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.salida }}-publish
-          path: Almacen/Backend/publish/${{ matrix.salida }}
-          retention-days: 7
+          name: backend-publish
+          path: Almacen/Backend/publish
+          retention-days: 3
+          compression-level: 9
