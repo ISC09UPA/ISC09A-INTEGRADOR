@@ -82,8 +82,6 @@ jobs:
           RG: ${{ vars.JAYLMF_AZURE_RESOURCE_GROUP }}
           APP_API: ${{ vars.JAYLMF_AZURE_APP_API }}
           APP_WEB: ${{ vars.JAYLMF_AZURE_APP_WEB }}
-          GHCR_PAT: ${{ secrets.JAYLMF_GHCR_PAT }}
-          GHCR_USUARIO: ${{ github.actor }}
         run: |
           set -euo pipefail
           OWNER="${GITHUB_REPOSITORY_OWNER,,}"
@@ -92,8 +90,6 @@ jobs:
           for par in "web:$APP_WEB" "api:$APP_API"; do
             app="${par%%:*}"; nombre="${par#*:}"
             echo "::group::$nombre"
-            az containerapp registry set -n "$nombre" -g "$RG" \
-              --server ghcr.io --username "$GHCR_USUARIO" --password "$GHCR_PAT" --only-show-errors -o none
             az containerapp ingress update -n "$nombre" -g "$RG" --target-port 8080 --only-show-errors -o none
             az containerapp update -n "$nombre" -g "$RG" \
               --image "ghcr.io/${OWNER}/jaylmf-almacen-${app}:${GITHUB_SHA}" --only-show-errors -o none
