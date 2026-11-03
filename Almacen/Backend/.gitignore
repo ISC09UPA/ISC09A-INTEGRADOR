@@ -483,3 +483,7 @@ $RECYCLE.BIN/
 
 # Archivos subidos en desarrollo
 data/
+
+# Configuración local (secretos y cadenas de conexión)
+appsettings*.json
+!appsettings.example.json
