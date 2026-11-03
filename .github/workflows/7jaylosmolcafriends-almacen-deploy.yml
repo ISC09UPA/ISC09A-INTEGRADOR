@@ -94,9 +94,7 @@ jobs:
             echo "::group::$nombre"
             az containerapp registry set -n "$nombre" -g "$RG" \
               --server ghcr.io --username "$GHCR_USUARIO" --password "$GHCR_PAT" --only-show-errors -o none
-            afinidad=none; [ "$app" = "web" ] && afinidad=sticky
             az containerapp ingress update -n "$nombre" -g "$RG" --target-port 8080 --only-show-errors -o none
-            az containerapp ingress sticky-sessions set -n "$nombre" -g "$RG" --affinity "$afinidad" --only-show-errors -o none
             az containerapp update -n "$nombre" -g "$RG" \
               --image "ghcr.io/${OWNER}/jaylmf-almacen-${app}:${GITHUB_SHA}" --only-show-errors -o none
             url=$(az containerapp show -n "$nombre" -g "$RG" --query properties.configuration.ingress.fqdn -o tsv)
