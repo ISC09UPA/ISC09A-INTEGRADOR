@@ -34,6 +34,7 @@ services:
       Jwt__Clave: cambia-esta-clave-de-desarrollo-por-una-de-al-menos-32-caracteres
       Jwt__Emisor: almacen-inteligente
       Jwt__Audiencia: almacen-inteligente-app
+      Empresa__Nombre: Almacén inteligente
     ports:
       - "8081:8080"
     depends_on:
@@ -57,6 +58,11 @@ services:
       Jwt__Clave: cambia-esta-clave-de-desarrollo-por-una-de-al-menos-32-caracteres
       Jwt__Emisor: almacen-inteligente
       Jwt__Audiencia: almacen-inteligente-app
+      Empresa__Nombre: Almacén inteligente
+      # Superadmin que se crea al arrancar si no existe ninguno
+      Superadmin__Nombre: Administrador
+      Superadmin__Correo: admin@almacen.local
+      Superadmin__Contrasena: Admin_dev_123
     ports:
       - "8080:8080"
     volumes:

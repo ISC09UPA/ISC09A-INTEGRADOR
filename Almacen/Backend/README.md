@@ -26,8 +26,9 @@ con su usuario y abre Swagger ya autorizado. La web y la API deben compartir la 
 
 ## Desarrollo sin Docker
 
-Requisitos: SDK de .NET 10 y PostgreSQL local. La conexión de desarrollo está en
-`src/AlmacenInteligente.Web/appsettings.Development.json` (`Username=root`, base `almacen`).
+Requisitos: SDK de .NET 10 y PostgreSQL local. Los `appsettings*.json` no se suben al repo: copia
+`appsettings.example.json` como `appsettings.Development.json` en `src/AlmacenInteligente.Web` y en
+`src/AlmacenInteligente.Api`, y llena la conexión, la `Jwt:Clave` (la misma en los dos) y el superadmin.
 
 ```bash
 dotnet build

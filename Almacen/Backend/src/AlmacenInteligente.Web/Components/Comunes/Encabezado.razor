@@ -1,0 +1,26 @@
+<div class="encabezado-pagina">
+    <div>
+        @if (Volver is not null)
+        {
+            <MudButton Href="@Volver" Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.ArrowBack" Class="mb-1 ml-n2">
+                Volver
+            </MudButton>
+        }
+        <MudText Typo="Typo.h4">@Titulo</MudText>
+        @if (Descripcion is not null)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@Descripcion</MudText>
+        }
+    </div>
+    @if (Acciones is not null)
+    {
+        <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">@Acciones</MudStack>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Titulo { get; set; } = string.Empty;
+    [Parameter] public string? Descripcion { get; set; }
+    [Parameter] public string? Volver { get; set; }
+    [Parameter] public RenderFragment? Acciones { get; set; }
+}

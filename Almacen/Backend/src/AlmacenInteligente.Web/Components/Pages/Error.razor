@@ -1,0 +1,26 @@
+﻿@page "/Error"
+@attribute [AllowAnonymous]
+@layout CuentaLayout
+@using System.Diagnostics
+
+<PageTitle>Error · Almacén inteligente</PageTitle>
+
+<div class="cuenta-tarjeta">
+    <h1>Ocurrió un error</h1>
+    <p>No pudimos procesar tu solicitud. Intenta de nuevo; si sigue pasando, avisa al administrador.</p>
+    @if (!string.IsNullOrEmpty(RequestId))
+    {
+        <p>Referencia: <code>@RequestId</code></p>
+    }
+    <a class="cuenta-boton" style="display:block;text-align:center;text-decoration:none" href="/">Ir al inicio</a>
+</div>
+
+@code {
+    [CascadingParameter]
+    private HttpContext? HttpContext { get; set; }
+
+    private string? RequestId { get; set; }
+
+    protected override void OnInitialized() =>
+        RequestId = Activity.Current?.Id ?? HttpContext?.TraceIdentifier;
+}

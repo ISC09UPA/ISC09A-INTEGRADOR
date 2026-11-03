@@ -1,0 +1,53 @@
+﻿@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="Tema.Almacen" />
+<MudPopoverProvider />
+<MudDialogProvider CloseOnEscapeKey="true" BackdropClick="false" />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="0" Dense="true" Class="barra-superior">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="AlternarMenu" aria-label="Mostrar u ocultar menú" />
+        <MudText Typo="Typo.h6" Class="ml-2">Almacén inteligente</MudText>
+        <MudSpacer />
+        <AuthorizeView>
+            <Authorized>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudStack Spacing="0" AlignItems="AlignItems.End" Class="d-none d-sm-flex">
+                        <MudText Typo="Typo.body2"><b>@context.User.FindFirst("nombre")?.Value</b></MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@RolDe(context.User)</MudText>
+                    </MudStack>
+                    <form method="post" action="cuenta/salir">
+                        <AntiforgeryToken />
+                        <MudIconButton ButtonType="ButtonType.Submit" Icon="@Icons.Material.Outlined.Logout" Color="Color.Inherit" aria-label="Cerrar sesión" title="Cerrar sesión" />
+                    </form>
+                </MudStack>
+            </Authorized>
+        </AuthorizeView>
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="_menuAbierto" ClipMode="DrawerClipMode.Always" Elevation="0" Variant="DrawerVariant.Responsive">
+        <NavMenu />
+    </MudDrawer>
+
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-6">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Ocurrió un error inesperado.
+    <a href="." class="reload">Recargar</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private bool _menuAbierto = true;
+
+    private void AlternarMenu() => _menuAbierto = !_menuAbierto;
+
+    private static string RolDe(System.Security.Claims.ClaimsPrincipal usuario) =>
+        Roles.Todos.FirstOrDefault(usuario.IsInRole) is { } rol ? Roles.Nombre(rol) : string.Empty;
+}

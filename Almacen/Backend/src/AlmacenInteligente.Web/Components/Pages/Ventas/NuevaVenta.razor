@@ -1,0 +1,170 @@
+@page "/ventas/nueva"
+@attribute [Authorize(Policy = Permisos.Ventas.Crear)]
+@using AlmacenInteligente.Application.Clientes
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Application.Documentos
+@using AlmacenInteligente.Application.Terceros
+@using AlmacenInteligente.Domain.ValueObjects
+@using AlmacenInteligente.Web.Components.Terceros
+@inherits PaginaBase
+@inject NavigationManager Navegacion
+@inject IDialogService Dialogos
+
+<PageTitle>Nueva venta · Almacén inteligente</PageTitle>
+
+<Encabezado Titulo="Nueva venta" Volver="ventas" Descripcion="Captura el precio de cada línea y el almacén de donde sale. Al registrarla se descuentan existencias y se registra el ingreso." />
+
+<MudPaper Outlined="true" Elevation="0" Class="pa-4 mb-4">
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="7">
+            <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2">
+                <div class="flex-grow-1">
+                    <SelectorTercero @bind-Value="_cliente" Clientes="true" Label="Cliente" />
+                </div>
+                @if (Puede(Permisos.Clientes.Crear))
+                {
+                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="NuevoClienteAsync">Nuevo cliente</MudButton>
+                }
+            </MudStack>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudDatePicker DateFormat="dd/MM/yyyy" @bind-Date="_fecha" Label="Fecha" Culture="Formato.Mx" MaxDate="DateTime.Today" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudPaper Outlined="true" Elevation="0" Class="pa-4">
+    <MudText Typo="Typo.h6" Class="mb-2">Productos</MudText>
+    @foreach (var linea in _lineas)
+    {
+        <MudGrid Spacing="2" Class="mb-1 align-center">
+            <MudItem xs="12" md="4">
+                <SelectorProducto Value="linea.Producto" ValueChanged="p => linea.ElegirProducto(p)" Dense="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="2">
+                <MudSelect T="Guid?" @bind-Value="linea.AlmacenId" Label="Sale de" Dense="true" Disabled="linea.Producto is null"
+                           Error="linea.Excede" ErrorText="No alcanza">
+                    @foreach (var e in linea.Producto?.Existencias ?? [])
+                    {
+                        <MudSelectItem T="Guid?" Value="@e.AlmacenId">@e.Almacen (@Formato.Cantidad(e.Cantidad))</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="4" md="1">
+                <MudNumericField T="decimal" @bind-Value="linea.Cantidad" Label="Cantidad" Min="0" Format="0.###" Immediate="true"
+                                 Error="linea.Excede" ErrorText="@($"Hay {Formato.Cantidad(linea.Disponible)}")" />
+            </MudItem>
+            <MudItem xs="4" md="2">
+                <MudNumericField T="decimal" @bind-Value="linea.Precio" Label="Precio unitario" Min="0" Format="0.####" Adornment="Adornment.Start" AdornmentText="$" Immediate="true" />
+            </MudItem>
+            <MudItem xs="4" md="1">
+                <MudSelect T="decimal" @bind-Value="linea.Tasa" Label="IVA" Dense="true">
+                    @foreach (var (valor, texto) in Formato.TasasIva)
+                    {
+                        <MudSelectItem T="decimal" Value="valor">@texto</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="10" md="1" Class="numero">@Formato.Dinero(linea.Importe.Subtotal.Monto)</MudItem>
+            <MudItem xs="2" md="1" Class="d-flex justify-end">
+                <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small" OnClick="() => _lineas.Remove(linea)" Disabled="_lineas.Count == 1" aria-label="Quitar línea" />
+            </MudItem>
+        </MudGrid>
+    }
+    <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Text" Color="Color.Primary" OnClick="() => _lineas.Add(new Linea())" Class="mt-2">Agregar producto</MudButton>
+
+    <MudDivider Class="my-4" />
+    <div class="d-flex flex-wrap justify-space-between align-end gap-4">
+        <div>
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@_error</MudAlert>
+            }
+        </div>
+        <MudStack AlignItems="AlignItems.End" Spacing="3">
+            <div class="totales">
+                <div class="fila"><span>Subtotal</span><span>@Formato.Dinero(Total.Subtotal.Monto)</span></div>
+                <div class="fila"><span>IVA</span><span>@Formato.Dinero(Total.Iva.Monto)</span></div>
+                <div class="fila total"><span>Total</span><span>@Formato.Dinero(Total.Total.Monto)</span></div>
+            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="RegistrarAsync" Disabled="_guardando">
+                @(_guardando ? "Registrando…" : "Registrar venta")
+            </MudButton>
+        </MudStack>
+    </div>
+</MudPaper>
+
+@code {
+    private sealed class Linea
+    {
+        public ProductoOpcionDto? Producto { get; private set; }
+        public Guid? AlmacenId { get; set; }
+        public decimal Cantidad { get; set; }
+        public decimal Precio { get; set; }
+        public decimal Tasa { get; set; } = 0.16m;
+
+        public decimal Disponible => Producto?.Existencias.FirstOrDefault(e => e.AlmacenId == AlmacenId)?.Cantidad ?? 0;
+        public bool Excede => Producto is not null && AlmacenId is not null && Cantidad > Disponible;
+        public Importe Importe => Cantidad > 0 && Precio >= 0 ? Importe.DeLinea(Cantidad, Precio, new TasaIva(Tasa)) : Importe.Cero;
+
+        /// <summary>Al elegir producto propone el almacén con más existencia.</summary>
+        public void ElegirProducto(ProductoOpcionDto? producto)
+        {
+            Producto = producto;
+            AlmacenId = producto?.Existencias.OrderByDescending(e => e.Cantidad).FirstOrDefault()?.AlmacenId;
+        }
+    }
+
+    private OpcionDto? _cliente;
+    private DateTime? _fecha = DateTime.Today;
+    private readonly List<Linea> _lineas = [new()];
+    private string? _error;
+    private bool _guardando;
+
+    private Importe Total => _lineas.Aggregate(Importe.Cero, (t, l) => t + l.Importe);
+
+    private async Task NuevoClienteAsync()
+    {
+        var parametros = new DialogParameters<TerceroDialog> { { d => d.Solicitud, datos => new CrearCliente(datos) } };
+        var dialogo = await Dialogos.ShowAsync<TerceroDialog>("Nuevo cliente", parametros, new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        if (await dialogo.Result is { Canceled: false, Data: TerceroDto creado })
+        {
+            _cliente = new OpcionDto(creado.Id, $"{creado.Codigo} · {creado.Nombre}");
+            Avisos.Add($"{creado.Nombre} se dio de alta.", Severity.Success);
+        }
+    }
+
+    private async Task RegistrarAsync()
+    {
+        _error = null;
+        if (_cliente is null || _fecha is null)
+        {
+            _error = "Elige el cliente y la fecha.";
+            return;
+        }
+        if (_lineas.Any(l => l.Producto is null || l.AlmacenId is null || l.Cantidad <= 0))
+        {
+            _error = "Cada línea necesita producto, almacén y cantidad mayor que cero.";
+            return;
+        }
+        if (_lineas.Any(l => l.Excede))
+        {
+            _error = "Hay líneas con más cantidad de la que hay en el almacén.";
+            return;
+        }
+
+        _guardando = true;
+        var solicitud = new RegistrarVenta(_cliente.Id, DateOnly.FromDateTime(_fecha.Value),
+            _lineas.Select(l => new LineaVentaDto(l.Producto!.Id, l.AlmacenId!.Value, l.Cantidad, l.Precio, l.Tasa)).ToList());
+        var (registrada, mensaje) = await EjecutarAsync(solicitud);
+        _guardando = false;
+
+        if (mensaje is not null)
+        {
+            _error = mensaje;
+            return;
+        }
+        Avisos.Add($"Venta {Formato.Folio("VTA", registrada!.Folio)} registrada.", Severity.Success);
+        Navegacion.NavigateTo($"ventas/{registrada.Id}");
+    }
+}

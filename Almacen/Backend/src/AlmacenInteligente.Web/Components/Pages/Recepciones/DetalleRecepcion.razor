@@ -1,0 +1,39 @@
+@page "/recepciones/{Id:guid}"
+@attribute [Authorize(Policy = Permisos.Recepciones.Ver)]
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Application.Documentos
+@using AlmacenInteligente.Web.Components.Documentos
+@inherits PaginaBase
+@inject IDialogService Dialogos
+
+<PageTitle>Recepción · Almacén inteligente</PageTitle>
+
+@if (_detalle is null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <DetalleDocumento Detalle="_detalle" PdfUrl="@($"pdf/recepciones/{Id}")" Nombre="Recepción" Prefijo="REC" Volver="recepciones" EtiquetaTercero="Proveedor"
+                      EtiquetaPrecio="Costo unitario" PuedeCancelar="Puede(Permisos.Recepciones.Cancelar)" OnCancelar="CancelarAsync" />
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private DocumentoDetalleDto? _detalle;
+
+    protected override async Task AlIniciarAsync() => (_, _detalle) = await IntentarAsync(new ObtenerRecepcion(Id));
+
+    private async Task CancelarAsync()
+    {
+        var motivo = await MotivoDialog.PedirAsync(Dialogos, "Cancelar recepción",
+            "Se restará la mercancía del almacén y se revertirá el egreso. Solo es posible si la mercancía sigue en el almacén.",
+            "Cancelar recepción");
+        if (motivo is null)
+            return;
+        var (exito, _) = await IntentarAsync(new CancelarRecepcion(Id, motivo), "Recepción cancelada.");
+        if (exito)
+            (_, _detalle) = await IntentarAsync(new ObtenerRecepcion(Id));
+    }
+}

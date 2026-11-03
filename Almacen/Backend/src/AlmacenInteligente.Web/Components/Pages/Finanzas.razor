@@ -1,0 +1,101 @@
+@page "/finanzas"
+@attribute [Authorize(Policy = Permisos.Finanzas.Ver)]
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Application.Reportes
+@using AlmacenInteligente.Domain.Finanzas
+@inherits PaginaBase
+
+<PageTitle>Movimientos financieros · Almacén inteligente</PageTitle>
+
+<Encabezado Titulo="Movimientos financieros" Descripcion="Se generan solos: ingreso por cada venta, egreso por cada recepción y su reverso al cancelar." />
+
+<MudTabs Elevation="0" Outlined="true" Rounded="true" TabPanelsClass="pt-4" KeepPanelsAlive="true">
+<MudTabPanel Text="Movimientos">
+<MudPaper Outlined="true" Elevation="0" Class="pa-4 mb-4">
+    <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="3" AlignItems="AlignItems.Center">
+        <MudDateRangePicker DateFormat="dd/MM/yyyy" DateRange="_rango" DateRangeChanged="CambiarRangoAsync" Label="Periodo" Culture="Formato.Mx" Clearable="true" Style="max-width:280px" />
+        <MudSelect T="NaturalezaFinanciera?" Value="_naturaleza" ValueChanged="CambiarNaturalezaAsync" Label="Tipo" Clearable="true" Dense="true" Style="max-width:200px">
+            <MudSelectItem T="NaturalezaFinanciera?" Value="NaturalezaFinanciera.Ingreso">Ingresos (ventas)</MudSelectItem>
+            <MudSelectItem T="NaturalezaFinanciera?" Value="NaturalezaFinanciera.Egreso">Egresos (compras)</MudSelectItem>
+        </MudSelect>
+    </MudStack>
+</MudPaper>
+
+@if (_resumen is not null)
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6" md="3"><Indicador Titulo="Ingresos" Valor="@Formato.Dinero(_resumen.Ingresos)" Color="Color.Success" /></MudItem>
+        <MudItem xs="6" md="3"><Indicador Titulo="Egresos" Valor="@Formato.Dinero(_resumen.Egresos)" Color="Color.Error" /></MudItem>
+        <MudItem xs="6" md="3"><Indicador Titulo="Saldo" Valor="@Formato.Dinero(_resumen.Saldo)" Color="@(_resumen.Saldo >= 0 ? Color.Primary : Color.Error)" /></MudItem>
+        <MudItem xs="6" md="3"><Indicador Titulo="IVA trasladado − acreditable" Valor="@Formato.Dinero(_resumen.IvaTrasladado - _resumen.IvaAcreditable)" /></MudItem>
+    </MudGrid>
+}
+
+<MudPaper Outlined="true" Elevation="0">
+    <MudTable @ref="_tabla" T="MovimientoFinancieroDto" ServerData="CargarAsync" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm"
+              RowsPerPage="50" Elevation="0" LoadingProgressColor="Color.Primary">
+        <HeaderContent>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Tipo</MudTh>
+            <MudTh>Documento</MudTh>
+            <MudTh>Cliente / proveedor</MudTh>
+            <MudTh Style="text-align:right">Subtotal</MudTh>
+            <MudTh Style="text-align:right">IVA</MudTh>
+            <MudTh Style="text-align:right">Total</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Fecha">@Formato.FechaHora(context.Fecha)</MudTd>
+            <MudTd DataLabel="Tipo">
+                <Chip Texto="@(context.Naturaleza == NaturalezaFinanciera.Ingreso ? "Ingreso" : "Egreso")"
+                      Color="@(context.Naturaleza == NaturalezaFinanciera.Ingreso ? Color.Success : Color.Error)" />
+                @if (context.EsReverso)
+                {
+                    <Chip Texto="Reverso" Color="Color.Warning" />
+                }
+            </MudTd>
+            <MudTd DataLabel="Documento">
+                <MudLink Href="@Formato.Ruta(context.DocumentoTipo, context.DocumentoId)">@Formato.Folio(Formato.Prefijo(context.DocumentoTipo), context.Folio)</MudLink>
+            </MudTd>
+            <MudTd DataLabel="Tercero">@context.Tercero</MudTd>
+            <MudTd DataLabel="Subtotal" Class="numero">@Formato.Dinero(context.Subtotal)</MudTd>
+            <MudTd DataLabel="IVA" Class="numero">@Formato.Dinero(context.Iva)</MudTd>
+            <MudTd DataLabel="Total" Class="numero"><b>@Formato.Dinero(context.Total)</b></MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-6" Color="Color.Secondary">No hay movimientos en ese periodo.</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager RowsPerPageString="Filas por página:" InfoFormat="{first_item}–{last_item} de {all_items}" PageSizeOptions="new[] { 25, 50, 100 }" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+</MudTabPanel>
+<MudTabPanel Text="Reporte mensual">
+    <ReporteMensualFinanzas />
+</MudTabPanel>
+</MudTabs>
+
+@code {
+    private MudTable<MovimientoFinancieroDto> _tabla = default!;
+    private DateRange? _rango = new(DateTime.Today.AddDays(1 - DateTime.Today.Day), DateTime.Today);
+    private NaturalezaFinanciera? _naturaleza;
+    private ResumenFinancieroDto? _resumen;
+
+    private async Task<TableData<MovimientoFinancieroDto>> CargarAsync(TableState estado, CancellationToken ct)
+    {
+        var filtro = new FiltroFinanzas(
+            _rango?.Start is { } s ? DateOnly.FromDateTime(s) : null,
+            _rango?.End is { } e ? DateOnly.FromDateTime(e) : null,
+            _naturaleza, estado.Page + 1, estado.PageSize);
+        var (exito, resumen) = await IntentarAsync(new ListarMovimientosFinancieros(filtro));
+        _resumen = resumen;
+        StateHasChanged(); // los indicadores están fuera de la tabla
+        return exito && resumen is not null
+            ? new TableData<MovimientoFinancieroDto> { Items = resumen.Movimientos, TotalItems = resumen.Total }
+            : new TableData<MovimientoFinancieroDto> { Items = [], TotalItems = 0 };
+    }
+
+    private async Task CambiarRangoAsync(DateRange? rango) { _rango = rango; await _tabla.ReloadServerData(); }
+    private async Task CambiarNaturalezaAsync(NaturalezaFinanciera? n) { _naturaleza = n; await _tabla.ReloadServerData(); }
+}

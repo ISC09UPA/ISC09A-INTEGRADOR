@@ -1,0 +1,10 @@
+@page "/recepciones"
+@attribute [Authorize(Policy = Permisos.Recepciones.Ver)]
+@using AlmacenInteligente.Application.Documentos
+@using AlmacenInteligente.Web.Components.Documentos
+
+<PageTitle>Recepciones · Almacén inteligente</PageTitle>
+
+<ListaDocumentos Titulo="Recepciones" Descripcion="Entradas de mercancía de proveedores. Suman existencias y registran la compra."
+                 Prefijo="REC" RutaBase="recepciones" PermisoCrear="@Permisos.Recepciones.Crear" TextoNuevo="Nueva recepción"
+                 EtiquetaTercero="Proveedor" EtiquetaAlmacen="Almacén" Listar="f => new ListarRecepciones(f)" />

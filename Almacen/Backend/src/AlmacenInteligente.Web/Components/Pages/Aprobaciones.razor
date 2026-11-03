@@ -1,0 +1,108 @@
+@page "/productos/aprobaciones"
+@page "/productos/aprobaciones/{ProductoId:guid}"
+@attribute [Authorize(Policy = Permisos.Productos.Aprobar)]
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Application.Productos
+@using AlmacenInteligente.Domain.Productos
+@inherits PaginaBase
+@inject IDialogService Dialogos
+
+<PageTitle>Aprobaciones · Almacén inteligente</PageTitle>
+
+<Encabezado Titulo="Aprobación de productos" Volver="productos"
+            Descripcion="@(_soloMias ? "Productos que te enviaron para aprobar." : "Todos los productos pendientes. Solo el gerente elegido puede resolver cada uno.")" />
+
+@if (_cargando)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else if (_pendientes.Count == 0)
+{
+    <MudPaper Outlined="true" Elevation="0" Class="pa-8">
+        <MudStack AlignItems="AlignItems.Center" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Outlined.TaskAlt" Size="Size.Large" Color="Color.Success" />
+            <MudText Typo="Typo.h6">No hay productos pendientes</MudText>
+        </MudStack>
+    </MudPaper>
+}
+else
+{
+    <MudGrid Spacing="3">
+        @foreach (var p in _pendientes)
+        {
+            <MudItem xs="12" md="6" lg="4">
+                <MudCard Outlined="true" Elevation="0" Class="@(p.Id == ProductoId ? "tarjeta-resaltada" : null)">
+                    <MudCardContent>
+                        <MudStack Row="true" Spacing="3">
+                            @if (p.ImagenRuta is { } ruta)
+                            {
+                                <img src="archivos/@ruta" alt="" class="producto-imagen-grande" />
+                            }
+                            <div>
+                                <MudText Typo="Typo.h6">@p.Referencia</MudText>
+                                <MudText Typo="Typo.body2">@p.Descripcion</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    Unidad @p.Unidad · solicitó @p.CreadoPor el @Formato.FechaHora(p.CreadoEn)
+                                </MudText>
+                                @if (!_soloMias)
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block">Enviado a @p.GerenteAprobador</MudText>
+                                }
+                            </div>
+                        </MudStack>
+                    </MudCardContent>
+                    @if (p.GerenteAprobadorId == _usuarioId)
+                    {
+                        <MudCardActions>
+                            <MudButton Color="Color.Success" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Check" OnClick="() => AprobarAsync(p)">Aprobar</MudButton>
+                            <MudButton Color="Color.Error" Variant="Variant.Text" OnClick="() => RechazarAsync(p)">Rechazar</MudButton>
+                        </MudCardActions>
+                    }
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public Guid? ProductoId { get; set; }
+
+    private IReadOnlyList<ProductoDto> _pendientes = [];
+    private bool _cargando = true;
+    private bool _soloMias;
+    private Guid? _usuarioId;
+
+    protected override async Task AlIniciarAsync()
+    {
+        _usuarioId = Guid.TryParse(Usuario.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var id) ? id : null;
+        _soloMias = Usuario.IsInRole(Roles.Gerente);
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        _cargando = true;
+        var filtro = new FiltroProductos(Estado: EstadoAprobacion.Pendiente, SoloMisAprobaciones: _soloMias, Tamano: 200);
+        var (_, pagina) = await IntentarAsync(new ListarProductos(filtro));
+        _pendientes = pagina?.Elementos ?? [];
+        _cargando = false;
+    }
+
+    private async Task AprobarAsync(ProductoDto p)
+    {
+        var (exito, _) = await IntentarAsync(new AprobarProducto(p.Id), $"{p.Referencia} quedó aprobado.");
+        if (exito)
+            await CargarAsync();
+    }
+
+    private async Task RechazarAsync(ProductoDto p)
+    {
+        var motivo = await MotivoDialog.PedirAsync(Dialogos, $"Rechazar {p.Referencia}",
+            $"{p.CreadoPor} verá el motivo. El producto no se podrá usar.", "Rechazar");
+        if (motivo is null)
+            return;
+        var (exito, _) = await IntentarAsync(new RechazarProducto(p.Id, motivo), $"{p.Referencia} quedó rechazado.");
+        if (exito)
+            await CargarAsync();
+    }
+}

@@ -1,0 +1,15 @@
+<MudPaper Outlined="true" Elevation="0" Class="pa-4 h-100">
+    <MudText Typo="Typo.caption" Color="Color.Secondary">@Titulo</MudText>
+    <MudText Typo="Typo.h5" Color="Color">@Valor</MudText>
+    @if (Detalle is not null)
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@Detalle</MudText>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string Titulo { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Valor { get; set; } = string.Empty;
+    [Parameter] public string? Detalle { get; set; }
+    [Parameter] public Color Color { get; set; } = Color.Default;
+}

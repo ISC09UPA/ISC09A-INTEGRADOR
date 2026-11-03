@@ -1,0 +1,117 @@
+@using AlmacenInteligente.Application.Finanzas
+@inherits PaginaBase
+
+@* Reporte mensual al estilo de Dolibarr: meses en filas, Debe y Haber de tres años lado a lado, y sus gráficos. *@
+
+<div class="d-flex flex-wrap justify-space-between align-center gap-2 mb-3">
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        Moneda: MXN · Debe = egresos (compras) · Haber = ingresos (ventas) · los reversos por cancelación restan.
+    </MudText>
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronLeft" Size="Size.Small" OnClick="() => CambiarAnioAsync(-1)" aria-label="Año anterior" />
+        <MudText Typo="Typo.subtitle2">Año @_anioFinal</MudText>
+        <MudIconButton Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" OnClick="() => CambiarAnioAsync(1)" aria-label="Año siguiente" />
+        <MudButtonGroup Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Class="ml-2">
+            <MudButton Href="@($"pdf/finanzas/mensual?anio={_anioFinal}")" Target="_blank" StartIcon="@Icons.Material.Outlined.PictureAsPdf">Ver PDF</MudButton>
+            <MudIconButton Href="@($"pdf/finanzas/mensual?anio={_anioFinal}&descargar=true")" Icon="@Icons.Material.Outlined.Download" aria-label="Descargar PDF" title="Descargar PDF" />
+        </MudButtonGroup>
+    </MudStack>
+</div>
+
+@if (_reporte is { } r)
+{
+    <MudTabs Elevation="0" Rounded="true" TabPanelsClass="pt-3">
+        <MudTabPanel Text="Reporte mensual">
+            <MudPaper Outlined="true" Elevation="0">
+                <MudSimpleTable Dense="true" Hover="true" Bordered="true" Elevation="0">
+                    <thead>
+                        <tr>
+                            <th rowspan="2">Mes</th>
+                            @foreach (var anio in r.Anios)
+                            {
+                                <th colspan="2" style="text-align:center">@anio</th>
+                            }
+                        </tr>
+                        <tr>
+                            @foreach (var _ in r.Anios)
+                            {
+                                <th class="numero">Debe</th>
+                                <th class="numero">Haber</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var mes in r.Meses)
+                        {
+                            <tr>
+                                <td>@mes.Nombre</td>
+                                @foreach (var v in mes.PorAnio)
+                                {
+                                    <td class="numero">@(v.Debe == 0 ? "" : Formato.Dinero(v.Debe))</td>
+                                    <td class="numero">@(v.Haber == 0 ? "" : Formato.Dinero(v.Haber))</td>
+                                }
+                            </tr>
+                        }
+                        <tr>
+                            <td><b>Total</b></td>
+                            @foreach (var v in r.Totales)
+                            {
+                                <td class="numero"><b>@Formato.Dinero(v.Debe)</b></td>
+                                <td class="numero"><b>@Formato.Dinero(v.Haber)</b></td>
+                            }
+                        </tr>
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+            <MudPaper Outlined="true" Elevation="0" Class="pa-3 mt-3 d-flex justify-space-between">
+                <MudText><b>Saldo actual</b> <span class="tabla-celda-secundaria">(ingresos menos egresos desde el inicio)</span></MudText>
+                <MudText Color="@(r.SaldoActual < 0 ? Color.Error : Color.Primary)"><b>@Formato.Dinero(r.SaldoActual)</b></MudText>
+            </MudPaper>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Gráficos">
+            <MudGrid Spacing="3">
+                <MudItem xs="12" md="6">
+                    <MudPaper Outlined="true" Elevation="0" Class="pa-4">
+                        <MudText Typo="Typo.subtitle1"><b>Debe · Año: @string.Join(" - ", r.Anios)</b></MudText>
+                        <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="Series(r, debe: true)" ChartLabels="Meses" Width="100%" Height="300px" />
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudPaper Outlined="true" Elevation="0" Class="pa-4">
+                        <MudText Typo="Typo.subtitle1"><b>Haber · Año: @string.Join(" - ", r.Anios)</b></MudText>
+                        <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="Series(r, debe: false)" ChartLabels="Meses" Width="100%" Height="300px" />
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+    </MudTabs>
+}
+else
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+
+@code {
+    private static readonly string[] Meses = ["E", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
+
+    private int _anioFinal = Formato.Hoy.Year;
+    private ReporteMensualDto? _reporte;
+
+    protected override Task AlIniciarAsync() => CargarAsync();
+
+    private async Task CambiarAnioAsync(int delta)
+    {
+        _anioFinal += delta;
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync() => (_, _reporte) = await IntentarAsync(new ReporteMensualFinanciero(_anioFinal));
+
+    private static List<ChartSeries<double>> Series(ReporteMensualDto r, bool debe) =>
+        r.Anios.Select(anio => new ChartSeries<double>
+        {
+            Name = anio.ToString(),
+            Data = r.Meses.Select(m => m.PorAnio.First(v => v.Anio == anio)).Select(v => (double)(debe ? v.Debe : v.Haber)).ToArray(),
+        }).ToList();
+}

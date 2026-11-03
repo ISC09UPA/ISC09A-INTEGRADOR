@@ -1,0 +1,49 @@
+@using AlmacenInteligente.Application.Usuarios
+@inherits PaginaBase
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudText Typo="Typo.body2" Class="mb-3">Asigna una contraseña nueva a <b>@Usuario_.Nombre</b>. Compártela por un medio seguro.</MudText>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_contrasena" Label="Contraseña nueva" InputType="InputType.Password" Required="true"
+                          RequiredError="Obligatorio" HelperText="Mínimo 8 caracteres, con mayúscula, minúscula y número" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialogo.Cancel()" Disabled="_guardando">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="GuardarAsync" Disabled="_guardando">Restablecer</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+
+    [Parameter, EditorRequired] public UsuarioDto Usuario_ { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private string _contrasena = string.Empty;
+    private string? _error;
+    private bool _guardando;
+
+    private async Task GuardarAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+            return;
+
+        _guardando = true;
+        var (_, mensaje) = await EjecutarAsync(new RestablecerContrasena(Usuario_.Id, _contrasena));
+        _guardando = false;
+
+        if (mensaje is not null)
+        {
+            _error = mensaje;
+            return;
+        }
+        Dialogo.Close(DialogResult.Ok(true));
+    }
+}

@@ -1,0 +1,159 @@
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Application.Productos
+@using AlmacenInteligente.Application.Usuarios
+@using Microsoft.AspNetCore.Components.Forms
+@inherits PaginaBase
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudForm @ref="_form">
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_referencia" Label="Referencia interna" Required="true" RequiredError="Obligatorio"
+                              MaxLength="50" Disabled="EsEdicion" HelperText="@(EsEdicion ? "No se puede cambiar" : "Código único del producto, por ejemplo TOR-001")" />
+                <MudTextField @bind-Value="_descripcion" Label="Descripción" Required="true" RequiredError="Obligatorio" MaxLength="500" Lines="2" />
+                <MudSelect T="Guid?" @bind-Value="_unidadId" Label="Unidad" Required="true" RequiredError="Elige la unidad" AnchorOrigin="Origin.BottomCenter"
+                           ToStringFunc="@(id => _unidades.FirstOrDefault(u => u.Id == id) is { } u ? $"{u.Nombre} ({u.Clave})" : null)">
+                    @foreach (var u in _unidades)
+                    {
+                        <MudSelectItem T="Guid?" Value="@u.Id">@u.Nombre (@u.Clave)@(u.PermiteFracciones ? "" : " · solo enteros")</MudSelectItem>
+                    }
+                </MudSelect>
+
+                @if (!EsEdicion && RequiereAprobacion)
+                {
+                    <MudAlert Severity="Severity.Info" Dense="true">
+                        El producto quedará pendiente hasta que lo apruebe el gerente que elijas.
+                    </MudAlert>
+                    <MudSelect T="Guid?" @bind-Value="_gerenteId" Label="Gerente que aprueba" Required="true" RequiredError="Elige al gerente"
+                               AnchorOrigin="Origin.BottomCenter">
+                        @foreach (var g in _gerentes)
+                        {
+                            <MudSelectItem T="Guid?" Value="@g.Id">@g.Nombre</MudSelectItem>
+                        }
+                    </MudSelect>
+                    @if (_gerentes.Count == 0)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Error">No hay gerentes activos. Pide al superadmin que dé de alta uno.</MudText>
+                    }
+                }
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    @if (_vistaPrevia is not null)
+                    {
+                        <img src="@_vistaPrevia" alt="Imagen del producto" class="producto-imagen-grande" />
+                    }
+                    else if (Actual?.ImagenRuta is { } ruta)
+                    {
+                        <img src="archivos/@ruta" alt="Imagen del producto" class="producto-imagen-grande" />
+                    }
+                    <MudFileUpload T="IBrowserFile" Accept=".jpg,.jpeg,.png,.webp" FilesChanged="ElegirImagenAsync" MaximumFileCount="1">
+                        <CustomContent>
+                            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.Image" OnClick="@context.OpenFilePickerAsync">
+                                @(Actual?.ImagenRuta is null && _imagen is null ? "Agregar imagen" : "Cambiar imagen")
+                            </MudButton>
+                        </CustomContent>
+                        <SelectedTemplate />
+                    </MudFileUpload>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">JPG, PNG o WebP, máximo 2 MB</MudText>
+                </MudStack>
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialogo.Cancel()" Disabled="_guardando">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="GuardarAsync" Disabled="_guardando">
+            @(_guardando ? "Guardando…" : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private const long TamanoMaximo = 2 * 1024 * 1024;
+
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+    [Parameter] public ProductoDto? Actual { get; set; }
+
+    private bool EsEdicion => Actual is not null;
+    private bool RequiereAprobacion => !Puede(Permisos.Productos.Aprobar);
+
+    private MudForm _form = default!;
+    private IReadOnlyList<UnidadDto> _unidades = [];
+    private IReadOnlyList<UsuarioDto> _gerentes = [];
+    private string _referencia = string.Empty;
+    private string _descripcion = string.Empty;
+    private Guid? _unidadId;
+    private Guid? _gerenteId;
+    private (string Nombre, string Tipo, byte[] Contenido)? _imagen;
+    private string? _vistaPrevia;
+    private string? _error;
+    private bool _guardando;
+
+    protected override async Task AlIniciarAsync()
+    {
+        var (_, unidades) = await IntentarAsync(new ListarUnidades());
+        _unidades = unidades ?? [];
+        if (!EsEdicion && RequiereAprobacion)
+        {
+            var (_, gerentes) = await IntentarAsync(new ListarGerentes());
+            _gerentes = gerentes ?? [];
+            if (_gerentes.Count == 1)
+                _gerenteId = _gerentes[0].Id;
+        }
+        if (Actual is not null)
+            (_referencia, _descripcion, _unidadId) = (Actual.Referencia, Actual.Descripcion, Actual.UnidadId);
+    }
+
+    private async Task ElegirImagenAsync(IBrowserFile? archivo)
+    {
+        _error = null;
+        if (archivo is null)
+            return;
+        if (archivo.Size > TamanoMaximo)
+        {
+            _error = "La imagen debe pesar máximo 2 MB.";
+            return;
+        }
+        await using var flujo = archivo.OpenReadStream(TamanoMaximo);
+        using var memoria = new MemoryStream();
+        await flujo.CopyToAsync(memoria);
+        var bytes = memoria.ToArray();
+        _imagen = (archivo.Name, archivo.ContentType, bytes);
+        _vistaPrevia = $"data:{archivo.ContentType};base64,{Convert.ToBase64String(bytes)}";
+    }
+
+    private async Task GuardarAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+            return;
+
+        _guardando = true;
+        _error = null;
+        var (producto, mensaje) = Actual is null
+            ? await EjecutarAsync(new CrearProducto(_referencia, _descripcion, _unidadId!.Value, _gerenteId))
+            : await EjecutarAsync(new EditarProducto(Actual.Id, _descripcion, _unidadId!.Value));
+
+        if (mensaje is not null)
+        {
+            _guardando = false;
+            _error = mensaje;
+            return;
+        }
+
+        // El producto ya quedó guardado: si la imagen falla se avisa, pero no se pierde el alta.
+        if (producto is not null && _imagen is { } img)
+        {
+            var (conImagen, errorImagen) = await EjecutarAsync(new SubirImagenProducto(producto.Id, img.Nombre, img.Tipo, img.Contenido));
+            if (errorImagen is not null)
+                Avisos.Add($"El producto se guardó, pero la imagen no: {errorImagen}", Severity.Warning);
+            else
+                producto = conImagen;
+        }
+        _guardando = false;
+        Dialogo.Close(DialogResult.Ok(producto));
+    }
+}

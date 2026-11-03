@@ -1,0 +1,60 @@
+﻿@page "/"
+@inherits PaginaBase
+
+<PageTitle>Inicio · Almacén inteligente</PageTitle>
+
+<MudText Typo="Typo.h4" Class="mb-1">Hola, @Usuario.FindFirst("nombre")?.Value</MudText>
+<MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">@_rol</MudText>
+
+<MudGrid Spacing="3">
+    @foreach (var acceso in _accesos)
+    {
+        <MudItem xs="12" sm="6" md="4">
+            <MudCard Outlined="true" Elevation="0" Class="h-100">
+                <MudCardContent>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                        <MudAvatar Color="Color.Primary" Variant="Variant.Outlined">
+                            <MudIcon Icon="@acceso.Icono" />
+                        </MudAvatar>
+                        <div>
+                            <MudText Typo="Typo.h6">@acceso.Titulo</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@acceso.Descripcion</MudText>
+                        </div>
+                    </MudStack>
+                </MudCardContent>
+                <MudCardActions>
+                    <MudButton Href="@acceso.Ruta" Color="Color.Primary" EndIcon="@Icons.Material.Filled.ArrowForward">Abrir</MudButton>
+                </MudCardActions>
+            </MudCard>
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    private sealed record Acceso(string Titulo, string Descripcion, string Ruta, string Icono, string Permiso);
+
+    private static readonly Acceso[] Todos =
+    [
+        new("Nueva venta", "Captura una venta y descuenta existencias", "ventas/nueva", Icons.Material.Outlined.PointOfSale, Permisos.Ventas.Crear),
+        new("Nueva recepción", "Registra mercancía que llegó de un proveedor", "recepciones/nueva", Icons.Material.Outlined.MoveToInbox, Permisos.Recepciones.Crear),
+        new("Nuevo traspaso", "Mueve mercancía entre almacenes", "traspasos/nuevo", Icons.Material.Outlined.SyncAlt, Permisos.Traspasos.Crear),
+        new("Aprobaciones", "Productos que esperan tu aprobación", "productos/aprobaciones", Icons.Material.Outlined.FactCheck, Permisos.Productos.Aprobar),
+        new("Existencias", "Qué hay en cada almacén y qué está bajo mínimo", "existencias", Icons.Material.Outlined.Inventory, Permisos.Almacenes.VerExistencias),
+        new("Reportes", "Ventas, compras, inventario, flujo y margen", "reportes", Icons.Material.Outlined.Insights, Permisos.Reportes.Ver),
+        new("Productos", "Catálogo y alta de productos", "productos", Icons.Material.Outlined.Category, Permisos.Productos.Ver),
+        new("Clientes", "Alta y consulta de clientes", "clientes", Icons.Material.Outlined.Groups, Permisos.Clientes.Ver),
+        new("Proveedores", "Alta y consulta de proveedores", "proveedores", Icons.Material.Outlined.LocalShipping, Permisos.Proveedores.Ver),
+        new("Usuarios", "Cuentas y roles del sistema", "usuarios", Icons.Material.Outlined.ManageAccounts, Permisos.Usuarios.Gestionar),
+        new("API web", "Token de acceso y Swagger para integraciones", "api-web", Icons.Material.Outlined.Api, Permisos.Api.Acceder),
+    ];
+
+    private IReadOnlyList<Acceso> _accesos = [];
+    private string _rol = string.Empty;
+
+    protected override Task AlIniciarAsync()
+    {
+        _accesos = Todos.Where(a => Puede(a.Permiso)).ToList();
+        _rol = Roles.Todos.FirstOrDefault(Usuario.IsInRole) is { } rol ? Roles.Nombre(rol) : string.Empty;
+        return Task.CompletedTask;
+    }
+}
