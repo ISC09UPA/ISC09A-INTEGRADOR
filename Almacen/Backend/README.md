@@ -47,13 +47,48 @@ dotnet tool restore
 dotnet ef migrations add NombreDelCambio -p src/AlmacenInteligente.Infrastructure -s src/AlmacenInteligente.Infrastructure -o Persistencia/Migraciones
 ```
 
+## Correos e imágenes de productos
+
+**Correos.** Los casos de uso no envían correos directamente: los agregados emiten eventos de dominio que se
+guardan en la tabla `outbox` en la misma transacción que el cambio. Un proceso en segundo plano (corre en la API
+y en la web; cada mensaje lo toma una sola con `FOR UPDATE SKIP LOCKED`) los convierte en correos cada 10 s
+(`Outbox:IntervaloSegundos`). Si el envío falla se reintenta con espera creciente hasta 8 veces; el error queda en
+`outbox.ultimo_error`.
+
+| Evento | Correo |
+|---|---|
+| Producto pendiente de aprobación | Al gerente elegido, con botón a la solicitud |
+| Producto aprobado / rechazado | Al encargado que lo dio de alta (con el motivo si se rechazó) |
+| Existencia en o bajo el mínimo | A los usuarios activos con el permiso `alertas.bajostock` |
+| Venta confirmada | Al cliente, con el comprobante PDF (`Notificaciones:ComprobanteVentaAlCliente`) |
+
+El servicio se elige por configuración:
+
+| Configuración | Servicio |
+|---|---|
+| `Correo:Azure:CadenaConexion` + `Correo:Remitente` | Azure Communication Services Email (producción) |
+| `Correo:Smtp:Host` (+ `Puerto`, `Usuario`, `Contrasena`, `Ssl`) | SMTP, p. ej. Mailpit en `localhost:1025` |
+| ninguno | Solo se escribe en el log (lo que pasa al correr sin Docker) |
+
+`Notificaciones:UrlWeb` es la URL del Blazor para los botones de los correos.
+
+Para ver los correos sin Docker, descarga [Mailpit](https://mailpit.axllent.org/docs/install/), córrelo (`mailpit`)
+y arranca la web y la API con `Correo__Smtp__Host=localhost` y `Correo__Smtp__Puerto=1025`; la bandeja queda en
+http://localhost:8025.
+
+**Imágenes.** Se guardan siempre en Azure Blob Storage (`Archivos:Blob:CadenaConexion`), en el contenedor
+`Archivos:Blob:Contenedor` (por defecto `productos`, privado; se crea solo). No hay respaldo en disco: sin esa
+cadena la API y la web no arrancan. Se sirven por `/archivos/...` (web) y `/api/archivos/...` (API) solo con sesión.
+En desarrollo `appsettings.Development.json` ya apunta a Azurite (`UseDevelopmentStorage=true`); sin Docker,
+córrelo con `npx azurite-blob --skipApiVersionCheck` antes de subir imágenes.
+
 ## Desarrollo con Docker
 
 ```bash
 docker compose up --build
 ```
 
-Blazor en http://localhost:8080, API en http://localhost:8081, Mailpit en http://localhost:8026.
+Blazor en http://localhost:8080, API en http://localhost:8081, Mailpit en http://localhost:8026. Las imágenes van a Azurite.
 
 ## API para la app móvil
 

@@ -14,6 +14,9 @@ public interface IGestorUsuarios
     Task<IReadOnlyList<UsuarioDto>> ListarAsync(string? rol, CancellationToken ct = default);
     Task<UsuarioDto?> ObtenerAsync(Guid id, CancellationToken ct = default);
 
+    /// <summary>Usuarios activos cuyo rol tiene ese permiso (p. ej. quienes reciben la alerta de bajo stock).</summary>
+    Task<IReadOnlyList<UsuarioDto>> ListarConPermisoAsync(string permiso, CancellationToken ct = default);
+
     /// <summary>Lanza DomainException si el correo ya existe o la contraseña no cumple la política.</summary>
     Task<UsuarioDto> CrearAsync(string nombre, string correo, string rol, string contrasena, CancellationToken ct = default);
 

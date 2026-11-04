@@ -6,7 +6,7 @@ namespace AlmacenInteligente.Application;
 
 public static class DependencyInjection
 {
-    /// <summary>Registra el mediador, todos los manejadores y validadores de este ensamblado.</summary>
+    /// <summary>Registra el mediador, todos los manejadores (de casos de uso y de eventos) y validadores de este ensamblado.</summary>
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         var ensamblado = typeof(DependencyInjection).Assembly;
@@ -17,7 +17,8 @@ public static class DependencyInjection
         var manejadores = ensamblado.GetTypes()
             .Where(t => t is { IsAbstract: false, IsInterface: false })
             .SelectMany(t => t.GetInterfaces()
-                .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IManejador<,>))
+                .Where(i => i.IsGenericType && (i.GetGenericTypeDefinition() == typeof(IManejador<,>)
+                    || i.GetGenericTypeDefinition() == typeof(Notificaciones.IManejadorEvento<>)))
                 .Select(i => (Servicio: i, Implementacion: t)));
 
         foreach (var (servicio, implementacion) in manejadores)

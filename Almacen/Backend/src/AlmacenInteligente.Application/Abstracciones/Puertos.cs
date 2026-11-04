@@ -35,7 +35,7 @@ public interface IEmailSender
     Task EnviarAsync(MensajeCorreo mensaje, CancellationToken ct = default);
 }
 
-/// <summary>Imágenes de productos. En disco del servidor; intercambiable por Azure Files o Blob.</summary>
+/// <summary>Imágenes de productos, en Azure Blob Storage (Azurite en desarrollo).</summary>
 public interface IFileStorage
 {
     Task<string> GuardarAsync(Stream contenido, string nombreArchivo, string tipoContenido, CancellationToken ct = default);
