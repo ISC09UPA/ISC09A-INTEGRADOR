@@ -1,6 +1,6 @@
-using Telemetria.DTOs;
+using InvernaderoInteligente.Application.DTOs;
 
-namespace Telemetria.Services;
+namespace InvernaderoInteligente.Application.Interfaces;
 
 public interface ILecturaService
 {

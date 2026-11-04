@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Telemetria.DTOs;
+namespace InvernaderoInteligente.Application.DTOs;
 
 public class CrearRiegoDto
 {

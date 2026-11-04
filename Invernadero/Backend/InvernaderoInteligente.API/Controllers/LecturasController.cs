@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using Telemetria.DTOs;
-using Telemetria.Services;
+using InvernaderoInteligente.Application.DTOs;
+using InvernaderoInteligente.Application.Interfaces;
 
-namespace Telemetria.Controllers;
+namespace InvernaderoInteligente.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]

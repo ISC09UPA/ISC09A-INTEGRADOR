@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Telemetria.DTOs;
+namespace InvernaderoInteligente.Application.DTOs;
 
 /// <summary>Datos que envía el sensor (o el dispositivo) en el POST.</summary>
 public class CrearLecturaDto

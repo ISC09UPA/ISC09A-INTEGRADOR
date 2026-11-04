@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
-using Telemetria.Models;
+using InvernaderoInteligente.Domain.Entities;
 
-namespace Telemetria.Data;
+namespace InvernaderoInteligente.Infrastructure.Data;
 
-public class TelemetriaDbContext : DbContext
+public class InvernaderoDbContext : DbContext
 {
-    public TelemetriaDbContext(DbContextOptions<TelemetriaDbContext> options) : base(options) { }
+    public InvernaderoDbContext(DbContextOptions<InvernaderoDbContext> options) : base(options) { }
 
     public DbSet<LecturaSensor> Lecturas => Set<LecturaSensor>();
     public DbSet<Riego> Riegos => Set<Riego>();
