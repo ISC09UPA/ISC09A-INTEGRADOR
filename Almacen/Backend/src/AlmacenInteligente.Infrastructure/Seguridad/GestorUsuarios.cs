@@ -1,12 +1,13 @@
 using AlmacenInteligente.Application.Usuarios;
 using AlmacenInteligente.Domain.Common;
+using AlmacenInteligente.Infrastructure.Persistencia;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace AlmacenInteligente.Infrastructure.Seguridad;
 
 /// <summary>Cada usuario tiene exactamente un rol.</summary>
-internal sealed class GestorUsuarios(UserManager<Usuario> usuarios) : IGestorUsuarios
+internal sealed class GestorUsuarios(UserManager<Usuario> usuarios, AlmacenDbContext db) : IGestorUsuarios
 {
     public async Task<IReadOnlyList<UsuarioDto>> ListarAsync(string? rol, CancellationToken ct = default)
     {
@@ -22,6 +23,18 @@ internal sealed class GestorUsuarios(UserManager<Usuario> usuarios) : IGestorUsu
 
     public async Task<UsuarioDto?> ObtenerAsync(Guid id, CancellationToken ct = default) =>
         await usuarios.FindByIdAsync(id.ToString()) is { } u ? await ADto(u) : null;
+
+    public async Task<IReadOnlyList<UsuarioDto>> ListarConPermisoAsync(string permiso, CancellationToken ct = default)
+    {
+        var roles = db.RoleClaims.Where(c => c.ClaimType == UsuarioActualHttp.ClaimPermiso && c.ClaimValue == permiso).Select(c => c.RoleId);
+        var conRol = db.UserRoles.Where(ur => roles.Contains(ur.RoleId)).Select(ur => ur.UserId);
+        var lista = await db.Users.Where(u => u.Activo && conRol.Contains(u.Id)).OrderBy(u => u.Nombre).ToListAsync(ct);
+
+        var resultado = new List<UsuarioDto>(lista.Count);
+        foreach (var u in lista)
+            resultado.Add(await ADto(u));
+        return resultado;
+    }
 
     public async Task<UsuarioDto> CrearAsync(string nombre, string correo, string rol, string contrasena, CancellationToken ct = default)
     {

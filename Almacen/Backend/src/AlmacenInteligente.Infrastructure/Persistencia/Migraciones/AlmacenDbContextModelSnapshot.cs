@@ -1022,6 +1022,55 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                     b.ToTable("ventas", (string)null);
                 });
 
+            modelBuilder.Entity("AlmacenInteligente.Infrastructure.Mensajeria.MensajeOutbox", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Contenido")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("contenido");
+
+                    b.Property<int>("Intentos")
+                        .HasColumnType("integer")
+                        .HasColumnName("intentos");
+
+                    b.Property<DateTimeOffset>("OcurrioEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ocurrio_en");
+
+                    b.Property<DateTimeOffset?>("ProcesadoEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("procesado_en");
+
+                    b.Property<DateTimeOffset?>("ProximoIntentoEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("proximo_intento_en");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("tipo");
+
+                    b.Property<string>("UltimoError")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("ultimo_error");
+
+                    b.HasKey("Id")
+                        .HasName("pk_outbox");
+
+                    b.HasIndex("OcurrioEn")
+                        .HasDatabaseName("ix_outbox_ocurrio_en")
+                        .HasFilter("procesado_en IS NULL");
+
+                    b.ToTable("outbox", (string)null);
+                });
+
             modelBuilder.Entity("AlmacenInteligente.Infrastructure.Seguridad.Rol", b =>
                 {
                     b.Property<Guid>("Id")

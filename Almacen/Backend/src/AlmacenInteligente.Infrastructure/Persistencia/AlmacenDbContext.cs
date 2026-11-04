@@ -8,6 +8,7 @@ using AlmacenInteligente.Domain.Productos;
 using AlmacenInteligente.Domain.Recepciones;
 using AlmacenInteligente.Domain.Terceros;
 using AlmacenInteligente.Domain.Ventas;
+using AlmacenInteligente.Infrastructure.Mensajeria;
 using AlmacenInteligente.Infrastructure.Seguridad;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -30,6 +31,7 @@ public sealed class AlmacenDbContext(DbContextOptions<AlmacenDbContext> options)
     public DbSet<Recepcion> Recepciones => Set<Recepcion>();
     public DbSet<Venta> Ventas => Set<Venta>();
     public DbSet<Traspaso> Traspasos => Set<Traspaso>();
+    public DbSet<MensajeOutbox> Outbox => Set<MensajeOutbox>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -47,7 +49,7 @@ public sealed class AlmacenDbContext(DbContextOptions<AlmacenDbContext> options)
         modelBuilder.Entity<IdentityUserToken<Guid>>().ToTable("usuarios_tokens");
         modelBuilder.Entity<IdentityRoleClaim<Guid>>().ToTable("roles_claims");
 
-        // Los eventos de dominio no se persisten como columnas; irán al outbox.
+        // Los eventos de dominio no se persisten como columnas; van a la tabla outbox al guardar.
         foreach (var tipo in modelBuilder.Model.GetEntityTypes().Where(t => typeof(AggregateRoot).IsAssignableFrom(t.ClrType)))
             modelBuilder.Entity(tipo.ClrType).Ignore(nameof(AggregateRoot.Eventos));
     }
@@ -56,12 +58,30 @@ public sealed class AlmacenDbContext(DbContextOptions<AlmacenDbContext> options)
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder) =>
         configurationBuilder.Properties<DateTimeOffset>().HaveConversion<ConvertidorUtc>();
 
-    /// <summary>Traduce choques de concurrencia y de unicidad a mensajes que el usuario entiende.</summary>
+    /// <summary>
+    /// Guarda los cambios y, en la misma transacción, los eventos de dominio de los agregados en el outbox.
+    /// Traduce choques de concurrencia y de unicidad a mensajes que el usuario entiende.
+    /// </summary>
     public async Task GuardarAsync(CancellationToken ct = default)
     {
+        var agregados = ChangeTracker.Entries<AggregateRoot>().Select(e => e.Entity).Where(a => a.Eventos.Count > 0).ToList();
+        var mensajes = agregados.SelectMany(a => a.Eventos).Select(MensajeOutbox.Desde).ToList();
+        Outbox.AddRange(mensajes);
         try
         {
-            await SaveChangesAsync(ct);
+            try
+            {
+                await SaveChangesAsync(ct);
+            }
+            catch
+            {
+                // Si no se guardó, los eventos siguen en los agregados: no dejar copias del outbox pendientes en el contexto.
+                foreach (var m in mensajes)
+                    Entry(m).State = EntityState.Detached;
+                throw;
+            }
+            foreach (var a in agregados)
+                a.LimpiarEventos();
         }
         catch (DbUpdateConcurrencyException)
         {
