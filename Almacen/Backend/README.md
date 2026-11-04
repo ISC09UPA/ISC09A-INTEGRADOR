@@ -61,6 +61,7 @@ y en la web; cada mensaje lo toma una sola con `FOR UPDATE SKIP LOCKED`) los con
 | Producto aprobado / rechazado | Al encargado que lo dio de alta (con el motivo si se rechazó) |
 | Existencia en o bajo el mínimo | A los usuarios activos con el permiso `alertas.bajostock` |
 | Venta confirmada | Al cliente, con el comprobante PDF (`Notificaciones:ComprobanteVentaAlCliente`) |
+| Recepción confirmada | Al proveedor, con el comprobante PDF (`Notificaciones:ComprobanteRecepcionAlProveedor`) |
 
 El servicio se elige por configuración:
 

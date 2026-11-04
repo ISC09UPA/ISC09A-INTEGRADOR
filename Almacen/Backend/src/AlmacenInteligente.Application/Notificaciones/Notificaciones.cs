@@ -25,6 +25,9 @@ public sealed record OpcionesNotificaciones
     /// <summary>Envía al cliente el comprobante PDF cuando se confirma una venta.</summary>
     public bool ComprobanteVentaAlCliente { get; init; } = true;
 
+    /// <summary>Envía al proveedor el comprobante PDF cuando se confirma una recepción.</summary>
+    public bool ComprobanteRecepcionAlProveedor { get; init; } = true;
+
     public string? Enlace(string ruta) =>
         string.IsNullOrWhiteSpace(UrlWeb) ? null : $"{UrlWeb.TrimEnd('/')}/{ruta.TrimStart('/')}";
 }
