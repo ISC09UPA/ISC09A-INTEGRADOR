@@ -5,6 +5,7 @@ using AlmacenInteligente.Application.Seguridad;
 using AlmacenInteligente.Application.Usuarios;
 using AlmacenInteligente.Domain.Inventario;
 using AlmacenInteligente.Domain.Productos;
+using AlmacenInteligente.Domain.Recepciones;
 using AlmacenInteligente.Domain.Ventas;
 
 namespace AlmacenInteligente.Application.Notificaciones;
@@ -20,7 +21,8 @@ internal sealed class CorreosNotificacion(
     IManejadorEvento<ProductoAprobado>,
     IManejadorEvento<ProductoRechazado>,
     IManejadorEvento<StockBajoMinimo>,
-    IManejadorEvento<VentaConfirmada>
+    IManejadorEvento<VentaConfirmada>,
+    IManejadorEvento<RecepcionConfirmada>
 {
     /// <summary>El gerente elegido recibe la solicitud con el enlace directo para aprobar o rechazar.</summary>
     public async Task ManejarAsync(ProductoPendienteDeAprobacion e, CancellationToken ct)
@@ -92,6 +94,21 @@ internal sealed class CorreosNotificacion(
                 [$"Hola {venta.Tercero}, adjuntamos el comprobante de tu compra."],
                 [("Folio", folio), ("Fecha", venta.Fecha.ToString("dd/MM/yyyy")), ("Total", venta.Total.ToString("C2", System.Globalization.CultureInfo.GetCultureInfo("es-MX")))]),
             [new Adjunto($"{folio}.pdf", "application/pdf", pdf.Comprobante(TipoDocumento.Venta, venta, reloj.Ahora))]);
+        await correo.EnviarAsync(mensaje, ct);
+    }
+
+    /// <summary>El proveedor recibe el comprobante PDF de la mercancía que se le recibió.</summary>
+    public async Task ManejarAsync(RecepcionConfirmada e, CancellationToken ct)
+    {
+        if (!opciones.ComprobanteRecepcionAlProveedor || await consultas.ObtenerRecepcionAsync(e.RecepcionId, ct) is not { TerceroCorreo: { Length: > 0 } para } recepcion)
+            return;
+
+        var folio = $"REC-{recepcion.Folio:D5}";
+        var mensaje = new MensajeCorreo([para], $"Comprobante de recepción {folio}",
+            PlantillaCorreo.Html(opciones.NombreEmpresa, "Recibimos tu mercancía",
+                [$"Hola {recepcion.Tercero}, adjuntamos el comprobante de la mercancía que recibimos."],
+                [("Folio", folio), ("Fecha", recepcion.Fecha.ToString("dd/MM/yyyy")), ("Almacén", recepcion.Almacen), ("Total", recepcion.Total.ToString("C2", System.Globalization.CultureInfo.GetCultureInfo("es-MX")))]),
+            [new Adjunto($"{folio}.pdf", "application/pdf", pdf.Comprobante(TipoDocumento.Recepcion, recepcion, reloj.Ahora))]);
         await correo.EnviarAsync(mensaje, ct);
     }
 

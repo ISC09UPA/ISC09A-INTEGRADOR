@@ -117,6 +117,7 @@ public static class DependencyInjection
             UrlWeb = n["UrlWeb"],
             NombreEmpresa = configuration["Empresa:Nombre"] ?? "Almacén inteligente",
             ComprobanteVentaAlCliente = n.GetValue("ComprobanteVentaAlCliente", true),
+            ComprobanteRecepcionAlProveedor = n.GetValue("ComprobanteRecepcionAlProveedor", true),
         });
 
         if (configuration.GetValue("Outbox:Habilitado", true))
