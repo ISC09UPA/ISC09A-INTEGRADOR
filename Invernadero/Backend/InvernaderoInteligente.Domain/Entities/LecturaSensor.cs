@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Telemetria.Models;
+namespace InvernaderoInteligente.Domain.Entities;
 
 public class LecturaSensor
 {
