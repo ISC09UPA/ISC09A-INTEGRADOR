@@ -1,68 +1,30 @@
 {
   "version": 4,
   "targets": {
-    "net10.0": {
-      "EstacionamientoInteligente.Application/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v10.0",
-        "dependencies": {
-          "EstacionamientoInteligente.Domain": "1.0.0"
-        },
-        "compile": {
-          "bin/placeholder/EstacionamientoInteligente.Application.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/EstacionamientoInteligente.Application.dll": {}
-        }
-      },
-      "EstacionamientoInteligente.Domain/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v10.0",
-        "compile": {
-          "bin/placeholder/EstacionamientoInteligente.Domain.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/EstacionamientoInteligente.Domain.dll": {}
-        }
-      }
-    }
+    "net10.0": {}
   },
-  "libraries": {
-    "EstacionamientoInteligente.Application/1.0.0": {
-      "type": "project",
-      "path": "../EstacionamientoInteligente.Application/EstacionamientoInteligente.Application.csproj",
-      "msbuildProject": "../EstacionamientoInteligente.Application/EstacionamientoInteligente.Application.csproj"
-    },
-    "EstacionamientoInteligente.Domain/1.0.0": {
-      "type": "project",
-      "path": "../EstacionamientoInteligente.Domain/EstacionamientoInteligente.Domain.csproj",
-      "msbuildProject": "../EstacionamientoInteligente.Domain/EstacionamientoInteligente.Domain.csproj"
-    }
-  },
+  "libraries": {},
   "projectFileDependencyGroups": {
-    "net10.0": [
-      "EstacionamientoInteligente.Application >= 1.0.0",
-      "EstacionamientoInteligente.Domain >= 1.0.0"
-    ]
+    "net10.0": []
   },
   "packageFolders": {
-    "C:\\Users\\JoseP11\\.nuget\\packages\\": {},
+    "C:\\Users\\elise\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Estacionamiento\\Backend\\EstacionamientoInteligente.Infrastructure\\EstacionamientoInteligente.Infrastructure.csproj",
+      "projectUniqueName": "C:\\Users\\elise\\ISC09A-INTEGRADOR\\Estacionamiento\\Backend\\EstacionamientoInteligente.Infrastructure\\EstacionamientoInteligente.Infrastructure.csproj",
       "projectName": "EstacionamientoInteligente.Infrastructure",
-      "projectPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Estacionamiento\\Backend\\EstacionamientoInteligente.Infrastructure\\EstacionamientoInteligente.Infrastructure.csproj",
-      "packagesPath": "C:\\Users\\JoseP11\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Estacionamiento\\Backend\\EstacionamientoInteligente.Infrastructure\\obj\\",
+      "projectPath": "C:\\Users\\elise\\ISC09A-INTEGRADOR\\Estacionamiento\\Backend\\EstacionamientoInteligente.Infrastructure\\EstacionamientoInteligente.Infrastructure.csproj",
+      "packagesPath": "C:\\Users\\elise\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\elise\\ISC09A-INTEGRADOR\\Estacionamiento\\Backend\\EstacionamientoInteligente.Infrastructure\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\JoseP11\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\elise\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -77,14 +39,7 @@
         "net10.0": {
           "framework": "net10.0",
           "targetAlias": "net10.0",
-          "projectReferences": {
-            "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Estacionamiento\\Backend\\EstacionamientoInteligente.Application\\EstacionamientoInteligente.Application.csproj": {
-              "projectPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Estacionamiento\\Backend\\EstacionamientoInteligente.Application\\EstacionamientoInteligente.Application.csproj"
-            },
-            "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Estacionamiento\\Backend\\EstacionamientoInteligente.Domain\\EstacionamientoInteligente.Domain.csproj": {
-              "projectPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Estacionamiento\\Backend\\EstacionamientoInteligente.Domain\\EstacionamientoInteligente.Domain.csproj"
-            }
-          }
+          "projectReferences": {}
         }
       },
       "warningProperties": {
@@ -97,7 +52,7 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
-      "SdkAnalysisLevel": "10.0.400"
+      "SdkAnalysisLevel": "10.0.300"
     },
     "frameworks": {
       "net10.0": {
@@ -119,7 +74,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.301/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",
