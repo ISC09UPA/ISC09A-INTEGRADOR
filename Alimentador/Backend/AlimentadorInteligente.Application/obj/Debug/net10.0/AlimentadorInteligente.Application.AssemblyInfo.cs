@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AlimentadorInteligente.Application")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9cffe9dbaca8a5a6ca89911f325e4fea7063b4c1")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e5ce5c7a27a80c0598406659cd799c71b80a661a")]
 [assembly: System.Reflection.AssemblyProductAttribute("AlimentadorInteligente.Application")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AlimentadorInteligente.Application")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

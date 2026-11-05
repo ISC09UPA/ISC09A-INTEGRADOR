@@ -1,11 +1,49 @@
 {
   "version": 4,
   "targets": {
-    "net10.0": {}
+    "net10.0": {
+      "AlimentadorInteligente.Application/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "AlimentadorInteligente.Domain": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/AlimentadorInteligente.Application.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/AlimentadorInteligente.Application.dll": {}
+        }
+      },
+      "AlimentadorInteligente.Domain/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "compile": {
+          "bin/placeholder/AlimentadorInteligente.Domain.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/AlimentadorInteligente.Domain.dll": {}
+        }
+      }
+    }
   },
-  "libraries": {},
+  "libraries": {
+    "AlimentadorInteligente.Application/1.0.0": {
+      "type": "project",
+      "path": "../AlimentadorInteligente.Application/AlimentadorInteligente.Application.csproj",
+      "msbuildProject": "../AlimentadorInteligente.Application/AlimentadorInteligente.Application.csproj"
+    },
+    "AlimentadorInteligente.Domain/1.0.0": {
+      "type": "project",
+      "path": "../AlimentadorInteligente.Domain/AlimentadorInteligente.Domain.csproj",
+      "msbuildProject": "../AlimentadorInteligente.Domain/AlimentadorInteligente.Domain.csproj"
+    }
+  },
   "projectFileDependencyGroups": {
-    "net10.0": []
+    "net10.0": [
+      "AlimentadorInteligente.Application >= 1.0.0",
+      "AlimentadorInteligente.Domain >= 1.0.0"
+    ]
   },
   "packageFolders": {
     "C:\\Users\\elise\\.nuget\\packages\\": {},
@@ -39,7 +77,14 @@
         "net10.0": {
           "framework": "net10.0",
           "targetAlias": "net10.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Application\\AlimentadorInteligente.Application.csproj": {
+              "projectPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Application\\AlimentadorInteligente.Application.csproj"
+            },
+            "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj": {
+              "projectPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj"
+            }
+          }
         }
       },
       "warningProperties": {
