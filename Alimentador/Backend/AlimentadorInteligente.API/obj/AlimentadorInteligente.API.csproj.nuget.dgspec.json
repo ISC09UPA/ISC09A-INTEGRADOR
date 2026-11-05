@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.API\\AlimentadorInteligente.API.csproj": {}
+    "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.API\\AlimentadorInteligente.API.csproj": {}
   },
   "projects": {
-    "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.API\\AlimentadorInteligente.API.csproj": {
+    "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.API\\AlimentadorInteligente.API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.API\\AlimentadorInteligente.API.csproj",
+        "projectUniqueName": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.API\\AlimentadorInteligente.API.csproj",
         "projectName": "AlimentadorInteligente.API",
-        "projectPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.API\\AlimentadorInteligente.API.csproj",
-        "packagesPath": "C:\\Users\\elise\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.API\\obj\\",
+        "projectPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.API\\AlimentadorInteligente.API.csproj",
+        "packagesPath": "C:\\Users\\JoseP11\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.API\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\elise\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\JoseP11\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -33,11 +33,19 @@
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
+<<<<<<< HEAD
               "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Application\\AlimentadorInteligente.Application.csproj": {
                 "projectPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Application\\AlimentadorInteligente.Application.csproj"
               },
               "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Infrastructure\\AlimentadorInteligente.Infrastructure.csproj": {
                 "projectPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Infrastructure\\AlimentadorInteligente.Infrastructure.csproj"
+=======
+              "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Application\\AlimentadorInteligente.Application.csproj": {
+                "projectPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Application\\AlimentadorInteligente.Application.csproj"
+              },
+              "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Infrastructure\\AlimentadorInteligente.Infrastructure.csproj": {
+                "projectPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Infrastructure\\AlimentadorInteligente.Infrastructure.csproj"
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
               }
             }
           }
@@ -52,7 +60,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.300"
+        "SdkAnalysisLevel": "10.0.400"
       },
       "frameworks": {
         "net10.0": {
@@ -83,7 +91,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.301/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
@@ -501,6 +509,7 @@
         }
       }
     },
+<<<<<<< HEAD
     "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Application\\AlimentadorInteligente.Application.csproj": {
       "version": "1.0.0",
       "restore": {
@@ -509,12 +518,26 @@
         "projectPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Application\\AlimentadorInteligente.Application.csproj",
         "packagesPath": "C:\\Users\\elise\\.nuget\\packages\\",
         "outputPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Application\\obj\\",
+=======
+    "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Application\\AlimentadorInteligente.Application.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Application\\AlimentadorInteligente.Application.csproj",
+        "projectName": "AlimentadorInteligente.Application",
+        "projectPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Application\\AlimentadorInteligente.Application.csproj",
+        "packagesPath": "C:\\Users\\JoseP11\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Application\\obj\\",
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
+<<<<<<< HEAD
           "C:\\Users\\elise\\AppData\\Roaming\\NuGet\\NuGet.Config",
+=======
+          "C:\\Users\\JoseP11\\AppData\\Roaming\\NuGet\\NuGet.Config",
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -530,8 +553,13 @@
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
+<<<<<<< HEAD
               "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj": {
                 "projectPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj"
+=======
+              "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj": {
+                "projectPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj"
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
               }
             }
           }
@@ -546,7 +574,11 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
+<<<<<<< HEAD
         "SdkAnalysisLevel": "10.0.300"
+=======
+        "SdkAnalysisLevel": "10.0.400"
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
       },
       "frameworks": {
         "net10.0": {
@@ -568,7 +600,11 @@
               "privateAssets": "all"
             }
           },
+<<<<<<< HEAD
           "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.301/PortableRuntimeIdentifierGraph.json",
+=======
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -846,6 +882,7 @@
         }
       }
     },
+<<<<<<< HEAD
     "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
@@ -854,12 +891,26 @@
         "projectPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj",
         "packagesPath": "C:\\Users\\elise\\.nuget\\packages\\",
         "outputPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\obj\\",
+=======
+    "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj",
+        "projectName": "AlimentadorInteligente.Domain",
+        "projectPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj",
+        "packagesPath": "C:\\Users\\JoseP11\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\obj\\",
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
+<<<<<<< HEAD
           "C:\\Users\\elise\\AppData\\Roaming\\NuGet\\NuGet.Config",
+=======
+          "C:\\Users\\JoseP11\\AppData\\Roaming\\NuGet\\NuGet.Config",
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -887,7 +938,11 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
+<<<<<<< HEAD
         "SdkAnalysisLevel": "10.0.300"
+=======
+        "SdkAnalysisLevel": "10.0.400"
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
       },
       "frameworks": {
         "net10.0": {
@@ -909,7 +964,11 @@
               "privateAssets": "all"
             }
           },
+<<<<<<< HEAD
           "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.301/PortableRuntimeIdentifierGraph.json",
+=======
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -1187,6 +1246,7 @@
         }
       }
     },
+<<<<<<< HEAD
     "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Infrastructure\\AlimentadorInteligente.Infrastructure.csproj": {
       "version": "1.0.0",
       "restore": {
@@ -1195,12 +1255,26 @@
         "projectPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Infrastructure\\AlimentadorInteligente.Infrastructure.csproj",
         "packagesPath": "C:\\Users\\elise\\.nuget\\packages\\",
         "outputPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Infrastructure\\obj\\",
+=======
+    "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Infrastructure\\AlimentadorInteligente.Infrastructure.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Infrastructure\\AlimentadorInteligente.Infrastructure.csproj",
+        "projectName": "AlimentadorInteligente.Infrastructure",
+        "projectPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Infrastructure\\AlimentadorInteligente.Infrastructure.csproj",
+        "packagesPath": "C:\\Users\\JoseP11\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Infrastructure\\obj\\",
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
+<<<<<<< HEAD
           "C:\\Users\\elise\\AppData\\Roaming\\NuGet\\NuGet.Config",
+=======
+          "C:\\Users\\JoseP11\\AppData\\Roaming\\NuGet\\NuGet.Config",
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -1216,11 +1290,19 @@
             "framework": "net10.0",
             "targetAlias": "net10.0",
             "projectReferences": {
+<<<<<<< HEAD
               "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Application\\AlimentadorInteligente.Application.csproj": {
                 "projectPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Application\\AlimentadorInteligente.Application.csproj"
               },
               "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj": {
                 "projectPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj"
+=======
+              "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Application\\AlimentadorInteligente.Application.csproj": {
+                "projectPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Application\\AlimentadorInteligente.Application.csproj"
+              },
+              "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj": {
+                "projectPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj"
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
               }
             }
           }
@@ -1235,7 +1317,11 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
+<<<<<<< HEAD
         "SdkAnalysisLevel": "10.0.300"
+=======
+        "SdkAnalysisLevel": "10.0.400"
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
       },
       "frameworks": {
         "net10.0": {
@@ -1257,7 +1343,11 @@
               "privateAssets": "all"
             }
           },
+<<<<<<< HEAD
           "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.301/PortableRuntimeIdentifierGraph.json",
+=======
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.401/PortableRuntimeIdentifierGraph.json",
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",

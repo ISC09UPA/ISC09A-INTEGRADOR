@@ -1,8 +1,12 @@
 {
   "version": 2,
+<<<<<<< HEAD
   "dgSpecHash": "ANRxBAtsn7Q=",
+=======
+  "dgSpecHash": "mMC0UmoObkk=",
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
   "success": true,
-  "projectFilePath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Application\\AlimentadorInteligente.Application.csproj",
+  "projectFilePath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Application\\AlimentadorInteligente.Application.csproj",
   "expectedPackageFiles": [],
   "logs": []
 }
