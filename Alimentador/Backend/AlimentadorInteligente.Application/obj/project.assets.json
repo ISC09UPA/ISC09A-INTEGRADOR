@@ -39,7 +39,20 @@
         "net10.0": {
           "framework": "net10.0",
           "targetAlias": "net10.0",
+<<<<<<< HEAD
           "projectReferences": {}
+=======
+          "projectReferences": {
+<<<<<<< HEAD
+            "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj": {
+              "projectPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj"
+=======
+            "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj": {
+              "projectPath": "C:\\Users\\JoseP11\\Downloads\\ISC09A-INTEGRADOR\\Alimentador\\Backend\\AlimentadorInteligente.Domain\\AlimentadorInteligente.Domain.csproj"
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
+            }
+          }
+>>>>>>> 3d9972cd8f51d130a5c378a0dff51d6d8a0ff25e
         }
       },
       "warningProperties": {

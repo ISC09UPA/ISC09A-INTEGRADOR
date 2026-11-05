@@ -1,6 +1,14 @@
 {
   "version": 2,
+<<<<<<< HEAD
   "dgSpecHash": "SVDQLFYChow=",
+=======
+<<<<<<< HEAD
+  "dgSpecHash": "OY38z5v/lMM=",
+=======
+  "dgSpecHash": "VxFeIjCSTUw=",
+>>>>>>> b1352ebc3e22071c628af70759d0b5c1b7563c19
+>>>>>>> 3d9972cd8f51d130a5c378a0dff51d6d8a0ff25e
   "success": true,
   "projectFilePath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Alimentador\\Backend\\AlimentadorInteligente.API\\AlimentadorInteligente.API.csproj",
   "expectedPackageFiles": [
