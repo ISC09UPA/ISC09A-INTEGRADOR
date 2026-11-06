@@ -1,18 +1,28 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { useEffect } from 'react';
+import { Slot } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
-
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { useFonts, DMSans_400Regular, DMSans_500Medium, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
+import { AuthProvider } from '@/context/AuthContext';
+import { ModoProvider } from '@/context/ModoContext';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+export default function RootLayout() {
+  const [fuentesListas] = useFonts({ DMSans_400Regular, DMSans_500Medium, DMSans_700Bold });
+
+  useEffect(() => {
+    if (fuentesListas) SplashScreen.hideAsync();
+  }, [fuentesListas]);
+
+  if (!fuentesListas) return null;
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <AuthProvider>
+      <ModoProvider>
+        <StatusBar style="dark" />
+        <Slot />
+      </ModoProvider>
+    </AuthProvider>
   );
 }

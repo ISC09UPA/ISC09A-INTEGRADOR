@@ -1,0 +1,16 @@
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Application\bin\Debug\net10.0\ProyectoInteligente.Application.deps.json
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Application\bin\Debug\net10.0\ProyectoInteligente.Application.dll
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Application\bin\Debug\net10.0\ProyectoInteligente.Application.pdb
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Application\bin\Debug\net10.0\ProyectoInteligente.Domain.dll
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Application\bin\Debug\net10.0\ProyectoInteligente.Domain.pdb
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Application\obj\Debug\net10.0\ProyectoInteligente.Application.csproj.AssemblyReference.cache
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Application\obj\Debug\net10.0\ProyectoInteligente.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Application\obj\Debug\net10.0\ProyectoInteligente.Application.AssemblyInfoInputs.cache
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Application\obj\Debug\net10.0\ProyectoInteligente.Application.AssemblyInfo.cs
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Application\obj\Debug\net10.0\ProyectoInteligente.Application.csproj.CoreCompileInputs.cache
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Application\obj\Debug\net10.0\ProyectoInteligente.Application.sourcelink.json
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Application\obj\Debug\net10.0\Proyecto.9D2BE877.Up2Date
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Application\obj\Debug\net10.0\ProyectoInteligente.Application.dll
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Application\obj\Debug\net10.0\refint\ProyectoInteligente.Application.dll
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Application\obj\Debug\net10.0\ProyectoInteligente.Application.pdb
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Application\obj\Debug\net10.0\ref\ProyectoInteligente.Application.dll

@@ -1,45 +1,61 @@
 {
   "version": 4,
   "targets": {
-    "net10.0": {}
+    "net10.0": {
+      "ProyectoInteligente.Domain/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "compile": {
+          "bin/placeholder/ProyectoInteligente.Domain.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/ProyectoInteligente.Domain.dll": {}
+        }
+      }
+    }
   },
-  "libraries": {},
+  "libraries": {
+    "ProyectoInteligente.Domain/1.0.0": {
+      "type": "project",
+      "path": "../ProyectoInteligente.Domain/ProyectoInteligente.Domain.csproj",
+      "msbuildProject": "../ProyectoInteligente.Domain/ProyectoInteligente.Domain.csproj"
+    }
+  },
   "projectFileDependencyGroups": {
-    "net10.0": []
+    "net10.0": [
+      "ProyectoInteligente.Domain >= 1.0.0"
+    ]
   },
   "packageFolders": {
-    "C:\\Users\\elise\\.nuget\\packages\\": {},
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+    "C:\\Users\\Alo\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Sorpresa\\backend\\ProyectoInteligente.Application\\ProyectoInteligente.Application.csproj",
+      "projectUniqueName": "C:\\Users\\Alo\\Documents\\UNI\\NOVENGO\\ISC09A-INTEGRADOR\\Sorpresa\\backend\\ProyectoInteligente.Application\\ProyectoInteligente.Application.csproj",
       "projectName": "ProyectoInteligente.Application",
-      "projectPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Sorpresa\\backend\\ProyectoInteligente.Application\\ProyectoInteligente.Application.csproj",
-      "packagesPath": "C:\\Users\\elise\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\elise\\source\\repos\\ISC09A-INTEGRADOR2\\Sorpresa\\backend\\ProyectoInteligente.Application\\obj\\",
+      "projectPath": "C:\\Users\\Alo\\Documents\\UNI\\NOVENGO\\ISC09A-INTEGRADOR\\Sorpresa\\backend\\ProyectoInteligente.Application\\ProyectoInteligente.Application.csproj",
+      "packagesPath": "C:\\Users\\Alo\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Alo\\Documents\\UNI\\NOVENGO\\ISC09A-INTEGRADOR\\Sorpresa\\backend\\ProyectoInteligente.Application\\obj\\",
       "projectStyle": "PackageReference",
-      "fallbackFolders": [
-        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-      ],
       "configFilePaths": [
-        "C:\\Users\\elise\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        "C:\\Users\\Alo\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net10.0": {
           "framework": "net10.0",
           "targetAlias": "net10.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "C:\\Users\\Alo\\Documents\\UNI\\NOVENGO\\ISC09A-INTEGRADOR\\Sorpresa\\backend\\ProyectoInteligente.Domain\\ProyectoInteligente.Domain.csproj": {
+              "projectPath": "C:\\Users\\Alo\\Documents\\UNI\\NOVENGO\\ISC09A-INTEGRADOR\\Sorpresa\\backend\\ProyectoInteligente.Domain\\ProyectoInteligente.Domain.csproj"
+            }
+          }
         }
       },
       "warningProperties": {
@@ -74,7 +90,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.301/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",

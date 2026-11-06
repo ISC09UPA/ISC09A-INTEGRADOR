@@ -1,0 +1,12 @@
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Domain\bin\Debug\net10.0\ProyectoInteligente.Domain.deps.json
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Domain\bin\Debug\net10.0\ProyectoInteligente.Domain.dll
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Domain\bin\Debug\net10.0\ProyectoInteligente.Domain.pdb
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Domain\obj\Debug\net10.0\ProyectoInteligente.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Domain\obj\Debug\net10.0\ProyectoInteligente.Domain.AssemblyInfoInputs.cache
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Domain\obj\Debug\net10.0\ProyectoInteligente.Domain.AssemblyInfo.cs
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Domain\obj\Debug\net10.0\ProyectoInteligente.Domain.csproj.CoreCompileInputs.cache
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Domain\obj\Debug\net10.0\ProyectoInteligente.Domain.sourcelink.json
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Domain\obj\Debug\net10.0\ProyectoInteligente.Domain.dll
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Domain\obj\Debug\net10.0\refint\ProyectoInteligente.Domain.dll
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Domain\obj\Debug\net10.0\ProyectoInteligente.Domain.pdb
+C:\Users\Alo\Documents\UNI\NOVENGO\ISC09A-INTEGRADOR\Sorpresa\backend\ProyectoInteligente.Domain\obj\Debug\net10.0\ref\ProyectoInteligente.Domain.dll
