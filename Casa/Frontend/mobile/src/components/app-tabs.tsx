@@ -22,7 +22,7 @@ const TABS = [
   },
   {
     name: 'seguridad',
-    href: '/',
+    href: '/seguridad',
     label: 'Seguridad',
     icon: { ios: 'shield', android: 'shield', web: 'shield' },
     iconFocused: { ios: 'shield.fill', android: 'shield', web: 'shield' },
@@ -58,8 +58,8 @@ function TabBarButton({
   ...props
 }: TabBarButtonProps) {
   const getStyle = (state: PressableStateCallbackType) => [
-    styles.tabButton,
     typeof style === 'function' ? style(state) : style,
+    styles.tabButton,
   ];
 
   return (
@@ -90,20 +90,12 @@ export default function AppTabs() {
   return (
     <Tabs>
       <TabSlot style={styles.slot} />
-      <TabList asChild>
-        <View style={[styles.tabBarWrapper, { paddingBottom: insets.bottom + 10 }]}>
-          <View style={styles.tabBar}>
-            {TABS.map((tab) => (
-              <TabTrigger key={tab.name} name={tab.name} href={tab.href} asChild>
-                <TabBarButton
-                  label={tab.label}
-                  icon={tab.icon}
-                  iconFocused={tab.iconFocused}
-                />
-              </TabTrigger>
-            ))}
-          </View>
-        </View>
+      <TabList style={[styles.tabBar, { paddingBottom: insets.bottom + 10 }]}>
+        {TABS.map((tab) => (
+          <TabTrigger key={tab.name} name={tab.name} href={tab.href} asChild>
+            <TabBarButton label={tab.label} icon={tab.icon} iconFocused={tab.iconFocused} />
+          </TabTrigger>
+        ))}
       </TabList>
     </Tabs>
   );
@@ -113,15 +105,11 @@ const styles = StyleSheet.create({
   slot: {
     flex: 1,
   },
-  tabBarWrapper: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: 14,
-  },
   tabBar: {
-    flexDirection: 'row',
+    position: 'absolute',
+    left: 14,
+    right: 14,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: Casa.colors.surfaceStrong,
@@ -129,7 +117,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.9)',
     paddingHorizontal: 6,
-    paddingVertical: 8,
+    paddingTop: 8,
     shadowColor: '#526180',
     shadowOpacity: 0.14,
     shadowRadius: 22,
@@ -138,13 +126,16 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     flex: 1,
+    flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
+    paddingVertical: 2,
   },
   iconWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
