@@ -1,6 +1,56 @@
 @CiudadInteligente.API_HostAddress = http://localhost:5240
 
-GET {{CiudadInteligente.API_HostAddress}}/weatherforecast/
+### Estado en vivo del cruce
+GET {{CiudadInteligente.API_HostAddress}}/api/semaforo/estado
 Accept: application/json
+
+### Modo adaptativo (verde segun densidad de trafico)
+POST {{CiudadInteligente.API_HostAddress}}/api/semaforo/modo
+Content-Type: application/json
+
+{ "modo": "adaptativo" }
+
+### Modo temporizador fijo
+POST {{CiudadInteligente.API_HostAddress}}/api/semaforo/modo
+Content-Type: application/json
+
+{ "modo": "fijo" }
+
+### Secuencia manual (Norte-Sur en verde, Este-Oeste en rojo)
+POST {{CiudadInteligente.API_HostAddress}}/api/semaforo/secuencia
+Content-Type: application/json
+
+{
+  "accesos": [
+    { "acceso": 1, "color": "verde" },
+    { "acceso": 2, "color": "verde" },
+    { "acceso": 3, "color": "rojo" },
+    { "acceso": 4, "color": "rojo" }
+  ]
+}
+
+### Detener todo (4 en rojo)
+POST {{CiudadInteligente.API_HostAddress}}/api/semaforo/detener
+
+### Solicitar corredor de emergencia (llega por el Norte)
+POST {{CiudadInteligente.API_HostAddress}}/api/emergencias
+Content-Type: application/json
+
+{ "unidad": "AMB-042 Cruz Roja", "acceso": 1, "tipo": "medica", "etaMinutos": 2 }
+
+### Finalizar corredor
+POST {{CiudadInteligente.API_HostAddress}}/api/emergencias/fin
+
+### Emergencias recientes
+GET {{CiudadInteligente.API_HostAddress}}/api/emergencias/recientes?cantidad=5
+
+### Conteo de la camara (lo manda la Raspberry Pi)
+POST {{CiudadInteligente.API_HostAddress}}/api/trafico
+Content-Type: application/json
+
+{ "vehiculos": [18, 13, 6, 9] }
+
+### Historial de conteos
+GET {{CiudadInteligente.API_HostAddress}}/api/trafico/historial?cantidad=20
 
 ###

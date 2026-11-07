@@ -4,6 +4,12 @@
     <ProjectReference Include="..\CiudadInteligente.Domain\CiudadInteligente.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- AddApplication() y ILogger<T> en los servicios -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
