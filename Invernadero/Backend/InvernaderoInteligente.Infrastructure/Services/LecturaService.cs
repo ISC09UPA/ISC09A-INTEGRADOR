@@ -1,4 +1,5 @@
 using InvernaderoInteligente.Application.DTOs;
+using InvernaderoInteligente.Application.Exceptions;
 using InvernaderoInteligente.Application.Interfaces;
 using InvernaderoInteligente.Domain.Entities;
 using InvernaderoInteligente.Infrastructure.Data;
@@ -24,8 +25,24 @@ public class LecturaService : ILecturaService
             FechaHora = (dto.FechaHora ?? DateTime.UtcNow).ToUniversalTime()
         };
 
+        var existe = await _db.Lecturas.AnyAsync(l =>
+            l.SensorId == lectura.SensorId &&
+            l.Tipo == lectura.Tipo &&
+            l.FechaHora == lectura.FechaHora, ct);
+
+        if (existe)
+            throw new RegistroDuplicadoException(MensajeDuplicado(lectura));
+
         _db.Lecturas.Add(lectura);
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (ErroresBd.EsDuplicado(ex))
+        {
+            // Dos peticiones iguales al mismo tiempo: el índice único lo detecta
+            throw new RegistroDuplicadoException(MensajeDuplicado(lectura));
+        }
 
         return ADto(lectura);
     }
@@ -65,6 +82,9 @@ public class LecturaService : ILecturaService
         var lectura = await _db.Lecturas.AsNoTracking().FirstOrDefaultAsync(l => l.Id == id, ct);
         return lectura is null ? null : ADto(lectura);
     }
+
+    private static string MensajeDuplicado(LecturaSensor l) =>
+        $"Ya existe una lectura del sensor '{l.SensorId}' ({l.Tipo}) en {l.FechaHora:O}.";
 
     private static LecturaDto ADto(LecturaSensor l) => new()
     {

@@ -19,6 +19,9 @@ public class Riego
     /// <summary>Duración del riego en segundos.</summary>
     public int DuracionSegundos { get; set; }
 
+    /// <summary>Agua aplicada en mililitros (caudalímetro o bomba calibrada).</summary>
+    public double? VolumenMl { get; set; }
+
     /// <summary>"automatico" (por umbral) o "manual".</summary>
     [Required, MaxLength(15)]
     public string Origen { get; set; } = "manual";
