@@ -5,6 +5,20 @@
     <ProjectReference Include="..\CiudadInteligente.Domain\CiudadInteligente.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- ORM: Dapper sobre ADO.NET; proveedor ADO.NET de SQLite -->
+    <PackageReference Include="Dapper" Version="2.1.66" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.9" />
+    <!-- ESP32 por USB (transporte "Serial") -->
+    <PackageReference Include="System.IO.Ports" Version="10.0.9" />
+    <!-- Transporte "IoTHub": lectura de la telemetria de la Raspberry -->
+    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.11.5" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
+    <!-- AddInfrastructure(IConfiguration) -->
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.9" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
