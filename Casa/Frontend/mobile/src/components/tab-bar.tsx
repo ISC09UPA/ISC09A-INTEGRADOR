@@ -1,30 +1,44 @@
-import { useState } from 'react';
+import type { ComponentProps } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { glass, text, type IconName } from '@/constants/casa-theme';
+import { router, usePathname, type Href } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { glass, text } from '@/constants/casa-theme';
 import { useCasaTheme } from '@/hooks/use-casa-theme';
 
+type TabIcon = ComponentProps<typeof Ionicons>['name'];
+
+/** Menú principal: cada pestaña apunta a una ruta de `src/app`. */
 const tabs = [
-  { key: 'inicio', icon: 'home', label: 'Inicio' },
-  { key: 'actividad', icon: 'activity', label: 'Actividad' },
-  { key: 'camara', icon: 'video', label: 'Cámara' },
-  { key: 'ajustes', icon: 'settings', label: 'Ajustes' },
-] as const satisfies readonly { key: string; icon: IconName; label: string }[];
+  { href: '/', icon: 'home-outline', label: 'Inicio' },
+  { href: '/luces', icon: 'bulb-outline', label: 'Luces' },
+  { href: '/seguridad', icon: 'shield-checkmark-outline', label: 'Seguridad' },
+  { href: '/camara', icon: 'videocam-outline', label: 'Cámara' },
+  { href: '/actividad', icon: 'list-outline', label: 'Actividad' },
+] as const satisfies readonly { href: Href; icon: TabIcon; label: string }[];
 
-type TabKey = (typeof tabs)[number]['key'];
-
-export function TabBar({ bottom }: { bottom: number }) {
+export function TabBar() {
   const colors = useCasaTheme();
-  const [activa, setActiva] = useState<TabKey>('inicio');
+  const { bottom } = useSafeAreaInsets();
+  const pathname = usePathname();
 
   return (
     <View style={[styles.tabBar, { bottom: bottom + 12 }]}>
-      {tabs.map(({ key, icon, label }) => {
-        const color = key === activa ? colors.teal : colors.faint;
+      {tabs.map(({ href, icon, label }) => {
+        const activa = pathname === href;
+        const color = activa ? colors.teal : colors.ink;
         return (
-          <Pressable key={key} style={styles.tab} onPress={() => setActiva(key)}>
-            <Feather name={icon} size={20} color={color} />
-            <Text style={[styles.tabLabel, { color }]}>{label}</Text>
+          <Pressable
+            key={href}
+            style={({ pressed }) => [styles.tab, activa && styles.tabActive, pressed && !activa && { opacity: 0.6 }]}
+            onPress={() => !activa && router.navigate(href)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: activa }}
+          >
+            <Ionicons name={icon} size={22} color={color} />
+            <Text style={[styles.tabLabel, { color }, activa && styles.tabLabelActive]} numberOfLines={1}>
+              {label}
+            </Text>
           </Pressable>
         );
       })}
@@ -36,13 +50,14 @@ const styles = StyleSheet.create({
   tabBar: {
     ...glass('rgba(255, 255, 255, 0.82)', 0.16),
     position: 'absolute',
-    left: 22,
-    right: 22,
+    left: 14,
+    right: 14,
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 10,
+    padding: 6,
     borderRadius: 30,
   },
-  tab: { alignItems: 'center', gap: 3, paddingHorizontal: 8 },
-  tabLabel: text('medium', 11, 'faint'),
+  tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 10, borderRadius: 22 },
+  tabActive: { backgroundColor: 'rgba(31, 127, 120, 0.14)' },
+  tabLabel: text('regular', 11),
+  tabLabelActive: { fontFamily: 'Inter_600SemiBold' },
 });

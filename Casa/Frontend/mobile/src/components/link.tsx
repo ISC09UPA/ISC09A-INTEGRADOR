@@ -4,13 +4,20 @@ import { text } from '@/constants/casa-theme';
 import { useCasaTheme } from '@/hooks/use-casa-theme';
 import type { StyledProps } from './card';
 
-export function Link({ children, style, size = 16 }: StyledProps & { size?: number }) {
+export interface LinkProps extends StyledProps {
+  size?: number;
+  /** Muestra la flecha a la derecha del texto. */
+  arrow?: boolean;
+  onPress?: () => void;
+}
+
+export function Link({ children, style, size = 16, arrow = true, onPress }: LinkProps) {
   const colors = useCasaTheme();
 
   return (
-    <Pressable style={({ pressed }) => [styles.linkRow, style, pressed && { opacity: 0.6 }]} hitSlop={8}>
+    <Pressable style={({ pressed }) => [styles.linkRow, style, pressed && { opacity: 0.6 }]} hitSlop={8} onPress={onPress}>
       <Text style={[styles.link, { fontSize: size }]}>{children}</Text>
-      <Feather name="arrow-right" size={size} color={colors.teal} />
+      {arrow && <Feather name="arrow-right" size={size} color={colors.teal} />}
     </Pressable>
   );
 }

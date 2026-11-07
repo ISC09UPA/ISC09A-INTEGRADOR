@@ -48,3 +48,38 @@ export const controlesIniciales: Controles = { luz: true, armada: true, noche: f
 /** Alterna un control. Activar el modo noche apaga la luz y arma la alarma. */
 export const alternar = (c: Controles, key: Control): Controles =>
   key === 'noche' && !c.noche ? { luz: false, armada: true, noche: true } : { ...c, [key]: !c[key] };
+
+export type EstadoAnalisis = 'no-iniciado' | 'solicitado';
+
+export interface Captura {
+  id: string;
+  /** Texto de fecha ya formateado, p. ej. "Hoy, 18:42". */
+  fecha: string;
+  camara: string;
+  analisis: EstadoAnalisis;
+}
+
+export interface Camara {
+  nombre: string;
+  /** Mensaje de error a mostrar debajo de las capturas, si lo hay. */
+  aviso?: string;
+  capturas: readonly Captura[];
+}
+
+// Datos de ejemplo hasta conectar con la Raspberry
+export const camara: Camara = {
+  nombre: 'Cámara de entrada',
+  aviso: 'Variante sin video: no se pudo iniciar. Las capturas siguen disponibles.',
+  capturas: [{ id: 'captura-1', fecha: 'Hoy, 18:42', camara: 'Cámara de entrada', analisis: 'no-iniciado' }],
+};
+
+export const textoAnalisis: Record<EstadoAnalisis, string> = {
+  'no-iniciado': 'Análisis no iniciado',
+  solicitado: 'Análisis solicitado',
+};
+
+/** Crea una captura nueva con la hora actual. */
+export const nuevaCaptura = (nombreCamara: string, fecha = new Date()): Captura => {
+  const hora = fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+  return { id: `captura-${fecha.getTime()}`, fecha: `Hoy, ${hora}`, camara: nombreCamara, analisis: 'no-iniciado' };
+};

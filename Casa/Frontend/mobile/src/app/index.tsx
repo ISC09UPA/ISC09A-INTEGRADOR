@@ -8,7 +8,6 @@ import { Dot } from '@/components/dot';
 import { Link } from '@/components/link';
 import { QuickAction, type QuickActionProps } from '@/components/quick-action';
 import { SectionLabel } from '@/components/section-label';
-import { TabBar } from '@/components/tab-bar';
 import { alternar, casa, controlesIniciales, type Control } from '@/constants/casa';
 import { colors, text } from '@/constants/casa-theme';
 
@@ -109,8 +108,6 @@ export default function HomeScreen() {
           </View>
         </Card>
       </ScrollView>
-
-      <TabBar bottom={insets.bottom} />
     </View>
   );
 }
