@@ -72,10 +72,10 @@ export default function Timeline() {
   const alertasHoy = eventosHoy.filter((e) => e.tipo === 'alerta').length;
 
   const opcionesPlanta: Opcion<FiltroPlanta>[] = [
-    { valor: 'todas', etiqueta: '🌱 Todas las plantas' },
-    { valor: 'albahaca-1', etiqueta: '🌿 Albahaca #1' },
-    { valor: 'tomate-1', etiqueta: '🍅 Tomate Cherry' },
-    { valor: 'menta-1', etiqueta: '🍃 Menta Piperita' },
+    { valor: 'todas', etiqueta: 'Todas las plantas' },
+    { valor: 'albahaca-1', etiqueta: 'Albahaca #1' },
+    { valor: 'tomate-1', etiqueta: 'Tomate Cherry' },
+    { valor: 'menta-1', etiqueta: 'Menta Piperita' },
   ];
 
   function restablecerFiltros() {
