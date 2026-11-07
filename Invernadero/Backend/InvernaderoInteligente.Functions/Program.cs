@@ -7,9 +7,8 @@ using Microsoft.Extensions.Hosting;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
-builder.Services
-    .AddApplicationInsightsTelemetryWorkerService()
-    .ConfigureFunctionsApplicationInsights();
+// Los logs llegan a Application Insights a través del host de Functions
+// (basta con configurar APPLICATIONINSIGHTS_CONNECTION_STRING en la Function App).
 
 // Cliente HTTP hacia la API de Telemetría.
 //   TelemetriaApi__BaseUrl  (obligatorio)  ej. http://localhost:5010
