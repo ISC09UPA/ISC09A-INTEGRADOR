@@ -1,6 +1,77 @@
-@InvernaderoInteligente.API_HostAddress = http://localhost:5010
+@host = http://localhost:5010
 
-GET {{InvernaderoInteligente.API_HostAddress}}/weatherforecast/
+### 1) Registrar una lectura → 201 Created
+POST {{host}}/api/Lecturas
+Content-Type: application/json
+
+{
+  "sensorId": "SUELO-01",
+  "tipo": "humedad_suelo",
+  "valor": 34.0,
+  "unidad": "%",
+  "invernaderoId": 1,
+  "fechaHora": "2026-11-06T18:00:00Z"
+}
+
+### 2) Repetir exactamente la misma lectura → 409 Conflict
+POST {{host}}/api/Lecturas
+Content-Type: application/json
+
+{
+  "sensorId": "SUELO-01",
+  "tipo": "humedad_suelo",
+  "valor": 34.0,
+  "unidad": "%",
+  "invernaderoId": 1,
+  "fechaHora": "2026-11-06T18:00:00Z"
+}
+
+### 3) Lectura inválida (falta valor) → 400 Bad Request
+POST {{host}}/api/Lecturas
+Content-Type: application/json
+
+{
+  "sensorId": "SUELO-01",
+  "tipo": "humedad_suelo",
+  "unidad": "%"
+}
+
+### 4) Consultar las últimas lecturas de humedad de suelo
+GET {{host}}/api/Lecturas?tipo=humedad_suelo&limite=10
 Accept: application/json
 
-###
+### 5) Consultar una lectura por Id
+GET {{host}}/api/Lecturas/1
+Accept: application/json
+
+### 6) Registrar un riego automático con volumen → 201 Created
+POST {{host}}/api/Riegos
+Content-Type: application/json
+
+{
+  "invernaderoId": 1,
+  "zona": "Zona A",
+  "fechaHoraInicio": "2026-11-06T18:01:00Z",
+  "duracionSegundos": 45,
+  "volumenMl": 250,
+  "origen": "automatico",
+  "humedadDetectada": 28.5,
+  "umbral": 30.0
+}
+
+### 7) Repetir el mismo riego → 409 Conflict
+POST {{host}}/api/Riegos
+Content-Type: application/json
+
+{
+  "invernaderoId": 1,
+  "zona": "Zona A",
+  "fechaHoraInicio": "2026-11-06T18:01:00Z",
+  "duracionSegundos": 45,
+  "volumenMl": 250,
+  "origen": "automatico"
+}
+
+### 8) Consultar historial de riegos
+GET {{host}}/api/Riegos?invernaderoId=1&limite=20
+Accept: application/json

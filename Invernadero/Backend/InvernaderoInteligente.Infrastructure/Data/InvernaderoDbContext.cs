@@ -15,7 +15,8 @@ public class InvernaderoDbContext : DbContext
         modelBuilder.Entity<LecturaSensor>(e =>
         {
             e.ToTable("LecturasSensor");
-            e.HasIndex(x => new { x.SensorId, x.FechaHora });
+            // Una misma lectura no puede guardarse dos veces (reintentos de la Function)
+            e.HasIndex(x => new { x.SensorId, x.Tipo, x.FechaHora }).IsUnique();
             e.HasIndex(x => x.FechaHora);
         });
 
@@ -24,6 +25,8 @@ public class InvernaderoDbContext : DbContext
             e.ToTable("Riegos");
             e.HasIndex(x => x.FechaHoraInicio);
             e.HasIndex(x => new { x.InvernaderoId, x.Zona });
+            // Un mismo riego no puede guardarse dos veces (reintentos de la Function)
+            e.HasIndex(x => new { x.InvernaderoId, x.Zona, x.FechaHoraInicio }).IsUnique();
         });
     }
 }
