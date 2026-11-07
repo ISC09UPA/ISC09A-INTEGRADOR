@@ -1,0 +1,14 @@
+{
+  "tipo": "riego",
+  "dispositivoId": "rpi-invernadero-01",
+  "invernaderoId": 1,
+  "riego": {
+    "zona": "Zona A",
+    "fechaHoraInicio": "2026-11-05T16:31:00Z",
+    "duracionSegundos": 45,
+    "origen": "automatico",
+    "humedadDetectada": 28.5,
+    "umbral": 30.0,
+    "volumenMl": 250
+  }
+}
