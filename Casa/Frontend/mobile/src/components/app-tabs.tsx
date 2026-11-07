@@ -32,6 +32,11 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Label>Luces</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="lightbulb" md="lightbulb" />
       </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="actividad">
+        <NativeTabs.Trigger.Label>Actividad</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="list.bullet" md="list" />
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
