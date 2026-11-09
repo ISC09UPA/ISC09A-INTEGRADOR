@@ -1,4 +1,5 @@
 using InvernaderoInteligente.Application.DTOs;
+using InvernaderoInteligente.Application.Exceptions;
 using InvernaderoInteligente.Application.Interfaces;
 using InvernaderoInteligente.Domain.Entities;
 using InvernaderoInteligente.Infrastructure.Data;
@@ -20,14 +21,31 @@ public class RiegoService : IRiegoService
             Zona = dto.Zona?.Trim(),
             FechaHoraInicio = (dto.FechaHoraInicio ?? DateTime.UtcNow).ToUniversalTime(),
             DuracionSegundos = dto.DuracionSegundos!.Value,
+            VolumenMl = dto.VolumenMl,
             Origen = dto.Origen.Trim().ToLowerInvariant(),
             HumedadDetectada = dto.HumedadDetectada,
             Umbral = dto.Umbral,
             LecturaSensorId = dto.LecturaSensorId
         };
 
+        var existe = await _db.Riegos.AnyAsync(r =>
+            r.InvernaderoId == riego.InvernaderoId &&
+            r.Zona == riego.Zona &&
+            r.FechaHoraInicio == riego.FechaHoraInicio, ct);
+
+        if (existe)
+            throw new RegistroDuplicadoException(MensajeDuplicado(riego));
+
         _db.Riegos.Add(riego);
-        await _db.SaveChangesAsync(ct);
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (ErroresBd.EsDuplicado(ex))
+        {
+            // Dos peticiones iguales al mismo tiempo: el índice único lo detecta
+            throw new RegistroDuplicadoException(MensajeDuplicado(riego));
+        }
 
         return ADto(riego);
     }
@@ -68,6 +86,9 @@ public class RiegoService : IRiegoService
         return riego is null ? null : ADto(riego);
     }
 
+    private static string MensajeDuplicado(Riego r) =>
+        $"Ya existe un riego en la zona '{r.Zona ?? "sin zona"}' que inició en {r.FechaHoraInicio:O}.";
+
     private static RiegoDto ADto(Riego r) => new()
     {
         Id = r.Id,
@@ -75,6 +96,7 @@ public class RiegoService : IRiegoService
         Zona = r.Zona,
         FechaHoraInicio = r.FechaHoraInicio,
         DuracionSegundos = r.DuracionSegundos,
+        VolumenMl = r.VolumenMl,
         Origen = r.Origen,
         HumedadDetectada = r.HumedadDetectada,
         Umbral = r.Umbral,

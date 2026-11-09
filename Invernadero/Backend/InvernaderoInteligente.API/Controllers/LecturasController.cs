@@ -16,6 +16,7 @@ public class LecturasController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(LecturaDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<LecturaDto>> Post([FromBody] CrearLecturaDto dto, CancellationToken ct)
     {
         var creada = await _service.CrearAsync(dto, ct);

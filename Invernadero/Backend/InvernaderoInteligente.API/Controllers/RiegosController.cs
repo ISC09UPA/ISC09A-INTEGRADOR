@@ -16,6 +16,7 @@ public class RiegosController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(RiegoDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<RiegoDto>> Post([FromBody] CrearRiegoDto dto, CancellationToken ct)
     {
         var creado = await _service.CrearAsync(dto, ct);

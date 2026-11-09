@@ -15,6 +15,10 @@ public class CrearRiegoDto
     [Required, Range(1, 86400)]
     public int? DuracionSegundos { get; set; }
 
+    /// <summary>Agua aplicada en mililitros (opcional).</summary>
+    [Range(0, 100000)]
+    public double? VolumenMl { get; set; }
+
     /// <summary>"automatico" o "manual". Por defecto "manual".</summary>
     [RegularExpression("^(automatico|manual)$", ErrorMessage = "Origen debe ser 'automatico' o 'manual'.")]
     public string Origen { get; set; } = "manual";
@@ -31,6 +35,7 @@ public class RiegoDto
     public string? Zona { get; set; }
     public DateTime FechaHoraInicio { get; set; }
     public int DuracionSegundos { get; set; }
+    public double? VolumenMl { get; set; }
     public string Origen { get; set; } = string.Empty;
     public double? HumedadDetectada { get; set; }
     public double? Umbral { get; set; }
