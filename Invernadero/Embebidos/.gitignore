@@ -1,0 +1,22 @@
+# README 
+README.md
+
+# Entorno virtual de Python
+.venv/
+
+# Archivos que Python genera solo
+__pycache__/
+*.pyc
+
+# Datos que se generan en la Raspberry
+riego.db
+riego.db-wal
+riego.db-shm
+fotos/
+
+# Variables secretas
+.env
+
+# Basura de macOS
+.DS_Store
+__MACOSX/
