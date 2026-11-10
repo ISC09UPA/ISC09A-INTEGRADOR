@@ -2,7 +2,7 @@ using CiudadInteligente.Domain.Entities;
 
 namespace CiudadInteligente.Application.Interfaces;
 
-/// <summary>Historial de corredores de emergencia (Dapper + SQLite en Infrastructure).</summary>
+/// <summary>Historial de corredores de emergencia (EF Core + SQLite en Infrastructure).</summary>
 public interface IEmergenciaRepository
 {
     /// <returns>El Id que genero la base de datos.</returns>

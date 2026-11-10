@@ -4,6 +4,16 @@ namespace CiudadInteligente.Application.DTOs;
 /// <param name="Vehiculos">4 enteros: Norte, Sur, Este, Oeste.</param>
 public record RegistrarConteoDto(IReadOnlyList<int> Vehiculos);
 
+/// <summary>
+/// Cuerpo de POST api/trafico/lote: conteos con su fecha, para cargar
+/// historial (el simulador de trafico, o la Raspberry al recuperar internet).
+/// No se mandan al ESP32: solo van a la base de datos.
+/// </summary>
+public record RegistrarLoteConteosDto(IReadOnlyList<ConteoConFechaDto> Conteos);
+
+/// <param name="Vehiculos">4 enteros: Norte, Sur, Este, Oeste.</param>
+public record ConteoConFechaDto(DateTimeOffset RegistradoEn, IReadOnlyList<int> Vehiculos);
+
 /// <summary>Un conteo guardado, para el historial.</summary>
 public record ConteoTraficoDto(
     long Id,

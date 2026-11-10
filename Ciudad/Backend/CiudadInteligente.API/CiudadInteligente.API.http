@@ -1,23 +1,40 @@
 @CiudadInteligente.API_HostAddress = http://localhost:5240
 
+### 1) Iniciar sesion (copia el "token" de la respuesta en @token)
+# @name login
+POST {{CiudadInteligente.API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{ "usuario": "admin", "contrasena": "TU_CONTRASENA" }
+
+###
+@token = {{login.response.body.$.token}}
+
+### Quien soy
+GET {{CiudadInteligente.API_HostAddress}}/api/auth/yo
+Authorization: Bearer {{token}}
+
 ### Estado en vivo del cruce
 GET {{CiudadInteligente.API_HostAddress}}/api/semaforo/estado
-Accept: application/json
+Authorization: Bearer {{token}}
 
-### Modo adaptativo (verde segun densidad de trafico)
+### Modo adaptativo (solo administrador)
 POST {{CiudadInteligente.API_HostAddress}}/api/semaforo/modo
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 { "modo": "adaptativo" }
 
-### Modo temporizador fijo
+### Modo temporizador fijo (solo administrador)
 POST {{CiudadInteligente.API_HostAddress}}/api/semaforo/modo
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 { "modo": "fijo" }
 
-### Secuencia manual (Norte-Sur en verde, Este-Oeste en rojo)
+### Secuencia manual: Norte-Sur en verde, Este-Oeste en rojo (solo administrador)
 POST {{CiudadInteligente.API_HostAddress}}/api/semaforo/secuencia
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
@@ -29,28 +46,53 @@ Content-Type: application/json
   ]
 }
 
-### Detener todo (4 en rojo)
+### Detener todo: 4 en rojo (solo administrador)
 POST {{CiudadInteligente.API_HostAddress}}/api/semaforo/detener
+Authorization: Bearer {{token}}
 
 ### Solicitar corredor de emergencia (llega por el Norte)
 POST {{CiudadInteligente.API_HostAddress}}/api/emergencias
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 { "unidad": "AMB-042 Cruz Roja", "acceso": 1, "tipo": "medica", "etaMinutos": 2 }
 
 ### Finalizar corredor
 POST {{CiudadInteligente.API_HostAddress}}/api/emergencias/fin
+Authorization: Bearer {{token}}
 
 ### Emergencias recientes
 GET {{CiudadInteligente.API_HostAddress}}/api/emergencias/recientes?cantidad=5
+Authorization: Bearer {{token}}
 
-### Conteo de la camara (lo manda la Raspberry Pi)
+### Conteo de la camara (lo manda la Raspberry Pi con su llave)
 POST {{CiudadInteligente.API_HostAddress}}/api/trafico
+X-Api-Key: TU_LLAVE_DE_DISPOSITIVO
 Content-Type: application/json
 
 { "vehiculos": [18, 13, 6, 9] }
 
 ### Historial de conteos
 GET {{CiudadInteligente.API_HostAddress}}/api/trafico/historial?cantidad=20
+Authorization: Bearer {{token}}
+
+### Estadisticas de los ultimos 7 dias
+GET {{CiudadInteligente.API_HostAddress}}/api/estadisticas/resumen?dias=7
+Authorization: Bearer {{token}}
+
+### Comparativo fijo vs. adaptativo
+GET {{CiudadInteligente.API_HostAddress}}/api/estadisticas/comparativo?dias=7
+Authorization: Bearer {{token}}
+
+### Usuarios (solo administrador)
+GET {{CiudadInteligente.API_HostAddress}}/api/usuarios
+Authorization: Bearer {{token}}
+
+### Crear un operador (solo administrador)
+POST {{CiudadInteligente.API_HostAddress}}/api/usuarios
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "usuario": "maria", "nombreCompleto": "Maria Lopez", "contrasena": "unaContrasena123", "rol": "operador" }
 
 ###

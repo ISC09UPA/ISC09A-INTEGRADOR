@@ -60,28 +60,26 @@ public class SemaforoService(ISemaforoController semaforo, IEstadoCruceProvider 
         ValidarSinConflictos(cambios);
 
         var actual = estado.ObtenerEstado();
-        if (actual.Modo != ModoSemaforo.Manual)
-        {
-            await semaforo.SetModoManualAsync();
-        }
 
         // primero los rojos, luego el resto: nunca queda un instante con
-        // dos ejes en verde mientras se aplican los cambios uno por uno
-        foreach (var (acceso, color) in cambios.OrderBy(c => c.Value == ColorSemaforo.Rojo ? 0 : 1))
-        {
-            await semaforo.SetColorAsync(acceso, color);
-        }
+        // dos ejes en verde mientras el ESP32 aplica los cambios uno por uno
+        var ordenados = cambios
+            .OrderBy(c => c.Value == ColorSemaforo.Rojo ? 0 : 1)
+            .Select(c => (c.Key, c.Value))
+            .ToList();
+
+        await semaforo.AplicarColoresAsync(ordenados, entrarAManual: actual.Modo != ModoSemaforo.Manual);
 
         return ObtenerEstado();
     }
 
     public async Task<EstadoCruceDto> DetenerTodoAsync()
     {
-        await semaforo.SetModoManualAsync();
-        for (var acceso = 1; acceso <= AccesoReglas.Cantidad; acceso++)
-        {
-            await semaforo.SetColorAsync(acceso, ColorSemaforo.Rojo);
-        }
+        var todosEnRojo = Enumerable.Range(1, AccesoReglas.Cantidad)
+            .Select(acceso => (acceso, ColorSemaforo.Rojo))
+            .ToList();
+
+        await semaforo.AplicarColoresAsync(todosEnRojo, entrarAManual: true);
 
         return ObtenerEstado();
     }

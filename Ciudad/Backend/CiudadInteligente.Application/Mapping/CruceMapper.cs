@@ -54,5 +54,8 @@ public static class CruceMapper
     public static ConteoTraficoDto ADto(this ConteoTrafico c) =>
         new(c.Id, c.RegistradoEn, c.Norte, c.Sur, c.Este, c.Oeste, c.Total);
 
+    public static UsuarioDto ADto(this Usuario u) =>
+        new(u.Id, u.NombreUsuario, u.NombreCompleto, RolesUsuario.Texto(u.Rol), u.CreadoEn);
+
     public static string? ColorATexto(ColorSemaforo? color) => color?.ToString().ToLowerInvariant();
 }

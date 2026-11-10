@@ -6,9 +6,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- ORM: Dapper sobre ADO.NET; proveedor ADO.NET de SQLite -->
-    <PackageReference Include="Dapper" Version="2.1.66" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.9" />
+    <!-- ORM: Entity Framework Core con el proveedor de SQLite -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
     <!-- ESP32 por USB (transporte "Serial") -->
     <PackageReference Include="System.IO.Ports" Version="10.0.9" />
     <!-- Transporte "IoTHub": lectura de la telemetria de la Raspberry -->

@@ -53,6 +53,19 @@ public abstract class SemaforoControllerBase : ISemaforoController, IEstadoCruce
     /// </summary>
     protected abstract Task EnviarLineaAsync(string comando);
 
+    /// <summary>
+    /// Manda varias lineas seguidas, en orden. Por defecto una por una (por
+    /// USB o TCP cada una tarda milisegundos); IoTHubSemaforoController la
+    /// reemplaza para mandarlas juntas en un solo viaje a Azure.
+    /// </summary>
+    protected virtual async Task EnviarLineasAsync(IReadOnlyList<string> comandos)
+    {
+        foreach (var comando in comandos)
+        {
+            await EnviarLineaAsync(comando);
+        }
+    }
+
     /// <summary>True si en este momento hay comunicacion con el ESP32. Sin locks.</summary>
     protected abstract bool EstaConectado { get; }
 
@@ -81,6 +94,31 @@ public abstract class SemaforoControllerBase : ISemaforoController, IEstadoCruce
         EnviarConEstadoAsync($"SET:{acceso}:{color.ToString().ToUpperInvariant()}",
             () => _colores[acceso - 1] = color);
 
+    public Task AplicarColoresAsync(IReadOnlyList<(int Acceso, ColorSemaforo Color)> colores, bool entrarAManual)
+    {
+        var comandos = new List<string>(colores.Count + 1);
+        if (entrarAManual) comandos.Add("MODO:MANUAL");
+        foreach (var (acceso, color) in colores)
+        {
+            comandos.Add($"SET:{acceso}:{color.ToString().ToUpperInvariant()}");
+        }
+
+        return EnviarConEstadoAsync(comandos, () =>
+        {
+            if (entrarAManual)
+            {
+                _modo = ModoSemaforo.Manual;
+                _accesoAmbulancia = null;
+                IniciarFase(0, "MANUAL", 0);
+                Array.Fill(_colores, null);
+            }
+            foreach (var (acceso, color) in colores)
+            {
+                _colores[acceso - 1] = color;
+            }
+        });
+    }
+
     public Task ActivarAmbulanciaAsync(int acceso) => EnviarConEstadoAsync($"AMBULANCIA:{acceso}", () =>
     {
         _modo = ModoSemaforo.Ambulancia;
@@ -100,6 +138,15 @@ public abstract class SemaforoControllerBase : ISemaforoController, IEstadoCruce
         IniciarFase(0, "TODOS_ROJO", TiemposFirmware.TodosRojoMs);
     });
 
+    /// <summary>
+    /// Cada cuanto, como minimo, se le manda al ESP32 un TRAFICO: nuevo. Por USB o
+    /// TCP no cuesta nada (0); por IoT Hub cada envio gasta un mensaje del plan
+    /// gratuito, asi que IoTHubSemaforoController lo sube a 30 s.
+    /// </summary>
+    protected virtual TimeSpan IntervaloMinimoTrafico => TimeSpan.Zero;
+
+    private DateTimeOffset _ultimoTraficoEnviado = DateTimeOffset.MinValue;
+
     public async Task ActualizarTraficoAsync(ConteoTrafico conteo)
     {
         var valores = conteo.ComoArreglo();
@@ -107,9 +154,19 @@ public abstract class SemaforoControllerBase : ISemaforoController, IEstadoCruce
         bool reenviar;
         lock (_lockEstado)
         {
+            var ahora = DateTimeOffset.UtcNow;
             Array.Copy(valores, _vehiculos, Accesos);
-            _actualizadoEn = DateTimeOffset.UtcNow;
-            reenviar = _adaptativo;
+            _actualizadoEn = ahora;
+
+            // solo si el ESP32 esta en automatico adaptativo, si con estos
+            // conteos cambia algun tiempo de verde (de 12 vehiculos en adelante
+            // el verde ya es el maximo) y si ya paso el intervalo minimo
+            reenviar = _adaptativo
+                && _modo == ModoSemaforo.Auto
+                && CambianLosVerdes(valores, _conteoEnEsp32)
+                && ahora - _ultimoTraficoEnviado >= IntervaloMinimoTrafico;
+
+            if (reenviar) _ultimoTraficoEnviado = ahora;
         }
 
         if (reenviar)
@@ -118,19 +175,34 @@ public abstract class SemaforoControllerBase : ISemaforoController, IEstadoCruce
         }
     }
 
-    public async Task SetAdaptativoAsync(bool adaptativo)
+    private static bool CambianLosVerdes(int[] nuevos, int[] enEsp32)
     {
-        int[] actuales;
+        for (var i = 0; i < Accesos; i++)
+        {
+            if (TiemposFirmware.DuracionVerde(nuevos[i]) != TiemposFirmware.DuracionVerde(enEsp32[i])) return true;
+        }
+        return false;
+    }
+
+    public Task SetAdaptativoAsync(bool adaptativo)
+    {
+        int[] conteo;
         lock (_lockEstado)
         {
-            _adaptativo = adaptativo;
-            actuales = (int[])_vehiculos.Clone();
+            // con todo en 0 el firmware usa el verde fijo (DUR_VERDE)
+            conteo = adaptativo ? (int[])_vehiculos.Clone() : new int[Accesos];
         }
 
-        await SetModoAutoAsync();
-
-        // con todo en 0 el firmware usa el verde fijo (DUR_VERDE)
-        await EnviarTraficoAsync(adaptativo ? actuales : new int[Accesos]);
+        // MODO:AUTO y TRAFICO: juntos: el ESP32 recibe el conteo durante el
+        // TODOS_ROJO inicial (500 ms), antes de calcular el primer verde
+        return EnviarConEstadoAsync(["MODO:AUTO", $"TRAFICO:{string.Join(',', conteo)}"], () =>
+        {
+            _adaptativo = adaptativo;
+            _modo = ModoSemaforo.Auto;
+            _accesoAmbulancia = null;
+            Array.Copy(conteo, _conteoEnEsp32, Accesos);
+            IniciarFase(0, "TODOS_ROJO", TiemposFirmware.TodosRojoMs);
+        });
     }
 
     private async Task EnviarTraficoAsync(int[] valores)
@@ -234,11 +306,25 @@ public abstract class SemaforoControllerBase : ISemaforoController, IEstadoCruce
     // ------------------------------------------------------------------
 
     /// <summary>
+    /// Hasta cuanto tiempo atras se acepta el momento que trae una linea. Mas
+    /// que eso ya no es retraso de la red sino el reloj de esta PC mal puesto:
+    /// entonces se usa "ahora", como antes.
+    /// </summary>
+    private static readonly TimeSpan MaximoRetrasoLinea = TimeSpan.FromSeconds(2.5);
+
+    /// <summary>
     /// Las clases hijas llaman esto con cada pedazo de texto que llega del
     /// ESP32 (puede traer media linea o varias lineas juntas).
+    /// <paramref name="ocurrioEn"/>: cuando lo imprimio el ESP32, si se sabe
+    /// (por IoT Hub la linea llega ~0.3-1 s despues; con ese momento el ciclo
+    /// calculado queda alineado con los LED en vez de ir atrasado). Sin el,
+    /// se usa "ahora" (USB y TCP llegan al instante).
     /// </summary>
-    protected void ProcesarTextoRecibido(string texto)
+    protected void ProcesarTextoRecibido(string texto, DateTimeOffset? ocurrioEn = null)
     {
+        var ahora = DateTimeOffset.UtcNow;
+        var momento = ocurrioEn is { } m && m <= ahora && ahora - m <= MaximoRetrasoLinea ? m : ahora;
+
         lock (_lockEstado)
         {
             _bufferLectura.Append(texto);
@@ -250,7 +336,7 @@ public abstract class SemaforoControllerBase : ISemaforoController, IEstadoCruce
 
                 var linea = contenido[..salto].Trim('\r', ' ');
                 _bufferLectura.Remove(0, salto + 1);
-                ProcesarLinea(linea);
+                ProcesarLinea(linea, momento);
             }
 
             // por si llega basura sin saltos de linea, no crecer sin limite
@@ -259,7 +345,7 @@ public abstract class SemaforoControllerBase : ISemaforoController, IEstadoCruce
     }
 
     // Se llama con _lockEstado tomado.
-    private void ProcesarLinea(string linea)
+    private void ProcesarLinea(string linea, DateTimeOffset momento)
     {
         if (!linea.StartsWith("EST:", StringComparison.Ordinal)) return;
 
@@ -274,18 +360,21 @@ public abstract class SemaforoControllerBase : ISemaforoController, IEstadoCruce
         // atrasada despues de pasar a manual o ambulancia, se ignora
         if (_modo != ModoSemaforo.Auto) return;
 
-        IniciarFase(acceso, partes[2], ms);
+        // linea vieja (de antes del ultimo cambio que ya se conoce): se ignora
+        if (momento < _faseIniciadaEn) return;
+
+        IniciarFase(acceso, partes[2], ms, momento);
         Array.Copy(ColoresDelCiclo(acceso, partes[2]), _colores, Accesos);
     }
 
     // Con _lockEstado tomado.
-    private void IniciarFase(int acceso, string fase, int duracionMs)
+    private void IniciarFase(int acceso, string fase, int duracionMs, DateTimeOffset? inicio = null)
     {
         _accesoEnTurno = acceso;
         _fase = fase;
         _duracionFaseMs = duracionMs;
-        _faseIniciadaEn = DateTimeOffset.UtcNow;
-        _actualizadoEn = _faseIniciadaEn;
+        _faseIniciadaEn = inicio ?? DateTimeOffset.UtcNow;
+        _actualizadoEn = DateTimeOffset.UtcNow;
     }
 
     // ------------------------------------------------------------------
@@ -297,7 +386,10 @@ public abstract class SemaforoControllerBase : ISemaforoController, IEstadoCruce
     /// con EST: casi al instante y esa linea debe encontrar ya el modo nuevo).
     /// Si el envio falla, el estado regresa a como estaba y se relanza el error.
     /// </summary>
-    private async Task EnviarConEstadoAsync(string comando, Action cambio)
+    private Task EnviarConEstadoAsync(string comando, Action cambio) =>
+        EnviarConEstadoAsync([comando], cambio);
+
+    private async Task EnviarConEstadoAsync(IReadOnlyList<string> comandos, Action cambio)
     {
         Respaldo respaldo;
         lock (_lockEstado)
@@ -309,7 +401,7 @@ public abstract class SemaforoControllerBase : ISemaforoController, IEstadoCruce
 
         try
         {
-            await EnviarLineaAsync(comando);
+            await EnviarLineasAsync(comandos);
         }
         catch
         {
@@ -321,11 +413,12 @@ public abstract class SemaforoControllerBase : ISemaforoController, IEstadoCruce
     private sealed record Respaldo(
         ModoSemaforo Modo, int AccesoEnTurno, string Fase, int DuracionFaseMs,
         DateTimeOffset FaseIniciadaEn, ColorSemaforo?[] Colores, int? AccesoAmbulancia,
-        DateTimeOffset ActualizadoEn);
+        DateTimeOffset ActualizadoEn, bool Adaptativo, int[] ConteoEnEsp32);
 
     private Respaldo Respaldar() => new(
         _modo, _accesoEnTurno, _fase, _duracionFaseMs, _faseIniciadaEn,
-        (ColorSemaforo?[])_colores.Clone(), _accesoAmbulancia, _actualizadoEn);
+        (ColorSemaforo?[])_colores.Clone(), _accesoAmbulancia, _actualizadoEn,
+        _adaptativo, (int[])_conteoEnEsp32.Clone());
 
     private void Restaurar(Respaldo r)
     {
@@ -337,5 +430,7 @@ public abstract class SemaforoControllerBase : ISemaforoController, IEstadoCruce
         Array.Copy(r.Colores, _colores, Accesos);
         _accesoAmbulancia = r.AccesoAmbulancia;
         _actualizadoEn = r.ActualizadoEn;
+        _adaptativo = r.Adaptativo;
+        Array.Copy(r.ConteoEnEsp32, _conteoEnEsp32, Accesos);
     }
 }

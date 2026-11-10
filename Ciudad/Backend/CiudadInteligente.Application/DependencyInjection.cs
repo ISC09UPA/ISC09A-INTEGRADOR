@@ -11,6 +11,9 @@ public static class DependencyInjection
         services.AddScoped<ISemaforoService, SemaforoService>();
         services.AddScoped<IEmergenciaService, EmergenciaService>();
         services.AddScoped<ITraficoService, TraficoService>();
+        services.AddScoped<IEstadisticasService, EstadisticasService>();
+        services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IUsuarioService, UsuarioService>();
         return services;
     }
 }
