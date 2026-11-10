@@ -1,60 +1,37 @@
-using System.Globalization;
 using CiudadInteligente.Application.Interfaces;
 using CiudadInteligente.Domain.Entities;
-using Dapper;
+using Microsoft.EntityFrameworkCore;
 
 namespace CiudadInteligente.Infrastructure.Persistence.Repositories;
 
-/// <summary>Tabla ConteosTrafico con Dapper (ORM) sobre ADO.NET (Microsoft.Data.Sqlite).</summary>
-public sealed class ConteoTraficoRepository(SqliteConnectionFactory fabrica) : IConteoTraficoRepository
+/// <summary>Tabla ConteosTrafico con Entity Framework Core (SQLite).</summary>
+public sealed class ConteoTraficoRepository(AppDbContext db) : IConteoTraficoRepository
 {
     public async Task GuardarAsync(ConteoTrafico conteo)
     {
-        const string sql = """
-            INSERT INTO ConteosTrafico (RegistradoEn, Norte, Sur, Este, Oeste)
-            VALUES (@RegistradoEn, @Norte, @Sur, @Este, @Oeste);
-            """;
-
-        using var conexion = fabrica.Crear();
-        await conexion.ExecuteAsync(sql, new
-        {
-            RegistradoEn = conteo.RegistradoEn.ToString("O", CultureInfo.InvariantCulture),
-            conteo.Norte,
-            conteo.Sur,
-            conteo.Este,
-            conteo.Oeste
-        });
+        db.ConteosTrafico.Add(conteo);
+        await db.SaveChangesAsync();
     }
 
-    public async Task<IReadOnlyList<ConteoTrafico>> ObtenerRecientesAsync(int cantidad)
+    public async Task GuardarVariosAsync(IReadOnlyList<ConteoTrafico> conteos)
     {
-        const string sql = """
-            SELECT Id, RegistradoEn, Norte, Sur, Este, Oeste
-            FROM ConteosTrafico
-            ORDER BY Id DESC
-            LIMIT @Cantidad;
-            """;
+        if (conteos.Count == 0) return;
 
-        using var conexion = fabrica.Crear();
-        var filas = await conexion.QueryAsync<ConteoFila>(sql, new { Cantidad = cantidad });
-        return filas.Select(f => new ConteoTrafico
-        {
-            Id = f.Id,
-            RegistradoEn = DateTimeOffset.Parse(f.RegistradoEn, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind),
-            Norte = (int)f.Norte,
-            Sur = (int)f.Sur,
-            Este = (int)f.Este,
-            Oeste = (int)f.Oeste
-        }).ToList();
+        // SaveChanges manda todo en una sola transaccion
+        db.ConteosTrafico.AddRange(conteos);
+        await db.SaveChangesAsync();
     }
 
-    private sealed class ConteoFila
-    {
-        public long Id { get; set; }
-        public string RegistradoEn { get; set; } = string.Empty;
-        public long Norte { get; set; }
-        public long Sur { get; set; }
-        public long Este { get; set; }
-        public long Oeste { get; set; }
-    }
+    public async Task<IReadOnlyList<ConteoTrafico>> ObtenerRecientesAsync(int cantidad) =>
+        await db.ConteosTrafico.AsNoTracking()
+            .OrderByDescending(c => c.Id)
+            .Take(cantidad)
+            .ToListAsync();
+
+    public async Task<IReadOnlyList<ConteoTrafico>> ObtenerDesdeAsync(DateTimeOffset desde) =>
+        // las fechas se guardan como texto ISO en UTC: comparar texto = comparar fechas
+        await db.ConteosTrafico.AsNoTracking()
+            .Where(c => c.RegistradoEn >= desde)
+            .OrderBy(c => c.RegistradoEn)
+            .ToListAsync();
 }

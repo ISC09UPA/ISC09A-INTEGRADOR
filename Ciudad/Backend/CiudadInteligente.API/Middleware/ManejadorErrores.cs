@@ -7,6 +7,8 @@ namespace CiudadInteligente.API.Middleware;
 /// <summary>
 /// Convierte las excepciones de la capa Application en respuestas claras:
 ///   ReglaNegocioException          -> 400 (dato invalido, verdes en conflicto...)
+///   CredencialesInvalidasException -> 401 (usuario o contrasena incorrectos)
+///   RecursoNoEncontradoException   -> 404
 ///   HardwareNoDisponibleException  -> 503 (no hay comunicacion con el ESP32)
 ///   cualquier otra                 -> 500
 /// La app movil muestra el campo "detail" tal cual al usuario.
@@ -18,6 +20,8 @@ public sealed class ManejadorErrores(IProblemDetailsService problemas, ILogger<M
         var (status, titulo) = excepcion switch
         {
             ReglaNegocioException => (StatusCodes.Status400BadRequest, "Solicitud invalida"),
+            CredencialesInvalidasException => (StatusCodes.Status401Unauthorized, "No autorizado"),
+            RecursoNoEncontradoException => (StatusCodes.Status404NotFound, "No encontrado"),
             HardwareNoDisponibleException => (StatusCodes.Status503ServiceUnavailable, "ESP32 no disponible"),
             _ => (StatusCodes.Status500InternalServerError, "Error interno")
         };

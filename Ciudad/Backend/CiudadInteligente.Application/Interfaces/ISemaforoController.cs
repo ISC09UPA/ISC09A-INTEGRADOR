@@ -21,6 +21,13 @@ public interface ISemaforoController
     /// <param name="acceso">1 a 4.</param>
     Task SetColorAsync(int acceso, ColorSemaforo color);
 
+    /// <summary>
+    /// Varios colores de una sola vez (y, si se pide, el paso a manual antes).
+    /// Se aplican en el orden recibido. Por IoT Hub viajan juntos en un solo
+    /// mensaje, en vez de una ida y vuelta a Azure por cada acceso.
+    /// </summary>
+    Task AplicarColoresAsync(IReadOnlyList<(int Acceso, ColorSemaforo Color)> colores, bool entrarAManual);
+
     /// <param name="acceso">1 a 4: acceso que recibe el corredor de emergencia.</param>
     Task ActivarAmbulanciaAsync(int acceso);
 
