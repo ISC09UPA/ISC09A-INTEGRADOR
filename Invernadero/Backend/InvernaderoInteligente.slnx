@@ -2,6 +2,5 @@
   <Project Path="InvernaderoInteligente.API/InvernaderoInteligente.API.csproj" />
   <Project Path="InvernaderoInteligente.Application/InvernaderoInteligente.Application.csproj" />
   <Project Path="InvernaderoInteligente.Domain/InvernaderoInteligente.Domain.csproj" />
-  <Project Path="InvernaderoInteligente.Functions/InvernaderoInteligente.Functions.csproj" />
   <Project Path="InvernaderoInteligente.Infrastructure/InvernaderoInteligente.Infrastructure.csproj" />
 </Solution>
