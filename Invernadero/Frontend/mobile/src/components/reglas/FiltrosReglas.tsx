@@ -1,4 +1,6 @@
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+
+import { Pressable, ScrollView, Text } from 'react-native';
+import { useColorScheme } from 'nativewind';
 import { colores } from '@/theme/tokens';
 import { FILTROS, type Categoria } from './datos';
 
@@ -9,26 +11,39 @@ interface Props {
 
 /** Chips horizontales para filtrar reglas por categoría. */
 export function FiltrosReglas({ seleccionado, onSelect }: Props) {
+  const { colorScheme } = useColorScheme();
+  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.fila}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ flexDirection: 'row', gap: 6, paddingVertical: 4 }}
+    >
       {FILTROS.map((f) => {
         const sel = f.id === seleccionado;
+
         return (
           <Pressable
             key={f.id}
             onPress={() => onSelect(f.id)}
-            style={[s.chip, { backgroundColor: sel ? colores.primary : colores.surfaceContainerLowest }]}
+            className="rounded-full px-3 py-1.5"
+            style={{
+              backgroundColor: sel ? tema.primary : tema.surfaceContainerLowest,
+            }}
           >
-            <Text style={[s.texto, { color: sel ? colores.onPrimary : colores.onSurface }]}>{f.etiqueta}</Text>
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: '600',
+                color: sel ? tema.onPrimary : tema.onSurface,
+              }}
+            >
+              {f.etiqueta}
+            </Text>
           </Pressable>
         );
       })}
     </ScrollView>
   );
 }
-
-const s = StyleSheet.create({
-  fila: { gap: 6, paddingVertical: 4 },
-  chip: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
-  texto: { fontSize: 13, fontWeight: '600' },
-});

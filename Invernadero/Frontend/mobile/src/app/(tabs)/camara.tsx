@@ -3,7 +3,6 @@ import { Image } from 'expo-image';
 import * as ExpoImagePicker from 'expo-image-picker';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useState } from 'react';
-import { Header } from '@/components/ui/Header';
 import { Card } from '@/components/ui/Card';
 import { Vacio } from '@/components/ui/Estados';
 import { LiveFeed } from '@/components/LiveFeed';
@@ -22,6 +21,7 @@ import { hapticoExito, hapticoToque } from '../../../utils/haptico';
 import { Select } from '@/components/ui/Select';
 import type { EscaneoPlanta, EstadoSaludEscaneo } from '../../../types';
 import { Boton } from '@/components/ui/Botones';
+import { useColorScheme } from 'nativewind';
 
 type Modo = 'vivo' | 'identificar';
 
@@ -32,7 +32,8 @@ export default function Camara() {
   const regar = useRegarAhora();
   const qc = useQueryClient();
   const online = dispositivo.data?.online ?? false;
-
+  const { colorScheme } = useColorScheme();
+  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
   const [modo, setModo] = useState<Modo>('vivo');
   const [ventilando, setVentilando] = useState(false);
   const [escaneoEnCurso, setEscaneoEnCurso] = useState(false);
@@ -73,14 +74,13 @@ export default function Camara() {
   }
 
   const saludColor: Record<EstadoSaludEscaneo, string> = {
-    vigorosa_sana: 'bg-primary-container',
-    observar: 'bg-tertiary-container',
-    plaga_detectada: 'bg-error-container',
+  vigorosa_sana: tema.primaryContainer,
+  observar: tema.tertiaryContainer,
+  plaga_detectada: tema.errorContainer,
   };
 
   return (
     <View className="flex-1 bg-surface">
-      <Header tituloPantalla={modo === 'vivo' ? 'En vivo' : 'Identificar'} online={online} />
       {/* Segmented control */}
       <View className="mx-gutter-mobile flex-row rounded-xl bg-surface-container p-1">
         {(['vivo', 'identificar'] as Modo[]).map((m) => (
@@ -157,7 +157,7 @@ export default function Camara() {
               {/* Modo identificar */}
               <Card className="flex-row items-center justify-between py-2.5">
                 <View className="flex-row items-center gap-2">
-                  <MaterialCommunityIcons name="brain" size={18} color={colores.primary} />
+                  <MaterialCommunityIcons name="brain" size={18} color={tema.primary} />
                   <Text className="text-label-md text-on-surface">Azure AI Vision v4.2</Text>
                 </View>
                 <View className="rounded-full bg-primary-container px-2 py-0.5">
@@ -179,7 +179,7 @@ export default function Camara() {
                     {escaneoEnCurso && (
                       <View
                         className="h-0.5 w-44 rounded-full bg-primary-fixed"
-                        style={{ shadowColor: colores.primaryFixed, shadowRadius: 12 }}
+                        style={{ shadowColor: tema.primaryFixed, shadowRadius: 12 }}
                       />
                     )}
                   </View>
@@ -193,7 +193,7 @@ export default function Camara() {
                     accessibilityLabel="Elegir de la galería"
                   >
                     <View className="h-11 w-11 items-center justify-center rounded-full bg-white/25">
-                      <MaterialCommunityIcons name="image-multiple" size={22} color={colores.surfaceBright} />
+                      <MaterialCommunityIcons name="image-multiple" size={22} color={tema.surfaceBright} />
                     </View>
                     <Text className="text-label-sm text-white">Galería</Text>
                   </Pressable>
@@ -206,13 +206,13 @@ export default function Camara() {
                   >
                     <View className="items-center justify-center rounded-full bg-primary-container p-1" style={{ width: 72, height: 72 }}>
                       <View className="h-[60px] w-[60px] items-center justify-center rounded-full bg-primary">
-                        <MaterialCommunityIcons name="scanner" size={30} color={colores.onPrimary} />
+                        <MaterialCommunityIcons name="scanner" size={30} color={tema.onPrimary} />
                       </View>
                     </View>
                   </Pressable>
                   <View className="items-center gap-1">
                     <View className="h-11 w-11 items-center justify-center rounded-full bg-white/25">
-                      <MaterialCommunityIcons name="flash-auto" size={22} color={colores.surfaceBright} />
+                      <MaterialCommunityIcons name="flash-auto" size={22} color={tema.surfaceBright} />
                     </View>
                     <Text className="text-label-sm text-white">Flash</Text>
                   </View>
@@ -245,7 +245,7 @@ export default function Camara() {
                           {resultado.confianzaPct.toFixed(1)}% Certeza
                         </Text>
                       </View>
-                      <View className={`rounded-full px-2 py-0.5 ${saludColor[resultado.salud]}`}>
+                      <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: saludColor[resultado.salud] }}>
                         <Text className="text-label-sm text-on-surface">{resultado.descripcionSalud}</Text>
                       </View>
                     </View>
@@ -291,7 +291,7 @@ export default function Camara() {
                       className="min-h-[48px] flex-row items-center justify-center gap-2 rounded-xl bg-primary py-3"
                       accessibilityRole="button"
                     >
-                      <MaterialCommunityIcons name="sprout" size={20} color={colores.onPrimary} />
+                      <MaterialCommunityIcons name="sprout" size={20} color={tema.onPrimary} />
                       <Text className="text-label-lg font-semibold text-on-primary">Asignar a Slot del Invernadero</Text>
                     </Pressable>
                     <Pressable
@@ -299,7 +299,7 @@ export default function Camara() {
                       className="min-h-[44px] flex-row items-center justify-center gap-2 rounded-xl bg-surface-container py-2.5"
                       accessibilityRole="button"
                     >
-                      <MaterialCommunityIcons name="map-marker-radius" size={18} color={colores.onSurface} />
+                      <MaterialCommunityIcons name="map-marker-radius" size={18} color={tema.onSurface} />
                       <Text className="text-label-lg text-on-surface">Dónde conseguirla</Text>
                     </Pressable>
                   </View>
@@ -310,7 +310,7 @@ export default function Camara() {
               <View className="mt-3">
                 <View className="flex-row items-center justify-between px-1">
                   <View className="flex-row items-center gap-1.5">
-                    <MaterialIcons name="history" size={20} color={colores.primary} />
+                    <MaterialIcons name="history" size={20} color={tema.primary} />
                     <Text className="text-title-md text-on-surface">Historial de Escaneos</Text>
                   </View>
                 </View>
