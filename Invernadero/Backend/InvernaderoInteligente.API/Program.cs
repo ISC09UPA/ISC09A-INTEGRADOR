@@ -18,6 +18,9 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 
+// Escrituras protegidas con X-Api-Key cuando Seguridad:ApiKey tiene valor (App Service)
+app.UseMiddleware<ValidarApiKey>();
+
 // Crea la base de datos y las tablas si no existen (temporal, hasta usar migraciones)
 using (var scope = app.Services.CreateScope())
 {
