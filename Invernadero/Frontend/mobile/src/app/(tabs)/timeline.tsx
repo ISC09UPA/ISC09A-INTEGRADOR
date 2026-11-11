@@ -3,7 +3,6 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { useEffect, useState } from 'react';
-import { Header } from '@/components/ui/Header';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { Vacio, ErrorConReintento } from '@/components/ui/Estados';
@@ -15,6 +14,7 @@ import { timelineService } from '../../../services';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { hapticoToque } from '../../../utils/haptico';
 import { Confirmar } from '@/components/Confirmar';
+import { useColorScheme } from 'nativewind';
 
 type FiltroTipo = 'todo' | 'riego' | 'alerta' | 'clima' | 'ia';
 type FiltroPlanta = string; // 'todas' | id
@@ -38,7 +38,8 @@ export default function Timeline() {
   const dispositivo = useDispositivo();
   const qc = useQueryClient();
   const online = dispositivo.data?.online ?? false;
-
+  const { colorScheme } = useColorScheme();
+  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('todo');
   const [filtroPlanta, setFiltroPlanta] = useState<FiltroPlanta>('todas');
   const [filtroRango, setFiltroRango] = useState<FiltroRango>('semana');
@@ -64,7 +65,7 @@ export default function Timeline() {
 
   const todas = eventos.data?.pages.flatMap((p) => p.eventos) ?? [];
   const total = eventos.data?.pages[0]?.totalFiltrado ?? 0;
-
+  const eventosVisibles = ahoraMs > 0 ? filtrarPorRango(todas, ahoraMs) : [];
   // KPIs del día (basados en eventos del mock).
   const eventosHoy = todas.filter((e) => new Date(e.fecha).toDateString() === hoyStr);
   const riegosHoy = eventosHoy.filter((e) => e.tipo === 'riego');
@@ -106,7 +107,6 @@ export default function Timeline() {
   if (eventos.isError) {
     return (
       <View className="flex-1 bg-surface">
-        <Header tituloPantalla="Timeline" online={online} />
         <View className="p-4">
           <ErrorConReintento mensaje="No se pudieron cargar los eventos." intentarDeNuevo={() => void eventos.refetch()} />
         </View>
@@ -116,17 +116,11 @@ export default function Timeline() {
 
   return (
     <View className="relative flex-1 bg-surface">
-      <Header tituloPantalla="Timeline" online={online} />
-
       {/* Contenedor debajo del header: la línea conectora se posiciona respecto a él */}
       <View className="relative flex-1">
         {/* Línea vertical conectora del timeline */}
-        <View
-          className="absolute bg-surface-container-high"
-          style={{ left: 27, top: 24, bottom: 0, width: 2 }}
-        />
         <FlatList
-          data={ahoraMs > 0 ? filtrarPorRango(todas, ahoraMs) : []}
+          data={eventosVisibles}
           keyExtractor={(e) => e.id}
           onRefresh={() => void eventos.refetch()}
           refreshing={eventos.isRefetching}
@@ -136,33 +130,43 @@ export default function Timeline() {
           onEndReachedThreshold={0.4}
           ListHeaderComponent={
             <View className="px-4 pb-1 pt-2">
-              {/* Título de pantalla */}
-              <View className="flex-row items-center justify-between pt-2">
-                <View className="flex-col">
-                  <Text className="text-headline-lg-mobile text-on-surface" style={{ fontWeight: '700' }}>
-                    Timeline
-                  </Text>
-                  <Text className="text-body-sm text-on-surface-variant">
-                    Línea temporal de riegos, eventos y alertas del invernadero
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={() => {
-                    hapticoToque();
-                    void compartirCsv();
-                  }}
-                  className="h-10 w-10 items-center justify-center rounded-full bg-surface-container-high active:scale-95"
-                  accessibilityRole="button"
-                  accessibilityLabel="Exportar historial a CSV"
+              <View className="flex-row items-center gap-3 pt-2">
+              <View className="min-w-0 flex-1">
+                <Text
+                  className="text-headline-lg-mobile text-on-surface"
+                  style={{ fontWeight: '700' }}
+                  numberOfLines={1}
                 >
-                  <MaterialCommunityIcons name={"share" as never} size={20} color={colores.onSurface} />
-                </Pressable>
-              </View>
+                  Timeline
+                </Text>
 
-              {/* KPIs del día */}
+                <Text
+                  className="text-body-sm text-on-surface-variant"
+                  numberOfLines={2}
+                >
+                  Línea temporal de riegos, eventos y alertas del invernadero
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => {
+                  hapticoToque();
+                  void compartirCsv();
+                }}
+                className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container-high active:scale-95"
+                accessibilityRole="button"
+                accessibilityLabel="Exportar historial a CSV"
+              >
+                <MaterialCommunityIcons
+                  name="share"
+                  size={20}
+                  color={tema.onSurface}
+                />
+              </Pressable>
+            </View>
+
               <Card className="mt-3 flex-row items-center justify-between">
                 <View className="flex-1 items-center">
-                  <MaterialIcons name="water-drop" size={16} color={colores.onSecondaryContainer} />
+                  <MaterialIcons name="water-drop" size={16} color={tema.onSecondaryContainer} />
                   <Text className="text-label-sm font-semibold uppercase text-secondary" style={{ fontSize: 10 }}>
                     Riegos hoy
                   </Text>
@@ -172,7 +176,7 @@ export default function Timeline() {
                 </View>
                 <View className="h-8 w-px bg-surface-container-highest" />
                 <View className="flex-1 items-center">
-                  <MaterialIcons name="notifications-active" size={16} color={colores.tertiary} />
+                  <MaterialIcons name="notifications-active" size={16} color={tema.tertiary} />
                   <Text className="text-label-sm font-semibold uppercase text-tertiary" style={{ fontSize: 10 }}>
                     Alertas
                   </Text>
@@ -183,7 +187,7 @@ export default function Timeline() {
                 </View>
                 <View className="h-8 w-px bg-surface-container-highest" />
                 <View className="flex-1 items-center">
-                  <MaterialIcons name="verified" size={16} color={colores.primary} />
+                  <MaterialIcons name="verified" size={16} color={tema.primary} />
                   <Text className="text-label-sm font-semibold uppercase text-primary" style={{ fontSize: 10 }}>
                     Eficiencia
                   </Text>
@@ -239,7 +243,12 @@ export default function Timeline() {
               <View />
             )
           }
-          renderItem={({ item }) => <TimelineItem evento={item} />}
+          renderItem={({ item, index }) => (
+            <TimelineItem
+              evento={item}
+              isLast={index === eventosVisibles.length - 1}
+            />
+          )}
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
           contentContainerStyle={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 16 }}
         />
@@ -255,7 +264,7 @@ export default function Timeline() {
           className="flex-row items-center gap-1 rounded-lg px-2 py-1.5 min-h-[44px]"
           accessibilityRole="button"
         >
-          <MaterialIcons name="delete-sweep" size={16} color={colores.onSurfaceVariant} />
+          <MaterialIcons name="delete-sweep" size={16} color={tema.onSurfaceVariant} />
           <Text className="text-label-md text-on-surface-variant">Limpiar historial</Text>
         </Pressable>
         <Pressable
@@ -266,7 +275,7 @@ export default function Timeline() {
           className="flex-row items-center gap-1 rounded-lg px-2 py-1.5 min-h-[44px]"
           accessibilityRole="button"
         >
-          <MaterialIcons name="file-download" size={16} color={colores.primary} />
+          <MaterialIcons name="file-download" size={16} color={tema.primary} />
           <Text className="text-label-md text-primary" style={{ fontWeight: '500' }}>Descargar CSV</Text>
         </Pressable>
       </View>
