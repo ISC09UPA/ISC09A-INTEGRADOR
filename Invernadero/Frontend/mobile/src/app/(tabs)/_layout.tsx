@@ -1,14 +1,15 @@
-
 import { colores } from '@/theme/tokens';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Tabs, router, usePathname } from 'expo-router';
-import { View, Text, Pressable } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
 import type { ComponentProps } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { StatusPill } from '@/components/ui/StatusPill';
+import { BotonMicrofono } from '@/components/voz/BotonMicrofono';
 import { useDispositivo } from '@/hooks/useTelemetria';
+import { VozProvider } from '@/voz/VozProvider';
 
 type NombreIcono = ComponentProps<typeof MaterialIcons>['name'];
 
@@ -19,6 +20,7 @@ function Icono({ nombre, color }: { nombre: NombreIcono; color: string }) {
 const TITULOS: Record<string, string> = {
   inicio: 'Inicio',
   timeline: 'Timeline',
+  voz: 'Voz',
   camara: 'Cámara',
   reglas: 'Reglas',
 };
@@ -95,6 +97,7 @@ export default function LayoutPestanas() {
   const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
 
   return (
+    <VozProvider>
     <Tabs
       screenOptions={{
         header: () => <HeaderPersonalizado />,
@@ -137,6 +140,15 @@ export default function LayoutPestanas() {
         }}
       />
 
+      {/* Voz: el botón de micrófono global ocupa el centro de la barra. */}
+      <Tabs.Screen
+        name="voz"
+        options={{
+          title: 'Voz',
+          tabBarButton: () => <BotonMicrofono />,
+        }}
+      />
+
       <Tabs.Screen
         name="camara"
         options={{
@@ -157,5 +169,6 @@ export default function LayoutPestanas() {
         }}
       />
     </Tabs>
+    </VozProvider>
   );
 }
