@@ -33,6 +33,12 @@
           "imageWidth": 76
         }
       ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "RiegoSmart IA necesita acceder al micrófono para grabar tus mensajes de voz."
+        }
+      ],
       "expo-sharing",
       "expo-secure-store",
       "expo-status-bar",
