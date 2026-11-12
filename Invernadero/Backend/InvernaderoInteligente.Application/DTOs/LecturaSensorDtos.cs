@@ -17,6 +17,7 @@ public class CrearLecturaDto
     [Required, MaxLength(10)]
     public string Unidad { get; set; } = string.Empty;
 
+    [Range(1, int.MaxValue)]
     public int? InvernaderoId { get; set; }
 
     /// <summary>Si no se envía, se usa la hora del servidor.</summary>
@@ -36,14 +37,19 @@ public class LecturaDto
 }
 
 /// <summary>Filtros opcionales del GET.</summary>
-public class FiltroLecturasDto
+public class FiltroExportacionLecturasDto
 {
     public string? SensorId { get; set; }
     public string? Tipo { get; set; }
+
+    [Range(1, int.MaxValue)]
     public int? InvernaderoId { get; set; }
     public DateTime? Desde { get; set; }
     public DateTime? Hasta { get; set; }
+}
 
+public class FiltroLecturasDto : FiltroExportacionLecturasDto
+{
     /// <summary>Máximo de lecturas a devolver (1-1000, por defecto 100).</summary>
     [Range(1, 1000)]
     public int Limite { get; set; } = 100;

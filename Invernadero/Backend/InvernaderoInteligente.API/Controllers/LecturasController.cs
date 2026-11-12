@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using InvernaderoInteligente.Application.DTOs;
 using InvernaderoInteligente.Application.Interfaces;
@@ -32,6 +34,37 @@ public class LecturasController : ControllerBase
         return Ok(lecturas);
     }
 
+    /// <summary>Exporta el historial filtrado de lecturas como CSV en orden cronológico.</summary>
+    [HttpGet("exportar.csv")]
+    [Produces("text/csv")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ExportarCsv([FromQuery] FiltroExportacionLecturasDto filtro, CancellationToken ct)
+    {
+        var lecturas = await _service.ObtenerParaExportacionAsync(filtro, ct);
+        var csv = new StringBuilder();
+
+        AgregarFilaCsv(csv, "id", "sensorId", "tipo", "valor", "unidad", "invernaderoId", "fechaHora");
+        foreach (var lectura in lecturas)
+        {
+            AgregarFilaCsv(
+                csv,
+                lectura.Id.ToString(CultureInfo.InvariantCulture),
+                lectura.SensorId,
+                lectura.Tipo,
+                lectura.Valor.ToString("R", CultureInfo.InvariantCulture),
+                lectura.Unidad,
+                lectura.InvernaderoId?.ToString(CultureInfo.InvariantCulture),
+                lectura.FechaHora.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture));
+        }
+
+        var contenido = Encoding.UTF8.GetPreamble()
+            .Concat(Encoding.UTF8.GetBytes(csv.ToString()))
+            .ToArray();
+        var nombre = $"lecturas-{DateTime.UtcNow:yyyyMMdd'T'HHmmss'Z'}.csv";
+
+        return File(contenido, "text/csv; charset=utf-8", nombre);
+    }
+
     /// <summary>Consulta una lectura por su Id.</summary>
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(LecturaDto), StatusCodes.Status200OK)]
@@ -40,5 +73,19 @@ public class LecturasController : ControllerBase
     {
         var lectura = await _service.ObtenerPorIdAsync(id, ct);
         return lectura is null ? NotFound() : Ok(lectura);
+    }
+
+    private static void AgregarFilaCsv(StringBuilder csv, params string?[] valores)
+    {
+        csv.AppendJoin(',', valores.Select(EscaparCsv)).Append("\r\n");
+    }
+
+    private static string EscaparCsv(string? valor)
+    {
+        valor ??= string.Empty;
+        if (valor.IndexOfAny([',', '"', '\r', '\n']) < 0)
+            return valor;
+
+        return $"\"{valor.Replace("\"", "\"\"")}\"";
     }
 }

@@ -1,8 +1,9 @@
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { useEffect, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Header } from '@/components/ui/Header';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
@@ -13,6 +14,7 @@ import { useDispositivo } from '@/hooks/useTelemetria';
 import { colores } from '@/theme/tokens';
 import { timelineService } from '../../../services';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { backendApiEnabled } from '../../../services/backendApi';
 import { hapticoToque } from '../../../utils/haptico';
 import { Confirmar } from '@/components/Confirmar';
 
@@ -36,8 +38,8 @@ const OPCIONES_RANGO: Opcion<FiltroRango>[] = [
 
 export default function Timeline() {
   const dispositivo = useDispositivo();
+  const insets = useSafeAreaInsets();
   const qc = useQueryClient();
-  const online = dispositivo.data?.online ?? false;
 
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('todo');
   const [filtroPlanta, setFiltroPlanta] = useState<FiltroPlanta>('todas');
@@ -61,6 +63,32 @@ export default function Timeline() {
     initialPageParam: 0,
     getNextPageParam: (ultima) => ultima.siguientePagina ?? undefined,
   });
+  const online = dispositivo.data?.online ?? false;
+  const estadoApi = eventos.isError
+    ? 'API desconectada'
+    : eventos.isSuccess
+      ? 'API conectada'
+      : 'Conectando con API…';
+  const encabezado = backendApiEnabled ? (
+    <View
+      className="flex-row items-center px-gutter-mobile"
+      style={{ paddingTop: insets.top, height: 64 + insets.top }}
+    >
+      <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary-container">
+        <MaterialIcons name="eco" size={22} color={colores.primary} />
+      </View>
+      <View className="ml-2">
+        <Text className="text-title-sm text-on-surface" style={{ fontWeight: '600' }}>
+          RiegoSmart IA
+        </Text>
+        <Text className="text-label-sm text-on-surface-variant" style={{ fontWeight: '500' }}>
+          {estadoApi}
+        </Text>
+      </View>
+    </View>
+  ) : (
+    <Header tituloPantalla="Timeline" online={online} />
+  );
 
   const todas = eventos.data?.pages.flatMap((p) => p.eventos) ?? [];
   const total = eventos.data?.pages[0]?.totalFiltrado ?? 0;
@@ -91,22 +119,25 @@ export default function Timeline() {
   }
 
   async function compartirCsv() {
-    const csv = timelineService.exportarCsv();
     try {
+      const csv = await timelineService.exportarCsv();
       const archivo = new FileSystem.File(FileSystem.Paths.cache, 'riegosmart-timeline.csv');
       archivo.write(csv);
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(archivo.uri, { mimeType: 'text/csv', dialogTitle: 'Exportar historial' });
       }
-    } catch {
-      // Web en demo: sin sharer.
+    } catch (error) {
+      Alert.alert(
+        'No se pudo exportar el historial',
+        error instanceof Error ? error.message : 'Ocurrió un error inesperado.',
+      );
     }
   }
 
   if (eventos.isError) {
     return (
       <View className="flex-1 bg-surface">
-        <Header tituloPantalla="Timeline" online={online} />
+        {encabezado}
         <View className="p-4">
           <ErrorConReintento mensaje="No se pudieron cargar los eventos." intentarDeNuevo={() => void eventos.refetch()} />
         </View>
@@ -116,7 +147,7 @@ export default function Timeline() {
 
   return (
     <View className="relative flex-1 bg-surface">
-      <Header tituloPantalla="Timeline" online={online} />
+      {encabezado}
 
       {/* Contenedor debajo del header: la línea conectora se posiciona respecto a él */}
       <View className="relative flex-1">
@@ -246,18 +277,20 @@ export default function Timeline() {
       </View>
 
       {/* Pie: acciones secundarias */}
-      <View className="flex-row items-center justify-between border-t border-surface-container-high bg-surface px-4 py-2">
-        <Pressable
-          onPress={() => {
-            hapticoToque();
-            setConfirmarLimpieza(true);
-          }}
-          className="flex-row items-center gap-1 rounded-lg px-2 py-1.5 min-h-[44px]"
-          accessibilityRole="button"
-        >
-          <MaterialIcons name="delete-sweep" size={16} color={colores.onSurfaceVariant} />
-          <Text className="text-label-md text-on-surface-variant">Limpiar historial</Text>
-        </Pressable>
+      <View className="flex-row items-center justify-end border-t border-surface-container-high bg-surface px-4 py-2">
+        {!backendApiEnabled && (
+          <Pressable
+            onPress={() => {
+              hapticoToque();
+              setConfirmarLimpieza(true);
+            }}
+            className="flex-row items-center gap-1 rounded-lg px-2 py-1.5 min-h-[44px]"
+            accessibilityRole="button"
+          >
+            <MaterialIcons name="delete-sweep" size={16} color={colores.onSurfaceVariant} />
+            <Text className="text-label-md text-on-surface-variant">Limpiar historial</Text>
+          </Pressable>
+        )}
         <Pressable
           onPress={() => {
             hapticoToque();
@@ -271,20 +304,22 @@ export default function Timeline() {
         </Pressable>
       </View>
 
-      <Confirmar
-        visible={confirmarLimpieza}
-        titulo="Limpiar historial"
-        descripcion="Se eliminarán todos los eventos del timeline de esta demo. La acción no se puede deshacer."
-        textoConfirmar="Limpiar"
-        peligroso
-        onCancelar={() => setConfirmarLimpieza(false)}
-        onConfirmar={() => {
-          setConfirmarLimpieza(false);
-          void timelineService.limpiarHistorial().then(() => {
-            qc.invalidateQueries({ queryKey: ['eventos'] });
-          });
-        }}
-      />
+      {!backendApiEnabled && (
+        <Confirmar
+          visible={confirmarLimpieza}
+          titulo="Limpiar historial"
+          descripcion="Se eliminarán todos los eventos del timeline de esta demo. La acción no se puede deshacer."
+          textoConfirmar="Limpiar"
+          peligroso
+          onCancelar={() => setConfirmarLimpieza(false)}
+          onConfirmar={() => {
+            setConfirmarLimpieza(false);
+            void timelineService.limpiarHistorial().then(() => {
+              qc.invalidateQueries({ queryKey: ['eventos'] });
+            });
+          }}
+        />
+      )}
     </View>
   );
 }

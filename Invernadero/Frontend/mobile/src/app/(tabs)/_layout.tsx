@@ -2,6 +2,8 @@ import { colores } from '@/theme/tokens';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
+import { BotonMicrofono } from '@/components/voz/BotonMicrofono';
+import { VozProvider } from '@/voz/VozProvider';
 
 type NombreIcono = ComponentProps<typeof MaterialIcons>['name'];
 
@@ -9,19 +11,20 @@ function Icono({ nombre, color }: { nombre: NombreIcono; color: string }) {
   return <MaterialIcons name={nombre} size={24} color={color} />;
 }
 
-/** Barra inferior de 4 pestañas con áreas táctiles ≥ 44 px. */
+/** Barra inferior con acceso a voz y áreas táctiles ≥ 44 px. */
 export default function LayoutPestanas() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: colores.primary,
-        tabBarInactiveTintColor: colores.onSurfaceVariant,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
-        tabBarStyle: { height: 64, paddingBottom: 8, paddingTop: 6 },
-        sceneStyle: { backgroundColor: colores.surface },
-      }}
-    >
+    <VozProvider>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: colores.primary,
+          tabBarInactiveTintColor: colores.onSurfaceVariant,
+          tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
+          tabBarStyle: { height: 64, paddingBottom: 8, paddingTop: 6 },
+          sceneStyle: { backgroundColor: colores.surface },
+        }}
+      >
       <Tabs.Screen
         name="inicio"
         options={{
@@ -34,6 +37,13 @@ export default function LayoutPestanas() {
         options={{
           title: 'Timeline',
           tabBarIcon: ({ color }) => <Icono nombre="timeline" color={String(color)} />,
+        }}
+      />
+      <Tabs.Screen
+        name="voz"
+        options={{
+          title: 'Voz',
+          tabBarButton: () => <BotonMicrofono />,
         }}
       />
       <Tabs.Screen
@@ -50,6 +60,7 @@ export default function LayoutPestanas() {
           tabBarIcon: ({ color }) => <Icono nombre="smart-toy" color={String(color)} />,
         }}
       />
-    </Tabs>
+      </Tabs>
+    </VozProvider>
   );
 }
