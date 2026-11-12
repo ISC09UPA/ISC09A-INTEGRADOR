@@ -26,6 +26,20 @@
     "plugins": [
       "expo-router",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Permite que la aplicación use la cámara para tomar fotos de plantas.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "RiegoSmart IA necesita acceder al micrófono para grabar mensajes de voz."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#208AEF",
@@ -33,16 +47,7 @@
           "imageWidth": 76
         }
       ],
-      [
-        "expo-audio",
-        {
-          "microphonePermission": "RiegoSmart IA necesita acceder al micrófono para grabar tus mensajes de voz."
-        }
-      ],
-      "expo-sharing",
-      "expo-secure-store",
-      "expo-status-bar",
-      "expo-web-browser"
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true,

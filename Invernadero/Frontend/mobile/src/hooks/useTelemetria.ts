@@ -56,19 +56,6 @@ export function usePrediccion(plantaId: string) {
   });
 }
 
-export function useRegarAhora() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (vars: { plantaId: string; volumenMl: number; operador: string }) =>
-      telemetriaService.regarAhora(vars.plantaId, vars.volumenMl, vars.operador),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['eventos'] });
-      qc.invalidateQueries({ queryKey: ['lecturas'] });
-      qc.invalidateQueries({ queryKey: ['dispositivo'] });
-    },
-  });
-}
-
 type TipoActuador = ['bomba', 'ventilador', 'leds', 'valvula', 'modoAuto', 'emergencia', 'online'];
 
 const ACCIONES: Record<

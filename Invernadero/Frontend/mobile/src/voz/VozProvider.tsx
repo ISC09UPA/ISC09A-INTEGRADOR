@@ -22,7 +22,6 @@ import { servicioReconocimiento, type SesionReconocimiento } from './reconocimie
 import { servicioEnvio } from './envio';
 import {
   DURACION_MINIMA_MS,
-  TIEMPO_ENVIADO_MS,
   type EstadoVoz,
   type Grabacion,
 } from './tipos';
@@ -121,7 +120,6 @@ export function VozProvider({ children }: { children: ReactNode }) {
   const gestoRef = useRef<EstadoGesto>({ zonaVisible: false, zonaActiva: false });
   const temporizadoresRef = useRef<{
     aviso?: ReturnType<typeof setTimeout>;
-    proceso?: ReturnType<typeof setTimeout>;
   }>({});
 
   const cambiarEstado = useCallback((nuevo: EstadoVoz) => {
@@ -145,7 +143,6 @@ export function VozProvider({ children }: { children: ReactNode }) {
   /** Vuelve a idle y libera todo. `borrar` elimina el audio conservado. */
   const restablecer = useCallback(
     (borrar: boolean) => {
-      clearTimeout(temporizadoresRef.current.proceso);
       if (borrar) borrarArchivo(grabacionRef.current?.uri);
       grabacionRef.current = null;
       reconocimientoRef.current = null;
@@ -295,11 +292,8 @@ export function VozProvider({ children }: { children: ReactNode }) {
         transcripcion: conservada.transcripcion,
       });
       cambiarEstado('sent');
-      temporizadoresRef.current.proceso = setTimeout(() => {
-        if (estadoRef.current === 'sent') cambiarEstado('processing');
-      }, TIEMPO_ENVIADO_MS);
-    } catch {
-      avisar('No se pudo preparar el envío. Inténtalo de nuevo.');
+    } catch (error) {
+      avisar(error instanceof Error ? error.message : 'No se pudo enviar la grabación.');
     } finally {
       enviandoRef.current = false;
       setEnviando(false);
@@ -333,7 +327,6 @@ export function VozProvider({ children }: { children: ReactNode }) {
     const temporizadores = temporizadoresRef.current;
     return () => {
       clearTimeout(temporizadores.aviso);
-      clearTimeout(temporizadores.proceso);
       reconocimientoRef.current?.cancelar();
       reconocimientoRef.current = null;
       if (estadoRef.current === 'recording') {

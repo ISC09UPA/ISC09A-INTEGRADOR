@@ -4,6 +4,7 @@ namespace InvernaderoInteligente.Application.DTOs;
 
 public class CrearRiegoDto
 {
+    [Range(1, int.MaxValue)]
     public int? InvernaderoId { get; set; }
 
     [MaxLength(50)]
@@ -20,11 +21,16 @@ public class CrearRiegoDto
     public double? VolumenMl { get; set; }
 
     /// <summary>"automatico" o "manual". Por defecto "manual".</summary>
-    [RegularExpression("^(automatico|manual)$", ErrorMessage = "Origen debe ser 'automatico' o 'manual'.")]
+    [RegularExpression("^(automatico|manual|ia)$", ErrorMessage = "Origen debe ser 'automatico', 'manual' o 'ia'.")]
     public string Origen { get; set; } = "manual";
 
+    [Range(0, 100)]
     public double? HumedadDetectada { get; set; }
+
+    [Range(0, 100)]
     public double? Umbral { get; set; }
+
+    [Range(1, int.MaxValue)]
     public int? LecturaSensorId { get; set; }
 }
 
@@ -44,6 +50,7 @@ public class RiegoDto
 
 public class FiltroRiegosDto
 {
+    [Range(1, int.MaxValue)]
     public int? InvernaderoId { get; set; }
     public string? Zona { get; set; }
     public string? Origen { get; set; }

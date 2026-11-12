@@ -1,104 +1,31 @@
-
-import React, { forwardRef } from 'react';
 import {
   Tabs,
   TabList,
   TabTrigger,
   TabSlot,
-  type TabTriggerSlotProps,
-  type TabListProps,
+  TabTriggerSlotProps,
+  TabListProps,
 } from 'expo-router/ui';
+import { SymbolView } from 'expo-symbols';
+import { Pressable, useColorScheme, View, StyleSheet } from 'react-native';
 
-import {
-  Pressable,
-  Text,
-  View,
-  StyleSheet,
-} from 'react-native';
+import { ExternalLink } from './external-link';
+import { ThemedText } from './themed-text';
+import { ThemedView } from './themed-view';
 
-import { useColorScheme } from 'nativewind';
-import { colores } from '@/theme/tokens';
+import { Colors, MaxContentWidth, Spacing } from '@/constants/theme';
 
-// Botón de cada pestaña
-type TabButtonProps = Omit<TabTriggerSlotProps, 'ref'>;
-
-export const TabButton = forwardRef<
-  React.ElementRef<typeof Pressable>,
-  TabButtonProps
->(({ children, isFocused, ...props }, ref) => {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
-
-  return (
-    <Pressable
-      ref={ref}
-      {...props}
-      style={({ pressed }) => [
-        styles.tabButton,
-        {
-          backgroundColor: isFocused
-            ? tema.primaryContainer
-            : 'transparent',
-          opacity: pressed ? 0.7 : 1,
-        },
-      ]}
-    >
-      <Text
-        style={{
-          fontSize: 14,
-          fontWeight: '600',
-          color: isFocused
-            ? tema.onPrimaryContainer
-            : tema.onSurfaceVariant,
-        }}
-      >
-        {children}
-      </Text>
-    </Pressable>
-  );
-});
-
-TabButton.displayName = 'TabButton';
-
-// Contenedor de las pestañas
-export function CustomTabList(props: TabListProps) {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
-
-  return (
-    <View
-      {...props}
-      style={[
-        styles.tabListContainer,
-        props.style,
-      ]}
-    >
-      <View
-        style={[
-          styles.innerContainer,
-          { backgroundColor: tema.surfaceContainer },
-        ]}
-      >
-        {props.children}
-      </View>
-    </View>
-  );
-}
-
-// Navegación
 export default function AppTabs() {
   return (
     <Tabs>
       <TabSlot style={{ height: '100%' }} />
-
       <TabList asChild>
         <CustomTabList>
           <TabTrigger name="home" href="/" asChild>
-            <TabButton>Inicio</TabButton>
+            <TabButton>Home</TabButton>
           </TabTrigger>
-
           <TabTrigger name="explore" href="/explore" asChild>
-            <TabButton>Explorar</TabButton>
+            <TabButton>Explore</TabButton>
           </TabTrigger>
         </CustomTabList>
       </TabList>
@@ -106,30 +33,85 @@ export default function AppTabs() {
   );
 }
 
-// Estilos
+export function TabButton({ children, isFocused, ...props }: TabTriggerSlotProps) {
+  const { ref: _ref, ...pressableProps } = props;
+
+  return (
+    <Pressable {...pressableProps} style={({ pressed }) => pressed && styles.pressed}>
+      <ThemedView
+        type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
+        style={styles.tabButtonView}>
+        <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
+          {children}
+        </ThemedText>
+      </ThemedView>
+    </Pressable>
+  );
+}
+
+export function CustomTabList(props: TabListProps) {
+  const scheme = useColorScheme();
+  const colors = Colors[scheme === 'dark' ? 'dark' : 'light'];
+
+  return (
+    <View {...props} style={styles.tabListContainer}>
+      <ThemedView type="backgroundElement" style={styles.innerContainer}>
+        <ThemedText type="smallBold" style={styles.brandText}>
+          Expo Starter
+        </ThemedText>
+
+        {props.children}
+
+        <ExternalLink href="https://docs.expo.dev" asChild>
+          <Pressable style={styles.externalPressable}>
+            <ThemedText type="link">Docs</ThemedText>
+            <SymbolView
+              tintColor={colors.text}
+              name={{ ios: 'arrow.up.right.square', web: 'link' }}
+              size={12}
+            />
+          </Pressable>
+        </ExternalLink>
+      </ThemedView>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   tabListContainer: {
     position: 'absolute',
     width: '100%',
-    padding: 12,
+    padding: Spacing.three,
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
   },
   innerContainer: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
+    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.five,
+    borderRadius: Spacing.five,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
     flexGrow: 1,
-    gap: 8,
-    maxWidth: 500,
+    gap: Spacing.two,
+    maxWidth: MaxContentWidth,
   },
-  tabButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 12,
+  brandText: {
+    marginRight: 'auto',
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+  tabButtonView: {
+    paddingVertical: Spacing.one,
+    paddingHorizontal: Spacing.three,
+    borderRadius: Spacing.three,
+  },
+  externalPressable: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: Spacing.one,
+    marginLeft: Spacing.three,
   },
 });

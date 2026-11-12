@@ -8,7 +8,7 @@ interface Props {
   titulo: string;
   subtitulo: string;
   /** Control a la derecha: Switch o botón. */
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 /** Fila de actuador: título + estado a la izquierda, control a la derecha. */

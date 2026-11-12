@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, PanResponder, StyleSheet, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -44,7 +44,11 @@ export function BotonMicrofono() {
   const [escala] = useState(() => new Animated.Value(1));
   const grabando = estado === 'recording';
 
-  const responder = useMemo(() => {
+  const [panHandlers, setPanHandlers] = useState<
+    ReturnType<typeof PanResponder.create>['panHandlers'] | null
+  >(null);
+
+  useEffect(() => {
     /** Calcula el estado de la zona de cancelación a partir del desplazamiento. */
     const evaluar = (dx: number, dy: number) => {
       const distanciaZona = Math.hypot(dx, dy + ZONA_DY);
@@ -82,7 +86,7 @@ export function BotonMicrofono() {
       }
     };
 
-    return PanResponder.create({
+    const responder = PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       // Nadie (ScrollView, navegación, etc.) puede quitarle el gesto al botón.
@@ -111,6 +115,7 @@ export function BotonMicrofono() {
       // grabación en lugar de perderla, nunca se cancela por accidente.
       onPanResponderTerminate: () => terminar(),
     });
+    setPanHandlers(responder.panHandlers);
   }, [actualizarGesto, cancelarGrabacion, finalizarGrabacion, iniciarGrabacion]);
 
   // Pulso suave mientras se graba.
@@ -146,7 +151,7 @@ export function BotonMicrofono() {
   return (
     <View style={styles.contenedor}>
       <View
-        {...responder.panHandlers}
+        {...panHandlers}
         style={styles.area}
         accessible
         accessibilityRole="button"

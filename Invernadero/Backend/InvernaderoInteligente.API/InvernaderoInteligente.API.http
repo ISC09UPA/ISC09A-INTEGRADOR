@@ -40,11 +40,15 @@ Content-Type: application/json
 GET {{host}}/api/Lecturas?tipo=humedad_suelo&limite=10
 Accept: application/json
 
-### 5) Consultar una lectura por Id
+### 5) Exportar el historial de lecturas a CSV
+GET {{host}}/api/Lecturas/exportar.csv?tipo=humedad_suelo
+Accept: text/csv
+
+### 6) Consultar una lectura por Id
 GET {{host}}/api/Lecturas/1
 Accept: application/json
 
-### 6) Registrar un riego automático con volumen → 201 Created
+### 7) Registrar un riego automático con volumen → 201 Created
 POST {{host}}/api/Riegos
 Content-Type: application/json
 
@@ -59,7 +63,7 @@ Content-Type: application/json
   "umbral": 30.0
 }
 
-### 7) Repetir el mismo riego → 409 Conflict
+### 8) Repetir el mismo riego → 409 Conflict
 POST {{host}}/api/Riegos
 Content-Type: application/json
 
@@ -72,6 +76,6 @@ Content-Type: application/json
   "origen": "automatico"
 }
 
-### 8) Consultar historial de riegos
+### 9) Consultar historial de riegos
 GET {{host}}/api/Riegos?invernaderoId=1&limite=20
 Accept: application/json

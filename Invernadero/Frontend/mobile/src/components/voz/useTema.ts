@@ -1,8 +1,6 @@
-import { useColorScheme } from 'nativewind';
 import { colores } from '@/theme/tokens';
 
-/** Tokens de color del tema actual (claro/oscuro) desde theme/tokens.ts. */
+/** Tokens de color disponibles en el tema actual de la app. */
 export function useTema() {
-  const { colorScheme } = useColorScheme();
-  return colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  return colores;
 }

@@ -1,11 +1,34 @@
 import { espera } from './bd';
-import { nuevoIdEvento, nuevoIdRiego } from './ids';
-import type { EventoTimeline, LecturaSensor, Riego, EstadoDispositivo } from '../types';
+import type { LecturaSensor, Riego, EstadoDispositivo } from '../types';
 import { PLANTAS_SEMILLA, UMBRALES_SEMILLA } from '@/mocks/datos';
 import { simulador } from '@/mocks/simulador';
+import { backendApiEnabled, descargarCsvApi, solicitarApi } from './backendApi';
+import {
+  LecturaApi,
+  LecturasActualesApi,
+  mapearLecturasActuales,
+  mapearRiegoApi,
+  RiegoApi,
+} from './telemetriaMapping';
 
-export const MAX_REGADO_ML = 600;
-const CAUDAL_LMIN = 1.1;
+export async function obtenerLecturasBackend(): Promise<LecturasActualesApi> {
+  const lecturas = await solicitarApi<LecturaApi[]>('/api/Lecturas?limite=1000');
+  return mapearLecturasActuales(lecturas);
+}
+
+export async function obtenerRiegosBackend(): Promise<Riego[]> {
+  const riegos = await solicitarApi<RiegoApi[]>('/api/Riegos?limite=1000');
+  return riegos.map(mapearRiegoApi);
+}
+
+export async function comprobarBackend(): Promise<boolean> {
+  await solicitarApi<LecturaApi[]>('/api/Lecturas?limite=1');
+  return true;
+}
+
+export async function exportarLecturasBackend(): Promise<string> {
+  return descargarCsvApi('/api/Lecturas/exportar.csv');
+}
 
 export async function lecturaActual(): Promise<LecturaSensor> {
   await espera(120);
@@ -25,58 +48,6 @@ export async function ultimoRiego(plantaId: string): Promise<Riego | null> {
 export function subscribirCambios(fn: () => void): () => void {
   simulador.iniciar();
   return simulador.suscribir(fn);
-}
-
-export async function regarAhora(
-  plantaId: string,
-  volumenMl: number,
-  nombreOperador: string,
-): Promise<Riego> {
-  if (volumenMl <= 0 || !Number.isFinite(volumenMl)) {
-    throw new Error('Volumen inválido');
-  }
-  if (volumenMl > MAX_REGADO_ML) {
-    throw new Error(`El máximo seguro es ${MAX_REGADO_ML} mL por riego manual.`);
-  }
-  const dispositivo = simulador.dispositivo();
-  if (!dispositivo.online) {
-    throw new Error('RPi Offline: imposible accionar la bomba sin conexión.');
-  }
-
-  await espera(400);
-
-  const planta = PLANTAS_SEMILLA.find((p) => p.id === plantaId) ?? PLANTAS_SEMILLA[0];
-  const antes = simulador.lecturas().humedadSuelo;
-  const objetivo = Math.min(85, antes + (volumenMl / 1000) * 55);
-  simulador.regarHasta(planta.id, objetivo);
-
-  const riego: Riego = {
-    id: nuevoIdRiego(),
-    plantaId: planta.id,
-    inicio: new Date().toISOString(),
-    duracionSeg: Math.max(2, Math.round((volumenMl / 1000 / CAUDAL_LMIN) * 60)),
-    volumenMl,
-    origen: 'manual',
-    humedadAntes: antes,
-    humedadDespues: parseFloat(objetivo.toFixed(1)),
-    operadorNombre: nombreOperador,
-  };
-  const evento: EventoTimeline = {
-    id: nuevoIdEvento(),
-    tipo: 'riego',
-    titulo: 'Riego Manual Aplicado',
-    descripcion: `Dispensación de ${volumenMl} mL solicitada por ${nombreOperador} para ${planta.nombre}.`,
-    fecha: riego.inicio,
-    plantaId: planta.id,
-    plantaNombre: planta.nombre,
-    humedadAntes: antes,
-    humedadDespues: riego.humedadDespues,
-    volumenMl,
-    origen: 'manual',
-  };
-  simulador.marcarFinRiego(riego, evento);
-  simulador.registrarUltimoRiego(riego);
-  return riego;
 }
 
 export async function alternarBomba(activa: boolean): Promise<EstadoDispositivo> {
