@@ -1,22 +1,47 @@
+
 import { MaterialIcons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
+import { useColorScheme } from 'nativewind';
 import { colores } from '@/theme/tokens';
 
 /** Diagnóstico IA de la planta seleccionada. */
-export function DiagnosticoCard({ vigorPct, descripcion }: { vigorPct: number; descripcion: string }) {
+export function DiagnosticoCard({
+  vigorPct,
+  descripcion,
+}: {
+  vigorPct: number;
+  descripcion: string;
+}) {
+  const { colorScheme } = useColorScheme();
+  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+
   return (
-    <View style={s.tarjeta}>
-      <View style={s.icono}>
-        <MaterialIcons name="psychology" size={22} color={colores.onPrimaryContainer} />
+    <View style={[s.tarjeta, { backgroundColor: tema.surfaceContainerLowest }]}>
+      <View style={[s.icono, { backgroundColor: tema.primaryContainer }]}>
+        <MaterialIcons
+          name="psychology"
+          size={22}
+          color={tema.onPrimaryContainer}
+        />
       </View>
+
       <View style={{ flex: 1 }}>
         <View style={s.fila}>
-          <Text style={s.titulo}>Diagnóstico IA</Text>
-          <View style={s.badge}>
-            <Text style={s.badgeTexto}>{vigorPct}% Vigor</Text>
+          <Text style={[s.titulo, { color: tema.onSurface }]}>
+            Diagnóstico IA
+          </Text>
+
+          <View style={[s.badge, { backgroundColor: tema.primaryContainer }]}>
+            <Text style={[s.badgeTexto, { color: tema.onPrimaryContainer }]}>
+              {vigorPct}% Vigor
+            </Text>
           </View>
         </View>
-        <Text style={s.sub} numberOfLines={2}>
+
+        <Text
+          style={[s.sub, { color: tema.onSurfaceVariant }]}
+          numberOfLines={2}
+        >
           {descripcion}
         </Text>
       </View>
@@ -31,7 +56,6 @@ const s = StyleSheet.create({
     gap: 12,
     borderRadius: 16,
     padding: 16,
-    backgroundColor: colores.surfaceContainerLowest,
   },
   icono: {
     width: 40,
@@ -39,11 +63,15 @@ const s = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colores.primaryContainer,
   },
   fila: { flexDirection: 'row', alignItems: 'center' },
-  titulo: { fontSize: 16, fontWeight: '600', color: colores.onSurface },
-  badge: { borderRadius: 999, paddingHorizontal: 8, paddingVertical: 2, marginLeft: 6, backgroundColor: colores.primaryContainer },
-  badgeTexto: { fontSize: 11, fontWeight: '600', color: colores.onPrimaryContainer },
-  sub: { fontSize: 12, color: colores.onSurfaceVariant },
+  titulo: { fontSize: 16, fontWeight: '600' },
+  badge: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginLeft: 6,
+  },
+  badgeTexto: { fontSize: 11, fontWeight: '600' },
+  sub: { fontSize: 12 },
 });

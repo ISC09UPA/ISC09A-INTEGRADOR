@@ -1,0 +1,53 @@
+name: Invernadero · Deploy API Telemetría
+
+# Publica la API en App Service (api-invernadero-kevin) cada vez que
+# Invernadero-Develop-V1 recibe cambios del backend. También se puede lanzar a mano.
+on:
+  push:
+    branches:
+      - Invernadero-Develop-V1
+    paths:
+      - 'Invernadero/Backend/InvernaderoInteligente.API/**'
+      - 'Invernadero/Backend/InvernaderoInteligente.Application/**'
+      - 'Invernadero/Backend/InvernaderoInteligente.Domain/**'
+      - 'Invernadero/Backend/InvernaderoInteligente.Infrastructure/**'
+      - '.github/workflows/invernadero-api-deploy.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: invernadero-api-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  AZURE_WEBAPP_NAME: api-invernadero-kevin
+  API_PROJECT: Invernadero/Backend/InvernaderoInteligente.API/InvernaderoInteligente.API.csproj
+
+jobs:
+  deploy:
+    name: Publicar API en Azure App Service
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Instalar .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publicar (Release)
+        run: dotnet publish "$API_PROJECT" --configuration Release --output ./publish-api
+
+      - name: Desplegar en App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE_INVERNADERO }}
+          package: ./publish-api
