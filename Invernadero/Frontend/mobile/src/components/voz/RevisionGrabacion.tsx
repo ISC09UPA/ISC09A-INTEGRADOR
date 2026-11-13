@@ -1,7 +1,8 @@
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 
+import { Boton } from '@/components/ui/Botones';
 import { Card } from '@/components/ui/Card';
 import type { Grabacion } from '@/voz/tipos';
 import { formatearDuracion } from '@/voz/formato';
@@ -120,42 +121,20 @@ export function RevisionGrabacion({
       <Transcripcion texto={grabacion.transcripcion} simulada={transcripcionSimulada} />
 
       <View style={{ gap: 10 }}>
-        <Pressable
+        <Boton
+          variante="primario"
+          texto="Confirmar y enviar"
+          cargando={enviando}
           onPress={onConfirmar}
-          disabled={enviando}
           accessibilityRole="button"
-          style={{
-            minHeight: 48,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 12,
-            padding: 12,
-            backgroundColor: tema.primary,
-            opacity: enviando ? 0.7 : 1,
-          }}
-        >
-          {enviando ? (
-            <ActivityIndicator color={tema.onPrimary} />
-          ) : (
-            <Text style={{ fontWeight: '600', color: tema.onPrimary }}>Confirmar y enviar</Text>
-          )}
-        </Pressable>
-        <Pressable
+        />
+        <Boton
+          variante="peligroso"
+          texto="Eliminar"
+          deshabilitado={enviando}
           onPress={onEliminar}
-          disabled={enviando}
           accessibilityRole="button"
-          style={{
-            minHeight: 48,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 12,
-            padding: 12,
-            backgroundColor: tema.errorContainer,
-            opacity: enviando ? 0.7 : 1,
-          }}
-        >
-          <Text style={{ fontWeight: '600', color: tema.onErrorContainer }}>Eliminar</Text>
-        </Pressable>
+        />
       </View>
     </View>
   );

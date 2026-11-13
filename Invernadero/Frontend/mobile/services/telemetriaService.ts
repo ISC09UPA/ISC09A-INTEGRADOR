@@ -135,3 +135,16 @@ export async function prediccion(plantaId: string): Promise<{
     resumen: 'Crecimiento óptimo · Estomas hidratados',
   };
 }
+
+/**
+ * Riego manual desde la app. Pendiente: endpoint de la API que mande el comando
+ * a la Raspberry por IoT Hub (SCRUM-58/59). Mientras no exista, avisa claramente
+ * en vez de simular un riego que no ocurrió.
+ */
+export async function regarAhora(
+  _plantaId: string,
+  _volumenMl: number,
+  _nombreOperador: string,
+): Promise<Riego> {
+  throw new Error('El riego manual desde la app todavía no está disponible (pendiente SCRUM-59).');
+}

@@ -1,3 +1,4 @@
+import { useColorScheme } from 'nativewind';
 import { MaterialIcons } from '@expo/vector-icons';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
@@ -8,6 +9,8 @@ import { colores } from '@/theme/tokens';
 
 /** Pantalla vivero-mapa: componentemap aislado + lista de viveros cercanos. */
 export default function ViveroMapa() {
+  const { colorScheme } = useColorScheme();
+  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
   const datos = useQuery({ queryKey: ['viveros'], queryFn: viverosService.listarViverosCercanos });
 
   if (datos.isLoading || !datos.data) {
@@ -28,7 +31,7 @@ export default function ViveroMapa() {
           accessibilityRole="button"
           accessibilityLabel="Cerrar"
         >
-          <MaterialIcons name="close" size={20} color={colores.onSurface} />
+          <MaterialIcons name="close" size={20} color={tema.onSurface} />
         </Pressable>
         <View className="flex-col">
           <Text className="text-title-md text-on-surface" style={{ fontWeight: '600' }}>

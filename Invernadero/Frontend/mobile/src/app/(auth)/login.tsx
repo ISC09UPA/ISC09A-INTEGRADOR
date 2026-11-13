@@ -1,3 +1,4 @@
+import { useColorScheme } from 'nativewind';
 import { Boton } from '@/components/ui/Botones';
 import { useSesion } from '../../../store/useSesionStore';
 import { colores } from '@/theme/tokens';
@@ -10,6 +11,8 @@ import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from
 const EMAIL_REGEXP = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function Login() {
+  const { colorScheme } = useColorScheme();
+  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
   const { usuario, iniciarSesion, cerrarSesion } = useSesion();
 
   const [correo, setCorreo] = useState('');
@@ -49,7 +52,7 @@ export default function Login() {
       <View className="flex-1 justify-center px-gutter-mobile">
         <View className="mb-8 items-center gap-2">
           <View className="h-16 w-16 items-center justify-center rounded-2xl bg-primary-container">
-            <MaterialIcons name="eco" size={34} color={colores.primary} />
+            <MaterialIcons name="eco" size={34} color={tema.primary} />
           </View>
           <Text className="text-headline-lg-mobile text-on-surface" style={{ fontWeight: '700' }}>
             RiegoSmart IA
@@ -69,7 +72,7 @@ export default function Login() {
               autoComplete="email"
               accessibilityLabel="Correo electrónico"
               className={`rounded-xl bg-surface-container-lowest px-4 py-3 text-body-md text-on-surface min-h-[48px] ${errores.correo ? 'border border-error' : ''}`}
-              placeholderTextColor={colores.onSurfaceVariant}
+              placeholderTextColor={tema.onSurfaceVariant}
             />
             {errores.correo && <Text className="text-label-md text-error">{errores.correo}</Text>}
           </View>
@@ -83,7 +86,7 @@ export default function Login() {
               secureTextEntry
               accessibilityLabel="Contraseña"
               className={`rounded-xl bg-surface-container-lowest px-4 py-3 text-body-md text-on-surface min-h-[48px] ${errores.contrasena ? 'border border-error' : ''}`}
-              placeholderTextColor={colores.onSurfaceVariant}
+              placeholderTextColor={tema.onSurfaceVariant}
             />
             {errores.contrasena && <Text className="text-label-md text-error">{errores.contrasena}</Text>}
           </View>

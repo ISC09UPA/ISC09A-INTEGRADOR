@@ -1,3 +1,4 @@
+import { useColorScheme } from 'nativewind';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
@@ -5,7 +6,6 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { CarruselCultivos } from '@/components/inicio/CarruselCultivos';
 import { DiagnosticoCard } from '@/components/inicio/DiagnosticoCard';
 import { FilaAccion } from '@/components/inicio/FilaAccion';
-import { HeaderInicio } from '@/components/inicio/HeaderInicio';
 import { ResumenDeposito } from '@/components/inicio/ResumenDeposito';
 import { TarjetaMetrica } from '@/components/inicio/TarjetaMetrica';
 import { LUZ, NIVEL_DEPOSITO, PLANTAS, TEMPERATURA } from '@/components/inicio/datos';
@@ -15,6 +15,9 @@ import { obtenerLecturasBackend, obtenerRiegosBackend } from '../../../services/
 import { colores } from '@/theme/tokens';
 
 export default function Inicio() {
+  const { colorScheme } = useColorScheme();
+  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const s = crearEstilos(tema);
   const [plantaId, setPlantaId] = useState(PLANTAS[0].id);
   const [bomba, setBomba] = useState(false);
   const [ventilador, setVentilador] = useState(false);
@@ -41,7 +44,7 @@ export default function Inicio() {
   const encabezado = backendApiEnabled ? (
     <View style={s.encabezado}>
       <View style={s.filaEncabezado}>
-        <MaterialIcons name="eco" size={22} color={colores.primary} />
+        <MaterialIcons name="eco" size={22} color={tema.primary} />
         <View>
           <Text style={s.headerTitulo}>RiegoSmart IA</Text>
           <Text style={s.headerSub}>{estadoApi}</Text>
@@ -49,7 +52,7 @@ export default function Inicio() {
       </View>
     </View>
   ) : (
-    <HeaderInicio />
+    null
   );
 
   useEffect(() => () => {
@@ -74,7 +77,7 @@ export default function Inicio() {
     temporizador.current = setTimeout(() => setBomba(false), 3000);
   }
 
-  const colorSwitch = { false: colores.surfaceContainerHighest, true: colores.primary };
+  const colorSwitch = { false: tema.surfaceContainerHighest, true: tema.primary };
 
   if (backendApiEnabled && (lecturasBackend.isLoading || riegosBackend.isLoading)) {
     return (
@@ -121,8 +124,8 @@ export default function Inicio() {
 
         <TarjetaMetrica
           icono="water-drop"
-          colorIcono={colores.onSecondaryContainer}
-          fondoIcono={colores.secondaryContainer}
+          colorIcono={tema.onSecondaryContainer}
+          fondoIcono={tema.secondaryContainer}
           etiqueta="Humedad Sustrato"
           valor={`${backendApiEnabled ? humedadSuelo ?? '—' : planta.humedad}%`}
           detalle={`Óptimo (${planta.humedadOptima[0]}-${planta.humedadOptima[1]}%)`}
@@ -154,8 +157,8 @@ export default function Inicio() {
 
         <TarjetaMetrica
           icono="device-thermostat"
-          colorIcono={colores.onTertiaryContainer}
-          fondoIcono={colores.tertiaryContainer}
+          colorIcono={tema.onTertiaryContainer}
+          fondoIcono={tema.tertiaryContainer}
           etiqueta="Temperatura Ambiente"
           valor={`${backendApiEnabled ? temperatura ?? '—' : TEMPERATURA} °C`}
         >
@@ -168,8 +171,8 @@ export default function Inicio() {
 
         <TarjetaMetrica
           icono="wb-sunny"
-          colorIcono={colores.onPrimaryContainer}
-          fondoIcono={colores.primaryContainer}
+          colorIcono={tema.onPrimaryContainer}
+          fondoIcono={tema.primaryContainer}
           etiqueta="Radiación Lumínica"
           valor={valorLuz}
         >
@@ -193,7 +196,8 @@ export default function Inicio() {
   );
 }
 
-const s = StyleSheet.create({
+const crearEstilos = (tema: (typeof colores)[keyof typeof colores]) =>
+  StyleSheet.create({
   encabezado: {
     height: 64,
     marginTop: 40,
@@ -202,13 +206,13 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   filaEncabezado: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerTitulo: { fontSize: 16, fontWeight: '600', color: colores.onSurface },
-  headerSub: { fontSize: 12, color: colores.onSurfaceVariant },
-  pantalla: { flex: 1, backgroundColor: colores.surface },
+  headerTitulo: { fontSize: 16, fontWeight: '600', color: tema.onSurface },
+  headerSub: { fontSize: 12, color: tema.onSurfaceVariant },
+  pantalla: { flex: 1, backgroundColor: tema.surface },
   contenido: { padding: 16, paddingBottom: 32, gap: 12 },
   mensaje: { padding: 16 },
-  titulo: { fontSize: 16, fontWeight: '600', color: colores.onSurface, marginTop: 4 },
-  aviso: { fontSize: 12, color: colores.onSurfaceVariant },
-  boton: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: colores.secondary },
-  botonTexto: { fontSize: 11, fontWeight: '500', color: colores.onSecondary },
+  titulo: { fontSize: 16, fontWeight: '600', color: tema.onSurface, marginTop: 4 },
+  aviso: { fontSize: 12, color: tema.onSurfaceVariant },
+  boton: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: tema.secondary },
+  botonTexto: { fontSize: 11, fontWeight: '500', color: tema.onSecondary },
 });

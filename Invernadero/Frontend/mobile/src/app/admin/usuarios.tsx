@@ -1,3 +1,4 @@
+import { useColorScheme } from 'nativewind';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -29,6 +30,8 @@ interface Props {
 
 /** Modal para crear un nuevo usuario (solo admin). */
 function ModalCrear({ visible, onClose, onGuardar }: Props) {
+  const { colorScheme } = useColorScheme();
+  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [rol, setRol] = useState<Rol>('operador');
@@ -89,7 +92,7 @@ function ModalCrear({ visible, onClose, onGuardar }: Props) {
                 accessibilityRole="radio"
                 accessibilityLabel={`Rol ${r}`}
               >
-                <MaterialIcons name={r === 'admin' ? 'admin-panel-settings' : 'person'} size={18} color={rol === r ? colores.onPrimaryContainer : colores.onSurfaceVariant} />
+                <MaterialIcons name={r === 'admin' ? 'admin-panel-settings' : 'person'} size={18} color={rol === r ? tema.onPrimaryContainer : tema.onSurfaceVariant} />
                 <Text className={`text-label-md font-semibold ${rol === r ? 'text-on-primary-container' : 'text-on-surface-variant'}`}>
                   {r === 'admin' ? 'Admin' : 'Operador'}
                 </Text>
@@ -121,6 +124,8 @@ function ModalCrear({ visible, onClose, onGuardar }: Props) {
 }
 
 export default function AdminUsuarios() {
+  const { colorScheme } = useColorScheme();
+  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
   const { usuario } = useSesion();
   const esAdmin = (usuario?.rol ?? 'operador') === 'admin';
   const consultas = useQueryClient();
@@ -151,11 +156,11 @@ export default function AdminUsuarios() {
       <View className="flex-1 bg-surface">
         <View className="flex-row items-center px-2 pt-2">
           <Pressable onPress={() => router.back()} accessibilityLabel="Cerrar" className="h-10 w-10 items-center justify-center">
-            <MaterialIcons name="close" size={24} color={colores.onSurface} />
+            <MaterialIcons name="close" size={24} color={tema.onSurface} />
           </Pressable>
         </View>
         <View className="flex-1 items-center justify-center px-6">
-          <MaterialIcons name="lock" size={40} color={colores.onSurfaceVariant} />
+          <MaterialIcons name="lock" size={40} color={tema.onSurfaceVariant} />
           <Text className="pt-3 text-title-md text-on-surface">Solo administradores</Text>
           <Text className="pt-1 text-center text-body-sm text-on-surface-variant">
             La gestión de usuarios está reservada al rol admin. Pide a un admin que actualice tu cuenta o consulta con él las reglas de acceso.
@@ -209,7 +214,7 @@ export default function AdminUsuarios() {
             accessibilityRole="button"
             accessibilityLabel="Añadir usuario"
           >
-            <MaterialIcons name="person-add" size={18} color={colores.onPrimary} />
+            <MaterialIcons name="person-add" size={18} color={tema.onPrimary} />
             <Text className="text-label-md font-semibold text-on-primary">Añadir</Text>
           </Pressable>
         </View>
@@ -254,7 +259,7 @@ export default function AdminUsuarios() {
                       <Switch
                         value={cambiarAdmin}
                         onValueChange={(v) => void cambiarRol.mutateAsync({ id: u.id, rol: v ? 'admin' : 'operador' })}
-                        trackColor={{ false: colores.surfaceContainerHighest, true: colores.primary }}
+                        trackColor={{ false: tema.surfaceContainerHighest, true: tema.primary }}
                         accessibilityLabel={`Cambiar rol de ${u.nombre}`}
                       />
                       <Text className="text-body-sm text-on-surface">{cambiarAdmin ? 'Admin' : 'Operador'}</Text>
@@ -268,7 +273,7 @@ export default function AdminUsuarios() {
                       accessibilityRole="button"
                       accessibilityLabel={`Eliminar usuario ${u.nombre}`}
                     >
-                      <MaterialIcons name="person-remove" size={18} color={colores.onErrorContainer} />
+                      <MaterialIcons name="person-remove" size={18} color={tema.onErrorContainer} />
                     </Pressable>
                   </View>
                 )}

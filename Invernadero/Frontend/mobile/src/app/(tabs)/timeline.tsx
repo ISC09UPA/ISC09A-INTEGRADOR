@@ -1,10 +1,10 @@
+import { useColorScheme } from 'nativewind';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Alert, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { useEffect, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Header } from '@/components/ui/Header';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { Vacio, ErrorConReintento } from '@/components/ui/Estados';
@@ -37,6 +37,8 @@ const OPCIONES_RANGO: Opcion<FiltroRango>[] = [
 ];
 
 export default function Timeline() {
+  const { colorScheme } = useColorScheme();
+  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
   const dispositivo = useDispositivo();
   const insets = useSafeAreaInsets();
   const qc = useQueryClient();
@@ -75,7 +77,7 @@ export default function Timeline() {
       style={{ paddingTop: insets.top, height: 64 + insets.top }}
     >
       <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary-container">
-        <MaterialIcons name="eco" size={22} color={colores.primary} />
+        <MaterialIcons name="eco" size={22} color={tema.primary} />
       </View>
       <View className="ml-2">
         <Text className="text-title-sm text-on-surface" style={{ fontWeight: '600' }}>
@@ -87,7 +89,7 @@ export default function Timeline() {
       </View>
     </View>
   ) : (
-    <Header tituloPantalla="Timeline" online={online} />
+    null
   );
 
   const todas = eventos.data?.pages.flatMap((p) => p.eventos) ?? [];
@@ -186,14 +188,14 @@ export default function Timeline() {
                   accessibilityRole="button"
                   accessibilityLabel="Exportar historial a CSV"
                 >
-                  <MaterialCommunityIcons name={"share" as never} size={20} color={colores.onSurface} />
+                  <MaterialCommunityIcons name={"share" as never} size={20} color={tema.onSurface} />
                 </Pressable>
               </View>
 
               {/* KPIs del día */}
               <Card className="mt-3 flex-row items-center justify-between">
                 <View className="flex-1 items-center">
-                  <MaterialIcons name="water-drop" size={16} color={colores.onSecondaryContainer} />
+                  <MaterialIcons name="water-drop" size={16} color={tema.onSecondaryContainer} />
                   <Text className="text-label-sm font-semibold uppercase text-secondary" style={{ fontSize: 10 }}>
                     Riegos hoy
                   </Text>
@@ -203,7 +205,7 @@ export default function Timeline() {
                 </View>
                 <View className="h-8 w-px bg-surface-container-highest" />
                 <View className="flex-1 items-center">
-                  <MaterialIcons name="notifications-active" size={16} color={colores.tertiary} />
+                  <MaterialIcons name="notifications-active" size={16} color={tema.tertiary} />
                   <Text className="text-label-sm font-semibold uppercase text-tertiary" style={{ fontSize: 10 }}>
                     Alertas
                   </Text>
@@ -214,7 +216,7 @@ export default function Timeline() {
                 </View>
                 <View className="h-8 w-px bg-surface-container-highest" />
                 <View className="flex-1 items-center">
-                  <MaterialIcons name="verified" size={16} color={colores.primary} />
+                  <MaterialIcons name="verified" size={16} color={tema.primary} />
                   <Text className="text-label-sm font-semibold uppercase text-primary" style={{ fontSize: 10 }}>
                     Eficiencia
                   </Text>
@@ -287,7 +289,7 @@ export default function Timeline() {
             className="flex-row items-center gap-1 rounded-lg px-2 py-1.5 min-h-[44px]"
             accessibilityRole="button"
           >
-            <MaterialIcons name="delete-sweep" size={16} color={colores.onSurfaceVariant} />
+            <MaterialIcons name="delete-sweep" size={16} color={tema.onSurfaceVariant} />
             <Text className="text-label-md text-on-surface-variant">Limpiar historial</Text>
           </Pressable>
         )}
@@ -299,7 +301,7 @@ export default function Timeline() {
           className="flex-row items-center gap-1 rounded-lg px-2 py-1.5 min-h-[44px]"
           accessibilityRole="button"
         >
-          <MaterialIcons name="file-download" size={16} color={colores.primary} />
+          <MaterialIcons name="file-download" size={16} color={tema.primary} />
           <Text className="text-label-md text-primary" style={{ fontWeight: '500' }}>Descargar CSV</Text>
         </Pressable>
       </View>

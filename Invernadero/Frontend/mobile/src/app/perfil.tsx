@@ -1,3 +1,4 @@
+import { useColorScheme } from 'nativewind';
 import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Link, router } from 'expo-router';
@@ -16,6 +17,8 @@ const ETIQUETA_ROL: Record<string, string> = {
 };
 
 export default function Perfil() {
+  const { colorScheme } = useColorScheme();
+  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
   const { usuario, cerrarSesion } = useSesion();
   const dispositivo = useDispositivo();
   const [cerrar, setCerrar] = useState(false);
@@ -34,7 +37,7 @@ export default function Perfil() {
     <View className="flex-1 bg-surface">
       <View className="h-16 flex-row items-center px-gutter-mobile">
         <Pressable onPress={() => router.back()} accessibilityLabel="Volver">
-          <MaterialIcons name="arrow-back" size={22} color={colores.onSurface} />
+          <MaterialIcons name="arrow-back" size={22} color={tema.onSurface} />
         </Pressable>
       </View>
 
@@ -74,7 +77,7 @@ export default function Perfil() {
                 de la última sincronización ({dispositivo.data ? relativo(dispositivo.data.ultimaSync) : '—'}).
               </Text>
             </View>
-            <Switch value={online} onValueChange={alternarOnline} trackColor={{ false: colores.surfaceContainerHighest, true: colores.primary }} accessibilityLabel="Alternar RPi Online" />
+            <Switch value={online} onValueChange={alternarOnline} trackColor={{ false: tema.surfaceContainerHighest, true: tema.primary }} accessibilityLabel="Alternar RPi Online" />
           </View>
           <Link href="/notificaciones" asChild>
             <Pressable
@@ -84,11 +87,11 @@ export default function Perfil() {
             >
               <View className="flex-row items-center gap-2">
                 <View className="h-9 w-9 items-center justify-center rounded-xl bg-secondary-container">
-                  <MaterialIcons name="notifications" size={20} color={colores.onSecondaryContainer} />
+                  <MaterialIcons name="notifications" size={20} color={tema.onSecondaryContainer} />
                 </View>
                 <Text className="text-title-sm text-on-surface">Notificaciones y permisos</Text>
               </View>
-              <MaterialIcons name="chevron-right" size={22} color={colores.onSurfaceVariant} />
+              <MaterialIcons name="chevron-right" size={22} color={tema.onSurfaceVariant} />
             </Pressable>
           </Link>
         </View>
@@ -97,7 +100,7 @@ export default function Perfil() {
         <View className="px-gutter-mobile pb-2">
           <View className="rounded-xl bg-surface-container-low p-3">
             <View className="flex-row items-center gap-1.5">
-              <MaterialIcons name="eco" size={18} color={colores.primary} />
+              <MaterialIcons name="eco" size={18} color={tema.primary} />
               <Text className="text-title-sm font-semibold text-on-surface">RiegoSmart IA</Text>
             </View>
             <Text className="pt-1 text-body-sm text-on-surface-variant">Versión demo 1.0 · Expo SDK 58</Text>
@@ -119,7 +122,7 @@ export default function Perfil() {
             accessibilityLabel="Cerrar sesión"
           >
             <View className="flex-row items-center gap-2">
-              <MaterialIcons name="logout" size={18} color={colores.onErrorContainer} />
+              <MaterialIcons name="logout" size={18} color={tema.onErrorContainer} />
               <Text className="text-label-md font-semibold text-on-error-container">Cerrar sesión</Text>
             </View>
           </Pressable>
