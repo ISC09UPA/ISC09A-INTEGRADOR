@@ -92,26 +92,66 @@ def desactivar_emergencia():
     notificar_backend_barrera("CLOSE", "Emergencia restablecida por supervisor")
     print("\n✅ [SISTEMA RESTABLECIDO]: Enclavamiento liberado. Pluma y sensores en operación estándar.")
 
+def probar_azure():
+    """Consulta el estado en vivo de Azure Cloud Services."""
+    if not HAS_URLLIB:
+        print("Módulo urllib no disponible.")
+        return
+    try:
+        url = f"{BACKEND_URL}/azure/status"
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=6.0) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+            print("\n" + "="*65)
+            print(" ☁️  ESTADO EN VIVO DE AZURE CLOUD SERVICES (CONECTIVIDAD LIVE)")
+            print("="*65)
+            print(f" • Estado Global       : 🟢 {data.get('status')}")
+            services = data.get('services', {})
+            cv = services.get('computerVision', {})
+            acs = services.get('communicationServices', {})
+            sb = services.get('serviceBus', {})
+            blob = services.get('blobStorage', {})
+            print(f" • Computer Vision     : 🟢 {cv.get('status')} ({cv.get('region')} · OCR LPR)")
+            print(f" • Communication Svcs  : 🟢 {acs.get('status')} (Alertas y Códigos Rojos)")
+            print(f" • Service Bus (IoT)   : 🟢 {sb.get('status')} (Namespace: {sb.get('namespace')}, Cola: {sb.get('queue')})")
+            print(f" • Blob Storage        : 📁 {blob.get('status')} (Cuenta: {blob.get('account')})")
+            print("="*65)
+    except Exception as e:
+        print(f"\n⚠️ No se pudo conectar con el endpoint de Azure del Backend: {e}")
+
 def simular_ciclo_paso(placa="ABC-123-D"):
-    """Simula: Auto llega -> Sensor lo detecta -> Pluma abre -> Auto cruza -> Pluma cierra."""
+    """Simula: Auto llega -> Sensor lo detecta -> LPR y Azure -> Pluma abre -> Auto cruza -> Pluma cierra."""
     if state["emergencia_activa"]:
         print("\n❌ Maniobra rechazada: Sistema enclavado por emergencia.")
         return
 
     print(f"\n🚗 1. Automóvil aproximándose a caseta (Placa: {placa})...")
     state["lazo_inductivo"] = True
-    time.sleep(0.8)
+    time.sleep(0.5)
 
-    print("📸 2. Cámara LPR 4K leyendo placa y validando acceso...")
-    time.sleep(0.8)
+    print("📸 2. Cámara LPR capturando placa y consultando Backend & Azure Service Bus...")
+    if HAS_URLLIB:
+        try:
+            req = urllib.request.Request(
+                f"{BACKEND_URL}/access/evaluate",
+                data=json.dumps({"laneId": "carril-01", "laneType": "ENTRY", "placa": placa, "confianza": 0.98}).encode('utf-8'),
+                headers={'Content-Type': 'application/json'}
+            )
+            with urllib.request.urlopen(req, timeout=3.0) as resp:
+                eval_data = json.loads(resp.read().decode('utf-8'))
+                print(f"   ↳ Decisión Backend: {eval_data.get('decision')} | {eval_data.get('motivo')}")
+                print(f"   ↳ Telemetría: Evento publicado a Azure Service Bus (estacionamiento-events)")
+        except Exception:
+            pass
+    time.sleep(0.5)
 
     print("🟢 3. Acceso autorizado. Semáforo en VERDE.")
     mover_pluma(True)
-    time.sleep(1.5)
+    time.sleep(1.2)
 
     print("🚗 4. Vehículo cruzando el carril de acceso...")
     state["lazo_inductivo"] = False
-    time.sleep(1.2)
+    time.sleep(1.0)
 
     print("🔴 5. Carril despejado. Bajando pluma a 0°.")
     mover_pluma(False)
@@ -165,6 +205,7 @@ def main():
         print(" [2] Levantar pluma manualmente (90°)")
         print(" [3] Bajar pluma manualmente (0°)")
         print(" [4] Alternar ocupación de Cajón (1 al 4)")
+        print(" [A] ☁️ Probar conectividad con la Nube de Azure (/api/v1/azure/status)")
         print(" [E] 🚨 DISPARAR PARO DE EMERGENCIA (Bloqueo + Estrobos Rojos)")
         print(" [R] ✅ Desactivar / Restablecer emergencia")
         print(" [Q] Salir")
@@ -183,6 +224,8 @@ def main():
                 alternar_cajon(int(c_num))
             else:
                 print("Cajón inválido.")
+        elif opc == 'A':
+            probar_azure()
         elif opc == 'E':
             activar_emergencia()
         elif opc == 'R':

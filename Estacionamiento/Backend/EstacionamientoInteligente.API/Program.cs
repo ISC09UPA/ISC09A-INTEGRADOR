@@ -4,8 +4,11 @@ using AirportParking.Application.Common.Interfaces;
 using AirportParking.Application.DTOs;
 using AirportParking.Domain.Entities;
 using AirportParking.Infrastructure;
+using AirportParking.Infrastructure.Azure;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 // Configurar Servicios de Arquitectura Limpia
 builder.Services.AddOpenApi();
@@ -233,7 +236,7 @@ bayGroup.MapGet("/", async (IParkingStore store) =>
     return Results.Ok(dtos);
 });
 
-bayGroup.MapPost("/{id}/toggle", async (string id, HttpContext context, IParkingStore store) =>
+bayGroup.MapPost("/{id}/toggle", async (string id, HttpContext context, IParkingStore store, IAzureServiceBusService bus) =>
 {
     ToggleBayRequest? req = null;
     if (context.Request.ContentLength > 0 && context.Request.HasJsonContentType())
@@ -262,6 +265,16 @@ bayGroup.MapPost("/{id}/toggle", async (string id, HttpContext context, IParking
             Motivo = $"Ocupación Sensor HC-SR04 en {bay.Name}",
             Timestamp = DateTime.UtcNow
         });
+
+        _ = bus.PublishEventAsync("BAY_OCCUPIED", new
+        {
+            BayId = bay.Id,
+            BayNumber = bay.BayNumber,
+            Status = bay.Status,
+            Plate = bay.CurrentPlate,
+            Vehicle = bay.CurrentVehicle,
+            Timestamp = DateTime.UtcNow
+        });
     }
     else
     {
@@ -275,6 +288,16 @@ bayGroup.MapPost("/{id}/toggle", async (string id, HttpContext context, IParking
             ConfianzaLpr = 1.0,
             Decision = "ALLOW",
             Motivo = $"Salida de {bay.Name} · Cobro Apple Pay (${fee:F2} MXN)",
+            Timestamp = DateTime.UtcNow
+        });
+
+        _ = bus.PublishEventAsync("BAY_VACATED", new
+        {
+            BayId = bay.Id,
+            BayNumber = bay.BayNumber,
+            Status = "free",
+            PreviousPlate = bay.CurrentPlate,
+            FeeCharged = fee,
             Timestamp = DateTime.UtcNow
         });
 
@@ -363,4 +386,98 @@ adminGroup.MapGet("/alerts", async (IParkingStore store) =>
     return Results.Ok(alerts);
 });
 
+// ==============================================================================
+// 7. Endpoints de Servicios Cloud Azure (/api/v1/azure)
+// ==============================================================================
+var azureGroup = app.MapGroup("/api/v1/azure").WithTags("Azure Cloud Services");
+
+azureGroup.MapGet("/status", async (
+    IAzureVisionService vision,
+    IAzureCommunicationService comms,
+    IAzureServiceBusService bus,
+    IAzureBlobService blob,
+    AzureSettings settings) =>
+{
+    var visionOk = await vision.PingAsync();
+    var commsOk = await comms.PingAsync();
+    var busOk = await bus.PingAsync();
+    var blobOk = await blob.PingAsync();
+
+    return Results.Ok(new
+    {
+        timestamp = DateTime.UtcNow,
+        status = (visionOk && commsOk && busOk) ? "ONLINE" : "PARTIAL",
+        services = new
+        {
+            computerVision = new
+            {
+                status = visionOk ? "CONNECTED" : "UNREACHABLE",
+                endpoint = settings.ComputerVision.Endpoint,
+                region = settings.ComputerVision.Region
+            },
+            communicationServices = new
+            {
+                status = commsOk ? "CONNECTED" : "UNREACHABLE",
+                endpoint = settings.CommunicationServices.Endpoint
+            },
+            serviceBus = new
+            {
+                status = busOk ? "CONNECTED" : "UNREACHABLE",
+                @namespace = settings.ServiceBus.Namespace,
+                queue = settings.ServiceBus.QueueName
+            },
+            blobStorage = new
+            {
+                status = blobOk ? "CONFIGURED" : "PENDING",
+                account = settings.BlobStorage.AccountName,
+                container = settings.BlobStorage.ContainerName
+            }
+        }
+    });
+});
+
+azureGroup.MapPost("/vision/ocr", async (HttpRequest request, IAzureVisionService vision) =>
+{
+    if (request.ContentType?.StartsWith("application/json") == true)
+    {
+        var body = await request.ReadFromJsonAsync<VisionUrlRequest>();
+        if (!string.IsNullOrEmpty(body?.ImageUrl))
+        {
+            var recognized = await vision.AnalyzePlateFromUrlAsync(body.ImageUrl);
+            return Results.Ok(new { success = recognized != null, plate = recognized });
+        }
+    }
+
+    using var ms = new MemoryStream();
+    await request.Body.CopyToAsync(ms);
+    var bytes = ms.ToArray();
+    if (bytes.Length > 0)
+    {
+        var recognized = await vision.AnalyzePlateImageAsync(bytes);
+        return Results.Ok(new { success = recognized != null, plate = recognized });
+    }
+
+    return Results.BadRequest(new { error = "Debe enviar imagen binaria en el body o un JSON con 'imageUrl'." });
+});
+
+azureGroup.MapPost("/servicebus/test", async (AzureTestMessageRequest req, IAzureServiceBusService bus) =>
+{
+    var ok = await bus.PublishEventAsync("MANUAL_DIAGNOSTIC_TEST", new
+    {
+        message = req.Message ?? "Prueba de conectividad Azure Service Bus",
+        dispatchedAt = DateTime.UtcNow
+    });
+    return Results.Ok(new { success = ok, queue = "estacionamiento-events" });
+});
+
+azureGroup.MapPost("/communication/alert", async (AzureAlertRequest req, IAzureCommunicationService comms) =>
+{
+    var ok = await comms.SendSecurityAlertAsync(req.Message ?? "Alerta de Seguridad Aeropark", req.Recipient);
+    return Results.Ok(new { success = ok });
+});
+
 app.Run();
+
+public record VisionUrlRequest(string? ImageUrl);
+public record AzureTestMessageRequest(string? Message);
+public record AzureAlertRequest(string? Message, string? Recipient);

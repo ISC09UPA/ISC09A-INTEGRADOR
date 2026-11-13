@@ -5,3 +5,4 @@
   <Project Path="EstacionamientoInteligente.Infrastructure/EstacionamientoInteligente.Infrastructure.csproj" />
   <Project Path="EstacionamientoInteligente.UnitTests/EstacionamientoInteligente.UnitTests.csproj" />
 </Solution>
+

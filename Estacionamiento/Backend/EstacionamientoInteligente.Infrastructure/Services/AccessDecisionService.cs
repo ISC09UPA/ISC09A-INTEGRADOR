@@ -7,10 +7,17 @@ namespace AirportParking.Infrastructure.Services;
 public class AccessDecisionService : IAccessDecisionService
 {
     private readonly IParkingStore _store;
+    private readonly IAzureServiceBusService? _serviceBus;
+    private readonly IAzureCommunicationService? _communicationService;
 
-    public AccessDecisionService(IParkingStore store)
+    public AccessDecisionService(
+        IParkingStore store,
+        IAzureServiceBusService? serviceBus = null,
+        IAzureCommunicationService? communicationService = null)
     {
         _store = store;
+        _serviceBus = serviceBus;
+        _communicationService = communicationService;
     }
 
     public async Task<AccessEvaluationResponse> EvaluateAccessAsync(AccessEvaluationRequest request)
@@ -32,6 +39,18 @@ public class AccessDecisionService : IAccessDecisionService
                 Timestamp = DateTime.UtcNow
             });
             await _store.SetBarrierStatusAsync("OPEN");
+
+            if (_serviceBus != null)
+            {
+                _ = _serviceBus.PublishEventAsync("ACCESS_EVALUATED", new
+                {
+                    request.LaneId,
+                    Plate = cleanPlate,
+                    Decision = "ALLOW",
+                    Type = "WHITELIST",
+                    Reason = listEntry.Justificacion
+                });
+            }
 
             return new AccessEvaluationResponse(
                 Decision: "ALLOW",
@@ -66,6 +85,16 @@ public class AccessDecisionService : IAccessDecisionService
                     Motivo = "Capacidad Total Agotada (Sin cupo)",
                     Timestamp = DateTime.UtcNow
                 });
+
+                if (_serviceBus != null)
+                {
+                    _ = _serviceBus.PublishEventAsync("ACCESS_DENIED", new
+                    {
+                        request.LaneId,
+                        Plate = cleanPlate,
+                        Reason = "LOT_FULL"
+                    });
+                }
 
                 return new AccessEvaluationResponse(
                     Decision: "DENIED",
@@ -112,6 +141,19 @@ public class AccessDecisionService : IAccessDecisionService
                 Motivo = isReserved ? "Reserva Web Activa" : "Acceso Cashless Rotativo",
                 Timestamp = DateTime.UtcNow
             });
+
+            if (_serviceBus != null)
+            {
+                _ = _serviceBus.PublishEventAsync("ACCESS_EVALUATED", new
+                {
+                    request.LaneId,
+                    Plate = cleanPlate,
+                    Decision = "ALLOW",
+                    Type = "ENTRY",
+                    IsReserved = isReserved,
+                    StayId = stay.Id
+                });
+            }
 
             return new AccessEvaluationResponse(
                 Decision: "ALLOW",
@@ -170,6 +212,19 @@ public class AccessDecisionService : IAccessDecisionService
             Timestamp = DateTime.UtcNow
         });
 
+        if (_serviceBus != null)
+        {
+            _ = _serviceBus.PublishEventAsync("ACCESS_EVALUATED", new
+            {
+                request.LaneId,
+                Plate = cleanPlate,
+                Decision = "ALLOW",
+                Type = "EXIT",
+                AmountPaid = amountDue,
+                StayId = activeStay?.Id
+            });
+        }
+
         return new AccessEvaluationResponse(
             Decision: "ALLOW",
             Motivo: $"Pago Procesado (${amountDue:F2} MXN vía Apple Pay). Buen viaje.",
@@ -198,6 +253,25 @@ public class AccessDecisionService : IAccessDecisionService
                 : $"Acción de Supervisor: {command} ({reason ?? "Sin justificación"})",
             Timestamp = DateTime.UtcNow
         });
+
+        // 1. Notificar a Azure Service Bus
+        if (_serviceBus != null)
+        {
+            _ = _serviceBus.PublishEventAsync(isEmergency ? "EMERGENCY_LOCK_ENGAGED" : "BARRIER_MANUAL_COMMAND", new
+            {
+                LaneId = laneId,
+                Command = command,
+                Reason = reason,
+                Timestamp = DateTime.UtcNow
+            });
+        }
+
+        // 2. Si es código rojo, disparar alerta prioritaria en Azure Communication Services
+        if (isEmergency && _communicationService != null)
+        {
+            _ = _communicationService.SendSecurityAlertAsync(
+                $"🚨 CÓDIGO ROJO: Enclavamiento activado en {laneId}. Razón: {reason ?? "Activación manual de emergencia"}");
+        }
 
         return true;
     }
