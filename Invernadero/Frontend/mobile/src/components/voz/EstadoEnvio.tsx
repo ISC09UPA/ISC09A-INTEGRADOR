@@ -1,6 +1,7 @@
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
+import { Boton } from '@/components/ui/Botones';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import type { Grabacion } from '@/voz/tipos';
@@ -11,7 +12,7 @@ import { useTema } from './useTema';
 interface Props {
   fase: 'sent' | 'processing';
   grabacion: Grabacion | null;
-  /** Indica que todavía no existe envío real al backend. */
+  /** El envío sigue siendo simulado (sin backend). Se indica en pantalla. */
   envioSimulado: boolean;
   transcripcionSimulada: boolean;
   /**
@@ -49,18 +50,14 @@ export function EstadoEnvio({
             <MaterialIcons name="check-circle" size={52} color={tema.primary} />
           </View>
           <Text style={{ fontSize: 22, fontWeight: '600', textAlign: 'center', color: tema.onSurface }}>
-            {envioSimulado ? 'Audio enviado correctamente' : 'Audio recibido por el backend'}
+            Audio enviado correctamente
           </Text>
-          <Chip variante="exito" texto={envioSimulado ? 'Enviado' : 'Recibido'} />
+          <Chip variante="exito" texto="Enviado" />
           {envioSimulado ? (
             <Text style={{ fontSize: 12, textAlign: 'center', color: tema.onSurfaceVariant }}>
               Envío simulado: aún no hay conexión con el backend.
             </Text>
-          ) : (
-            <Text style={{ fontSize: 12, textAlign: 'center', color: tema.onSurfaceVariant }}>
-              Azure Speech sigue pendiente. El audio y la transcripción no se guardaron.
-            </Text>
-          )}
+          ) : null}
         </View>
 
         <Card tono="bajo">
@@ -74,18 +71,6 @@ export function EstadoEnvio({
         </Card>
 
         <Transcripcion texto={grabacion?.transcripcion ?? ''} simulada={transcripcionSimulada} />
-        <Pressable
-          onPress={onNueva}
-          accessibilityRole="button"
-          style={{
-            alignItems: 'center',
-            borderRadius: 12,
-            padding: 14,
-            backgroundColor: tema.surfaceContainerLow,
-          }}
-        >
-          <Text style={{ fontWeight: '600', color: tema.onSurface }}>Nueva grabación</Text>
-        </Pressable>
       </View>
     );
   }
@@ -116,22 +101,11 @@ export function EstadoEnvio({
 
       {envioSimulado ? (
         <Text style={{ fontSize: 12, textAlign: 'center', color: tema.onSurfaceVariant }}>
-          Estado simulado: no hay procesamiento de Azure Speech configurado.
+          Estado simulado: no hay solicitud real en curso mientras no exista el backend.
         </Text>
       ) : null}
 
-      <Pressable
-        onPress={onNueva}
-        accessibilityRole="button"
-        style={{
-          alignItems: 'center',
-          borderRadius: 12,
-          padding: 14,
-          backgroundColor: tema.surfaceContainerLow,
-        }}
-      >
-        <Text style={{ fontWeight: '600', color: tema.onSurface }}>Nueva grabación</Text>
-      </Pressable>
+      <Boton variante="secundario" texto="Nueva grabación" onPress={onNueva} accessibilityRole="button" />
     </View>
   );
 }
