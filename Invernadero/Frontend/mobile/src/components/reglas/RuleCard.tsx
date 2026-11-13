@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { useColorScheme } from 'nativewind';
 import { colores } from '@/theme/tokens';
 import type { Categoria, Prioridad, Regla } from './datos';
@@ -10,10 +10,13 @@ type Icono = ComponentProps<typeof MaterialIcons>['name'];
 interface Props {
   regla: Regla;
   onToggle: (activa: boolean) => void;
+  /** Si no se pasan, el botón correspondiente no se muestra. */
+  onEditar?: () => void;
+  onEliminar?: () => void;
 }
 
 /** Tarjeta de regla SI/ENTONCES con switch y prioridad. */
-export function RuleCard({ regla, onToggle }: Props) {
+export function RuleCard({ regla, onToggle, onEditar, onEliminar }: Props) {
   const { colorScheme } = useColorScheme();
   const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
 
@@ -136,6 +139,33 @@ export function RuleCard({ regla, onToggle }: Props) {
             : 'Sin disparos recientes'}
         </Text>
       </View>
+
+      {(onEditar || onEliminar) && (
+        <View style={s.acciones}>
+          {onEditar && (
+            <Pressable
+              onPress={onEditar}
+              accessibilityRole="button"
+              accessibilityLabel={`Editar regla ${regla.nombre}`}
+              style={[s.boton, { backgroundColor: tema.surfaceContainer }]}
+            >
+              <MaterialIcons name="edit" size={16} color={tema.onSurface} />
+              <Text style={[s.botonTexto, { color: tema.onSurface }]}>Editar</Text>
+            </Pressable>
+          )}
+          {onEliminar && (
+            <Pressable
+              onPress={onEliminar}
+              accessibilityRole="button"
+              accessibilityLabel={`Eliminar regla ${regla.nombre}`}
+              style={[s.boton, { backgroundColor: tema.errorContainer }]}
+            >
+              <MaterialIcons name="delete-outline" size={16} color={tema.onErrorContainer} />
+              <Text style={[s.botonTexto, { color: tema.onErrorContainer }]}>Eliminar</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -217,5 +247,22 @@ const s = StyleSheet.create({
   },
   sub: {
     fontSize: 12,
+  },
+  acciones: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+  },
+  boton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  botonTexto: {
+    fontSize: 13,
+    fontWeight: '500',
   },
 });
