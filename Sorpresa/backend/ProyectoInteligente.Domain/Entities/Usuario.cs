@@ -9,6 +9,6 @@ public class Usuario
     public string Email { get; set; } = "";
     public string PasswordHash { get; set; } = "";
     public Rol Rol { get; set; } = Rol.Usuario;
-    public string? FaceId { get; set; }      // ID de persona en Face API
-    public string? FotoUrl { get; set; }     // URL en Blob Storage
+    public string? FaceId { get; set; }
+    public string? FotoUrl { get; set; }
 }

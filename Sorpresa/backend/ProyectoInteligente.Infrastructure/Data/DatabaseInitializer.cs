@@ -26,17 +26,34 @@ public static class DatabaseInitializer
             await db.SaveChangesAsync();
         }
 
-        if (!await db.Usuarios.AnyAsync(u => u.Rol == Rol.Administrador))
+                
+        var username = (config["Admin:Username"] ?? "lockeradmin")
+            .Trim()
+            .ToLowerInvariant();
+
+        var password = config["Admin:Password"]
+            ?? throw new InvalidOperationException(
+                "No se configuró Admin:Password en User Secrets.");
+
+        var admin = await db.Usuarios.FirstOrDefaultAsync(
+            u => u.Email == username);
+
+        if (admin is null)
         {
-            db.Usuarios.Add(new Usuario
+            admin = new Usuario
             {
-                Nombre = "Administrador",
-                Email = "admin@locker.com",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(
-                    config["Admin:Password"] ?? "Admin123!"),
+                Nombre = "Administrador de pruebas",
+                Email = username,
                 Rol = Rol.Administrador
-            });
-            await db.SaveChangesAsync();
+            };
+
+            db.Usuarios.Add(admin);
         }
+
+        admin.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+        admin.Rol = Rol.Administrador;
+
+        await db.SaveChangesAsync();
+
     }
 }

@@ -10,10 +10,11 @@
 using System;
 using System.Reflection;
 
+[assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("97df31d3-c08c-4fcc-b894-8c7f26b5da4b")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("ProyectoInteligente.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+3d9972cd8f51d130a5c378a0dff51d6d8a0ff25e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2e1195c000dac926a8ec52da7384b082c9bebe27")]
 [assembly: System.Reflection.AssemblyProductAttribute("ProyectoInteligente.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ProyectoInteligente.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

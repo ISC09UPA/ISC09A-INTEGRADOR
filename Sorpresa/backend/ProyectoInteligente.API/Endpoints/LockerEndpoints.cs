@@ -3,7 +3,7 @@ using LockerSmart.Domain.Entities;
 using LockerSmart.Domain.Enums;
 
 namespace LockerSmart.API.Endpoints;
-
+    
 
 public static class LockerEndpoints
 {

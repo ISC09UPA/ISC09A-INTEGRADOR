@@ -1,28 +1,98 @@
 using System.Security.Claims;
 using LockerSmart.Application.DTOs;
 using LockerSmart.Application.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 
 namespace LockerSmart.API.Endpoints;
+
+public sealed class RegistroForm
+{
+    [FromForm] public string Nombre { get; set; } = "";
+    [FromForm] public string Email { get; set; } = "";
+    [FromForm] public string Password { get; set; } = "";
+    [FromForm] public IFormFile? Foto { get; set; }
+}
+
+public sealed class FaceLoginForm
+{
+    [FromForm] public IFormFile? Foto { get; set; }
+}
 
 public static class AuthEndpoints
 {
     public static void MapAuthEndpoints(this WebApplication app)
     {
-        var g = app.MapGroup("/api/auth");
+        var group = app.MapGroup("/api/auth");
 
-        g.MapPost("/registro", async (RegistroRequest r, IAuthService s) =>
+        group.MapPost("/registro", async (
+            [FromForm] RegistroForm form,
+            IAuthService service,
+            CancellationToken ct) =>
         {
-            var (res, error) = await s.RegistrarAsync(r);
-            return res is null ? Results.BadRequest(new { error }) : Results.Ok(res);
-        });
+            byte[]? foto = null;
+            string? contentType = null;
 
-        g.MapPost("/login", async (LoginRequest r, IAuthService s) =>
-            await s.LoginAsync(r) is { } res ? Results.Ok(res) : Results.Unauthorized());
+            if (form.Foto is { Length: > 0 })
+            {
+                await using var memory = new MemoryStream();
+                await form.Foto.CopyToAsync(memory, ct);
+                foto = memory.ToArray();
+                contentType = form.Foto.ContentType;
+            }
 
-        g.MapGet("/me", async (ClaimsPrincipal p, IAuthService s) =>
+            var request = new RegistroRequest(form.Nombre, form.Email, form.Password);
+            var (response, error) = await service.RegistrarAsync(
+                request, foto, contentType, ct);
+
+            return response is null
+                ? Results.BadRequest(new { error })
+                : Results.Ok(response);
+        })
+        .DisableAntiforgery();
+
+        group.MapPost("/login", async (LoginRequest request, IAuthService service, CancellationToken ct) =>
+            await service.LoginAsync(request, ct) is { } response
+                ? Results.Ok(response)
+                : Results.Unauthorized());
+
+        group.MapPost("/login-rostro", async (
+            [FromForm] FaceLoginForm form,
+            IAuthService service,
+            CancellationToken ct) =>
         {
-            var id = int.Parse(p.FindFirstValue(ClaimTypes.NameIdentifier)!);
-            return await s.ObtenerAsync(id) is { } u ? Results.Ok(u) : Results.NotFound();
+            if (form.Foto is null)
+                return Results.BadRequest(new { error = "Debes enviar una fotografía en el campo Foto." });
+
+            await using var memory = new MemoryStream();
+            await form.Foto.CopyToAsync(memory, ct);
+
+            var result = await service.LoginConRostroAsync(memory.ToArray(), ct);
+            return result.Respuesta is not null
+                ? Results.Ok(result.Respuesta)
+                : Results.Json(new { error = result.Error }, statusCode: StatusCodes.Status401Unauthorized);
+        })
+        .DisableAntiforgery();
+
+        group.MapGet("/me", async (ClaimsPrincipal principal, IAuthService service) =>
+        {
+            var claim = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(claim, out var id)) return Results.Unauthorized();
+
+            return await service.ObtenerAsync(id) is { } usuario
+                ? Results.Ok(usuario)
+                : Results.NotFound();
+        }).RequireAuthorization();
+
+        group.MapGet("/me/foto-url", async (ClaimsPrincipal principal, IAuthService auth, IBlobStorageService blob) =>
+        {
+            var claim = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(claim, out var id)) return Results.Unauthorized();
+            var usuario = await auth.ObtenerAsync(id);
+            if (usuario is null) return Results.NotFound();
+            if (string.IsNullOrWhiteSpace(usuario.FotoUrl))
+                return Results.NotFound(new { error = "El usuario no tiene fotografía almacenada." });
+            var url = await blob.CreateReadSasUrlAsync(usuario.FotoUrl, TimeSpan.FromMinutes(5));
+            return Results.Ok(new { url, expiraEnMinutos = 5 });
         }).RequireAuthorization();
     }
 }
