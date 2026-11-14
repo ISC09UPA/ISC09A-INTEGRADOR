@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/CasaDomotica.Security.Api/CasaDomotica.Security.Api.csproj" />
+    <Project Path="src/CasaDomotica.Security.Application/CasaDomotica.Security.Application.csproj" />
+    <Project Path="src/CasaDomotica.Security.Domain/CasaDomotica.Security.Domain.csproj" />
+    <Project Path="src/CasaDomotica.Security.Infrastructure/CasaDomotica.Security.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/CasaDomotica.Security.Domain.Tests/CasaDomotica.Security.Domain.Tests.csproj" />
+    <Project Path="tests/CasaDomotica.Security.Infrastructure.Tests/CasaDomotica.Security.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>
