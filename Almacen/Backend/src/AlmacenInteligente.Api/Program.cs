@@ -87,11 +87,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapGet("/salud", () => Results.Ok(new { estado = "ok" })).WithName("Salud").WithTags("Sistema").AllowAnonymous();
-// TODO: descomentar cuando se implementen los endpoints
-// app.MapCuenta();
-// app.MapCatalogos();
-// app.MapOperacion();
-// app.MapPdf();
+app.MapCuenta();
+app.MapCatalogos();
+app.MapOperacion();
+app.MapPdf();
 
 // Imágenes de productos (la ruta viene en imagenRuta del producto).
 app.MapGet("/api/archivos/{**ruta}", async (string ruta, IFileStorage archivos, CancellationToken ct) =>
