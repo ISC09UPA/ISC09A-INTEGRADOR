@@ -1,0 +1,15 @@
+{
+  "version": "2.0",
+  "extensions": {
+    "eventHubs": {
+      "maxEventBatchSize": 10,
+      "prefetchCount": 20,
+      "batchCheckpointFrequency": 1,
+      "initialOffsetOptions": { "type": "fromEnd" }
+    }
+  },
+  "logging": {
+    "logLevel": { "default": "Warning", "Function.IngestIoTEvents": "Information" },
+    "applicationInsights": { "samplingSettings": { "isEnabled": true } }
+  }
+}
