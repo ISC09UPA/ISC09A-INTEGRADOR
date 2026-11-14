@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>CasaDomotica.Identity.Application</AssemblyName>
+    <RootNamespace>CasaDomotica.Identity.Application</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CasaDomotica.Identity.Domain\CasaDomotica.Identity.Domain.csproj" />
+  </ItemGroup>
+</Project>

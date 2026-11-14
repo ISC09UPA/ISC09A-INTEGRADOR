@@ -1,0 +1,52 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{B284B00E-E923-4548-9E5F-C403E758FD18}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "65E27314-8166-4EE3-82F4-9C02F756149A"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CasaDomotica.Identity.Domain", "src\CasaDomotica.Identity.Domain\CasaDomotica.Identity.Domain.csproj", "45F5BCF7-90B0-4B3D-9CB4-B7E7CB8875A5"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CasaDomotica.Identity.Application", "src\CasaDomotica.Identity.Application\CasaDomotica.Identity.Application.csproj", "09376AC8-E083-406E-8150-EC851BB5937E"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CasaDomotica.Identity.Infrastructure", "src\CasaDomotica.Identity.Infrastructure\CasaDomotica.Identity.Infrastructure.csproj", "B4BE2082-5478-4E06-97D3-F80273173DF4"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CasaDomotica.Identity.Api", "src\CasaDomotica.Identity.Api\CasaDomotica.Identity.Api.csproj", "68FC2F2B-EAF4-4BD9-837E-C185E41BFAFE"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CasaDomotica.Identity.Domain.Tests", "tests\CasaDomotica.Identity.Domain.Tests\CasaDomotica.Identity.Domain.Tests.csproj", "25543C95-EDD9-4FFF-9EAA-A54CDBB84ACB"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CasaDomotica.Identity.Application.Tests", "tests\CasaDomotica.Identity.Application.Tests\CasaDomotica.Identity.Application.Tests.csproj", "29AF8F76-BE4E-44A8-8181-FCEEF3402710"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		45F5BCF7-90B0-4B3D-9CB4-B7E7CB8875A5.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		45F5BCF7-90B0-4B3D-9CB4-B7E7CB8875A5.Debug|Any CPU.Build.0 = Debug|Any CPU
+		45F5BCF7-90B0-4B3D-9CB4-B7E7CB8875A5.Release|Any CPU.ActiveCfg = Release|Any CPU
+		45F5BCF7-90B0-4B3D-9CB4-B7E7CB8875A5.Release|Any CPU.Build.0 = Release|Any CPU
+		09376AC8-E083-406E-8150-EC851BB5937E.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		09376AC8-E083-406E-8150-EC851BB5937E.Debug|Any CPU.Build.0 = Debug|Any CPU
+		09376AC8-E083-406E-8150-EC851BB5937E.Release|Any CPU.ActiveCfg = Release|Any CPU
+		09376AC8-E083-406E-8150-EC851BB5937E.Release|Any CPU.Build.0 = Release|Any CPU
+		B4BE2082-5478-4E06-97D3-F80273173DF4.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		B4BE2082-5478-4E06-97D3-F80273173DF4.Debug|Any CPU.Build.0 = Debug|Any CPU
+		B4BE2082-5478-4E06-97D3-F80273173DF4.Release|Any CPU.ActiveCfg = Release|Any CPU
+		B4BE2082-5478-4E06-97D3-F80273173DF4.Release|Any CPU.Build.0 = Release|Any CPU
+		68FC2F2B-EAF4-4BD9-837E-C185E41BFAFE.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		68FC2F2B-EAF4-4BD9-837E-C185E41BFAFE.Debug|Any CPU.Build.0 = Debug|Any CPU
+		68FC2F2B-EAF4-4BD9-837E-C185E41BFAFE.Release|Any CPU.ActiveCfg = Release|Any CPU
+		68FC2F2B-EAF4-4BD9-837E-C185E41BFAFE.Release|Any CPU.Build.0 = Release|Any CPU
+		25543C95-EDD9-4FFF-9EAA-A54CDBB84ACB.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		25543C95-EDD9-4FFF-9EAA-A54CDBB84ACB.Debug|Any CPU.Build.0 = Debug|Any CPU
+		25543C95-EDD9-4FFF-9EAA-A54CDBB84ACB.Release|Any CPU.ActiveCfg = Release|Any CPU
+		25543C95-EDD9-4FFF-9EAA-A54CDBB84ACB.Release|Any CPU.Build.0 = Release|Any CPU
+		29AF8F76-BE4E-44A8-8181-FCEEF3402710.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		29AF8F76-BE4E-44A8-8181-FCEEF3402710.Debug|Any CPU.Build.0 = Debug|Any CPU
+		29AF8F76-BE4E-44A8-8181-FCEEF3402710.Release|Any CPU.ActiveCfg = Release|Any CPU
+		29AF8F76-BE4E-44A8-8181-FCEEF3402710.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

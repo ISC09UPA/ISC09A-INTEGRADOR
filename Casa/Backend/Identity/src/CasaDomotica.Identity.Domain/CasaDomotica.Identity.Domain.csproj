@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>CasaDomotica.Identity.Domain</AssemblyName>
+    <RootNamespace>CasaDomotica.Identity.Domain</RootNamespace>
+  </PropertyGroup>
+</Project>

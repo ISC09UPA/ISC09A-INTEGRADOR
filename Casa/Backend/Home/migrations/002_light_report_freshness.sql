@@ -1,0 +1,8 @@
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+IF NOT EXISTS(SELECT 1 FROM dbo.HomeSchemaVersions WHERE Version=2)
+BEGIN
+ ALTER TABLE dbo.HomeLights ADD StateReportedAtUtc datetimeoffset NULL;
+ INSERT dbo.HomeSchemaVersions VALUES(2,SYSUTCDATETIME());
+END;
+COMMIT;
