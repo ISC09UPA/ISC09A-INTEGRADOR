@@ -1,0 +1,35 @@
+# Entornos y dependencias instaladas
+.venv/
+venv/
+env/
+ENV/
+vendor/
+node_modules/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+# Credenciales y configuracion privada
+.env
+.env.*
+!.env.example
+secrets.env
+*.pem
+*.key
+*.pfx
+*.p12
+config/*.local.toml
+config/device.toml
+config/hardware.toml
+# Datos e imagenes de ejecucion
+*.db
+*.db-*
+*.sqlite*
+*.log
+*.img
+*.img.xz
+*.qcow2
+captures/
+runtime/
+.DS_Store

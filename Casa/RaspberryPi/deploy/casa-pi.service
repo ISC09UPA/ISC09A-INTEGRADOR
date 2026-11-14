@@ -1,0 +1,28 @@
+[Unit]
+Description=Agente casa-pi (simulacion)
+After=network-online.target time-sync.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=domotica
+Group=domotica
+WorkingDirectory=/opt/casa-pi
+Environment=PYTHONPATH=/opt/casa-pi/src:/opt/casa-pi/vendor
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-/etc/casa-pi/secrets.env
+ExecStart=/usr/bin/python3 -m casa_pi --config /etc/casa-pi/device.toml
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/casa-pi
+
+[Install]
+WantedBy=multi-user.target
