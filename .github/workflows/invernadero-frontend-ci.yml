@@ -1,0 +1,56 @@
+name: Invernadero · Frontend CI
+
+# Revisa que la app móvil (Expo) instale y compile en cada PR y push a develop.
+# Si TypeScript falla, el check sale en rojo y el PR no se debe mergear.
+on:
+  push:
+    branches:
+      - Invernadero-Develop-V1
+    paths:
+      - 'Invernadero/Frontend/mobile/**'
+      - '.github/workflows/invernadero-frontend-ci.yml'
+  pull_request:
+    branches:
+      - Invernadero-Develop-V1
+    paths:
+      - 'Invernadero/Frontend/mobile/**'
+      - '.github/workflows/invernadero-frontend-ci.yml'
+  workflow_dispatch: {}
+
+# Si llegan dos pushes seguidos a la misma rama cancela la ejecución anterior
+concurrency:
+  group: invernadero-frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    name: Verificar app móvil (Expo)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: Invernadero/Frontend/mobile
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Invernadero/Frontend/mobile/package-lock.json
+
+      - name: Instalar dependencias (npm ci)
+        run: npm ci
+
+      - name: Revisar tipos (TypeScript)
+        run: npx tsc --noEmit
+
+      - name: Lint (informativo, todavía no bloquea)
+        run: npx expo lint
+        continue-on-error: true
