@@ -1,0 +1,17 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/.expo/
+**/dist/
+**/web-build/
+**/.env
+**/.env.local
+**/secrets/
+**/local.settings.json
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+**/*.img
+**/*.iso
+**/*.xz
+.DS_Store
