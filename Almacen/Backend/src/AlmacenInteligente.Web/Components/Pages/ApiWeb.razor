@@ -1,0 +1,150 @@
+@page "/api-web"
+@attribute [Authorize(Policy = Permisos.Api.Acceder)]
+@using AlmacenInteligente.Application.Usuarios
+@inherits PaginaBase
+@inject IConfiguration Configuracion
+@inject IHttpClientFactory Http
+@inject IJSRuntime Js
+
+<PageTitle>API web · Almacén inteligente</PageTitle>
+
+<Encabezado Titulo="API web" Descripcion="La misma información y permisos que esta web, para la app móvil y otras integraciones.">
+    <Acciones>
+        <MudButton Href="@($"{_urlApi}/swagger")" Target="_blank" Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.OpenInNew">Abrir Swagger</MudButton>
+    </Acciones>
+</Encabezado>
+
+<MudGrid Spacing="3">
+    <MudItem xs="12" md="4">
+        <MudPaper Outlined="true" Elevation="0" Class="pa-4 h-100">
+            <MudText Typo="Typo.overline" Color="Color.Secondary">Estado de la API</MudText>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="my-1">
+                @switch (_enLinea)
+                {
+                    case null:
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" />
+                        <MudText>Revisando…</MudText>
+                        break;
+                    case true:
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
+                        <MudText><b>En línea</b></MudText>
+                        break;
+                    default:
+                        <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" />
+                        <MudText><b>No responde</b></MudText>
+                        break;
+                }
+            </MudStack>
+            <MudText Typo="Typo.body2" Class="mb-2"><code>@_urlApi</code></MudText>
+            @if (_enLinea == false)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Arráncala con <code>dotnet run --project src/AlmacenInteligente.Api</code> o con <code>ejecutar.cmd</code>.
+                </MudText>
+            }
+            <MudButton Variant="Variant.Text" Size="Size.Small" StartIcon="@Icons.Material.Filled.Refresh" OnClick="RevisarAsync" Class="mt-2">Revisar de nuevo</MudButton>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="8">
+        <MudPaper Outlined="true" Elevation="0" Class="pa-4 h-100">
+            <MudText Typo="Typo.overline" Color="Color.Secondary">Tu token de acceso</MudText>
+            <MudText Typo="Typo.body2" Class="mb-3">
+                Se genera con tu usuario, roles y permisos actuales, sin volver a pedir tu contraseña. Vale @_horas horas.
+                Trátalo como una contraseña: quien lo tenga puede usar la API como tú.
+            </MudText>
+
+            @if (_token is null)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Key" OnClick="GenerarAsync" Disabled="_generando">
+                    @(_generando ? "Generando…" : "Generar token")
+                </MudButton>
+            }
+            else
+            {
+                <MudTextField T="string" Value="@_token.Token" ReadOnly="true" Lines="4" Variant="Variant.Outlined" Label="Token (JWT)" Class="mb-2 token" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-3">
+                    Vence el @Formato.FechaHora(_token.Expira) · roles: @string.Join(", ", _token.Roles.Select(Roles.Nombre)) · @_token.Permisos.Count permisos
+                </MudText>
+                <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.ContentCopy" OnClick="CopiarAsync">Copiar</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Outlined.Api" Href="@($"{_urlApi}/swagger#token={Uri.EscapeDataString(_token.Token)}")" Target="_blank">
+                        Abrir Swagger con este token
+                    </MudButton>
+                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Refresh" OnClick="GenerarAsync">Generar otro</MudButton>
+                </MudStack>
+            }
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12">
+        <MudPaper Outlined="true" Elevation="0" Class="pa-4">
+            <MudText Typo="Typo.subtitle1" Class="mb-2"><b>Cómo usarla</b></MudText>
+            <ol class="pasos-api">
+                <li>Desde una app, pide el token con <code>POST @_urlApi/api/cuenta/token</code> enviando <code>{ "correo": "…", "contrasena": "…" }</code>. Desde aquí puedes generarlo con el botón.</li>
+                <li>Envía el token en cada petición: <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+                <li>Los permisos son los del usuario: si no puede hacer algo en la web, la API responde 403.</li>
+                <li>Los errores vienen en formato ProblemDetails: 401 sin sesión, 403 sin permiso, 404 no existe, 409 regla de negocio, 422 datos inválidos.</li>
+            </ol>
+            <MudSimpleTable Dense="true" Elevation="0" Class="mt-2">
+                <thead><tr><th>Ejemplo</th><th>Qué hace</th></tr></thead>
+                <tbody>
+                    <tr><td><code>GET /api/productos/disponibles?texto=tor</code></td><td>Productos aprobados con su existencia por almacén</td></tr>
+                    <tr><td><code>POST /api/ventas</code></td><td>Registra una venta (cliente, líneas con almacén, precio e IVA)</td></tr>
+                    <tr><td><code>GET /api/pdf/ventas/{id}</code></td><td>Comprobante de venta en PDF</td></tr>
+                    <tr><td><code>GET /api/almacenes/existencias?bajoMinimo=true</code></td><td>Productos en o por debajo del mínimo</td></tr>
+                    <tr><td><code>GET /api/pdf/reportes/General?desde=2026-01-01&amp;hasta=2026-12-31</code></td><td>Reporte general con gráficas en PDF</td></tr>
+                </tbody>
+            </MudSimpleTable>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string _urlApi = string.Empty;
+    private string _urlInterna = string.Empty;
+    private int _horas;
+    private bool? _enLinea;
+    private TokenApiDto? _token;
+    private bool _generando;
+
+    protected override async Task AlIniciarAsync()
+    {
+        _urlApi = (Configuracion["Api:Url"] ?? "http://localhost:5228").TrimEnd('/');
+        // En contenedores, localhost es el propio contenedor web: la revisión va por la red interna.
+        _urlInterna = (Configuracion["Api:UrlInterna"] ?? _urlApi).TrimEnd('/');
+        _horas = Configuracion.GetValue("Jwt:HorasVigencia", 8);
+        await RevisarAsync();
+    }
+
+    private async Task RevisarAsync()
+    {
+        _enLinea = null;
+        try
+        {
+            using var cliente = Http.CreateClient();
+            cliente.Timeout = TimeSpan.FromSeconds(3);
+            _enLinea = (await cliente.GetAsync($"{_urlInterna}/salud")).IsSuccessStatusCode;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            _enLinea = false;
+        }
+    }
+
+    private async Task GenerarAsync()
+    {
+        _generando = true;
+        var (_, token) = await IntentarAsync(new GenerarTokenApi());
+        _token = token ?? _token;
+        _generando = false;
+    }
+
+    private async Task CopiarAsync()
+    {
+        if (_token is null)
+            return;
+        await Js.InvokeVoidAsync("navigator.clipboard.writeText", _token.Token);
+        Avisos.Add("Token copiado.", Severity.Success);
+    }
+}

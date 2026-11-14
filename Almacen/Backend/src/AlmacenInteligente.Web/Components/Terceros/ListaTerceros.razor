@@ -1,0 +1,164 @@
+@using AlmacenInteligente.Application.CasosDeUso
+@using AlmacenInteligente.Application.Terceros
+@inherits PaginaBase
+@inject IDialogService Dialogos
+
+@* Lista compartida por Clientes y Proveedores: mismas columnas y acciones, distintos casos de uso y permisos. *@
+
+<div class="encabezado-pagina">
+    <div>
+        <MudText Typo="Typo.h4">@Titulo</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">@Descripcion</MudText>
+    </div>
+    @if (Puede(PermisoCrear))
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="NuevoAsync">
+            Nuevo @Singular
+        </MudButton>
+    }
+</div>
+
+<MudPaper Outlined="true" Elevation="0">
+    <MudTable @ref="_tabla" T="TerceroDto" ServerData="CargarAsync" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm"
+              RowsPerPage="20" Elevation="0" LoadingProgressColor="Color.Primary">
+        <ToolBarContent>
+            <MudTextField T="string" Value="_busqueda" ValueChanged="BuscarAsync" Placeholder="Buscar por código, nombre, RFC o correo"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" DebounceInterval="350"
+                          Clearable="true" Immediate="true" Class="mt-0" Style="max-width:420px" />
+            <MudSpacer />
+            <MudSwitch T="bool" Value="_incluirInactivos" ValueChanged="CambiarInactivosAsync" Color="Color.Primary" Label="Mostrar inactivos" />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Código</MudTh>
+            <MudTh>Nombre</MudTh>
+            <MudTh>RFC</MudTh>
+            <MudTh>Correo</MudTh>
+            <MudTh>Ubicación</MudTh>
+            <MudTh>Estado</MudTh>
+            @if (Puede(PermisoEditar))
+            {
+                <MudTh Style="text-align:right">Acciones</MudTh>
+            }
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Código"><b>@context.Codigo</b></MudTd>
+            <MudTd DataLabel="Nombre">@context.Nombre</MudTd>
+            <MudTd DataLabel="RFC">@context.Rfc</MudTd>
+            <MudTd DataLabel="Correo"><span class="tabla-celda-secundaria">@context.Correo</span></MudTd>
+            <MudTd DataLabel="Ubicación"><span class="tabla-celda-secundaria">@context.Direccion.Municipio, @context.Direccion.Estado</span></MudTd>
+            <MudTd DataLabel="Estado">
+                @if (context.Activo)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">Activo</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Inactivo</MudChip>
+                }
+            </MudTd>
+            @if (Puede(PermisoEditar))
+            {
+                <MudTd DataLabel="Acciones" Style="text-align:right; white-space:nowrap">
+                    <MudTooltip Text="Editar">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" OnClick="() => EditarAsync(context)" aria-label="Editar" />
+                    </MudTooltip>
+                    <MudTooltip Text="@(context.Activo ? "Desactivar" : "Activar")">
+                        <MudIconButton Icon="@(context.Activo ? Icons.Material.Outlined.Block : Icons.Material.Outlined.CheckCircle)" Size="Size.Small"
+                                       OnClick="() => CambiarEstadoAsync(context)" aria-label="@(context.Activo ? "Desactivar" : "Activar")" />
+                    </MudTooltip>
+                </MudTd>
+            }
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-6" Color="Color.Secondary">
+                @(string.IsNullOrWhiteSpace(_busqueda) ? $"Todavía no hay {Titulo.ToLowerInvariant()}." : "No hay resultados para esa búsqueda.")
+            </MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager RowsPerPageString="Filas por página:" InfoFormat="{first_item}–{last_item} de {all_items}" PageSizeOptions="new[] { 10, 20, 50 }" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string Titulo { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Singular { get; set; } = string.Empty;
+    [Parameter] public string? Descripcion { get; set; }
+    [Parameter, EditorRequired] public string PermisoCrear { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string PermisoEditar { get; set; } = string.Empty;
+
+    [Parameter, EditorRequired] public Func<string?, bool, int, int, ISolicitud<Pagina<TerceroDto>>> Listar { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<DatosTercero, ISolicitud<TerceroDto>> Crear { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<Guid, DatosTercero, ISolicitud<TerceroDto>> Editar { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<Guid, bool, ISolicitud<TerceroDto>> CambiarEstado { get; set; } = default!;
+
+    private MudTable<TerceroDto> _tabla = default!;
+    private string? _busqueda;
+    private bool _incluirInactivos;
+
+    private static readonly DialogOptions Opciones = new() { MaxWidth = MaxWidth.Medium, FullWidth = true };
+
+    private async Task<TableData<TerceroDto>> CargarAsync(TableState estado, CancellationToken ct)
+    {
+        var (exito, pagina) = await IntentarAsync(Listar(_busqueda, _incluirInactivos, estado.Page + 1, estado.PageSize));
+        return exito && pagina is not null
+            ? new TableData<TerceroDto> { Items = pagina.Elementos, TotalItems = pagina.Total }
+            : new TableData<TerceroDto> { Items = [], TotalItems = 0 };
+    }
+
+    private async Task BuscarAsync(string? texto)
+    {
+        _busqueda = texto;
+        await _tabla.ReloadServerData();
+    }
+
+    private async Task CambiarInactivosAsync(bool valor)
+    {
+        _incluirInactivos = valor;
+        await _tabla.ReloadServerData();
+    }
+
+    private async Task NuevoAsync()
+    {
+        var parametros = new DialogParameters<TerceroDialog> { { d => d.Solicitud, Crear } };
+        var dialogo = await Dialogos.ShowAsync<TerceroDialog>($"Nuevo {Singular}", parametros, Opciones);
+        if (await dialogo.Result is { Canceled: false, Data: TerceroDto creado })
+        {
+            Avisos.Add($"{creado.Nombre} se dio de alta.", Severity.Success);
+            await _tabla.ReloadServerData();
+        }
+    }
+
+    private async Task EditarAsync(TerceroDto actual)
+    {
+        var parametros = new DialogParameters<TerceroDialog>
+        {
+            { d => d.Actual, actual },
+            { d => d.Solicitud, datos => Editar(actual.Id, datos) },
+        };
+        var dialogo = await Dialogos.ShowAsync<TerceroDialog>($"Editar {Singular}", parametros, Opciones);
+        if (await dialogo.Result is { Canceled: false })
+        {
+            Avisos.Add("Cambios guardados.", Severity.Success);
+            await _tabla.ReloadServerData();
+        }
+    }
+
+    private async Task CambiarEstadoAsync(TerceroDto actual)
+    {
+        if (actual.Activo)
+        {
+            var confirmado = await Dialogos.ShowMessageBoxAsync(
+                $"Desactivar {Singular}",
+                $"{actual.Nombre} ya no aparecerá para nuevos documentos. Su historial se conserva.",
+                yesText: "Desactivar", cancelText: "Cancelar");
+            if (confirmado != true)
+                return;
+        }
+
+        var (exito, _) = await IntentarAsync(CambiarEstado(actual.Id, !actual.Activo),
+            actual.Activo ? $"{actual.Nombre} se desactivó." : $"{actual.Nombre} se activó.");
+        if (exito)
+            await _tabla.ReloadServerData();
+    }
+}

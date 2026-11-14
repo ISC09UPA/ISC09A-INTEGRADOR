@@ -1,0 +1,144 @@
+@using AlmacenInteligente.Application.CasosDeUso
+@using AlmacenInteligente.Application.Terceros
+@using AlmacenInteligente.Domain.ValueObjects
+@inherits PaginaBase
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudForm @ref="_form" Model="_m">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="_m.Codigo" Label="Código" Required="true" RequiredError="Obligatorio"
+                                  MaxLength="30" Disabled="EsEdicion" HelperText="@(EsEdicion ? "No se puede cambiar" : null)" />
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudTextField @bind-Value="_m.Nombre" Label="Nombre o razón social" Required="true" RequiredError="Obligatorio" MaxLength="200" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_m.Correo" Label="Correo" InputType="InputType.Email" Required="true" RequiredError="Obligatorio" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_m.Rfc" Label="RFC" Required="true" RequiredError="Obligatorio" MaxLength="13"
+                                  HelperText="12 caracteres persona moral, 13 persona física" />
+                </MudItem>
+
+                <MudItem xs="12"><MudText Typo="Typo.subtitle2" Class="mt-2">Dirección</MudText></MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_m.Calle" Label="Calle" Required="true" RequiredError="Obligatorio" MaxLength="150" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudTextField @bind-Value="_m.NumeroExterior" Label="Núm. exterior" Required="true" RequiredError="Obligatorio" MaxLength="20" />
+                </MudItem>
+                <MudItem xs="6" sm="3">
+                    <MudTextField @bind-Value="_m.NumeroInterior" Label="Núm. interior" MaxLength="20" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_m.Colonia" Label="Colonia" Required="true" RequiredError="Obligatorio" MaxLength="120" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_m.CodigoPostal" Label="Código postal" Required="true" RequiredError="Obligatorio" MaxLength="10" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_m.Municipio" Label="Municipio o alcaldía" Required="true" RequiredError="Obligatorio" MaxLength="120" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    @if (_m.Pais == Direccion.Mexico)
+                    {
+                        <MudSelect @bind-Value="_m.Estado" Label="Estado" Required="true" RequiredError="Obligatorio" AnchorOrigin="Origin.BottomCenter">
+                            @foreach (var estado in EstadosMexico.Todos)
+                            {
+                                <MudSelectItem Value="@estado">@estado</MudSelectItem>
+                            }
+                        </MudSelect>
+                    }
+                    else
+                    {
+                        <MudTextField @bind-Value="_m.Estado" Label="Estado o provincia" Required="true" RequiredError="Obligatorio" MaxLength="80" />
+                    }
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_m.Pais" Label="País" Required="true" RequiredError="Obligatorio" MaxLength="80" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialogo.Cancel()" Disabled="_guardando">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="GuardarAsync" Disabled="_guardando">
+            @(_guardando ? "Guardando…" : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+
+    /// <summary>Datos actuales al editar; null para dar de alta.</summary>
+    [Parameter] public TerceroDto? Actual { get; set; }
+
+    /// <summary>Arma la solicitud de alta o edición con los datos capturados.</summary>
+    [Parameter, EditorRequired] public Func<DatosTercero, ISolicitud<TerceroDto>> Solicitud { get; set; } = default!;
+
+    private bool EsEdicion => Actual is not null;
+    private MudForm _form = default!;
+    private Formulario _m = new();
+    private string? _error;
+    private bool _guardando;
+
+    protected override Task AlIniciarAsync()
+    {
+        if (Actual is not null)
+            _m = Formulario.De(Actual.ADatos());
+        return Task.CompletedTask;
+    }
+
+    private async Task GuardarAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+            return;
+
+        _guardando = true;
+        _error = null;
+        var (valor, mensaje) = await EjecutarAsync(Solicitud(_m.ADatos()));
+        _guardando = false;
+
+        if (mensaje is not null)
+        {
+            _error = mensaje;
+            return;
+        }
+        Dialogo.Close(DialogResult.Ok(valor));
+    }
+
+    private sealed class Formulario
+    {
+        public string Codigo { get; set; } = string.Empty;
+        public string Nombre { get; set; } = string.Empty;
+        public string Correo { get; set; } = string.Empty;
+        public string Rfc { get; set; } = string.Empty;
+        public string Calle { get; set; } = string.Empty;
+        public string NumeroExterior { get; set; } = string.Empty;
+        public string? NumeroInterior { get; set; }
+        public string Colonia { get; set; } = string.Empty;
+        public string CodigoPostal { get; set; } = string.Empty;
+        public string Municipio { get; set; } = string.Empty;
+        public string Estado { get; set; } = string.Empty;
+        public string Pais { get; set; } = Direccion.Mexico;
+
+        public DatosTercero ADatos() => new(Codigo, Nombre, Correo, Rfc,
+            new DireccionDto(Calle, NumeroExterior, NumeroInterior, Colonia, CodigoPostal, Municipio, Estado, Pais));
+
+        public static Formulario De(DatosTercero d) => new()
+        {
+            Codigo = d.Codigo, Nombre = d.Nombre, Correo = d.Correo, Rfc = d.Rfc,
+            Calle = d.Direccion.Calle, NumeroExterior = d.Direccion.NumeroExterior, NumeroInterior = d.Direccion.NumeroInterior,
+            Colonia = d.Direccion.Colonia, CodigoPostal = d.Direccion.CodigoPostal, Municipio = d.Direccion.Municipio,
+            Estado = d.Direccion.Estado, Pais = d.Direccion.Pais ?? Direccion.Mexico,
+        };
+    }
+}

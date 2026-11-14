@@ -1,0 +1,13 @@
+@page "/clientes"
+@attribute [Authorize(Policy = Permisos.Clientes.Ver)]
+@using AlmacenInteligente.Application.Clientes
+@using AlmacenInteligente.Web.Components.Terceros
+
+<PageTitle>Clientes · Almacén inteligente</PageTitle>
+
+<ListaTerceros Titulo="Clientes" Singular="cliente" Descripcion="Personas y empresas a las que se vende."
+               PermisoCrear="@Permisos.Clientes.Crear" PermisoEditar="@Permisos.Clientes.Editar"
+               Listar="(texto, inactivos, pagina, tamano) => new ListarClientes(texto, inactivos, pagina, tamano)"
+               Crear="datos => new CrearCliente(datos)"
+               Editar="(id, datos) => new EditarCliente(id, datos)"
+               CambiarEstado="(id, activo) => new CambiarEstadoCliente(id, activo)" />

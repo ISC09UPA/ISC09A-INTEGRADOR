@@ -1,0 +1,99 @@
+# Despliega la API y el Blazor a Azure Container Apps en cada push a 7jaylosmolcafriends-almacen-main, 7jaylosmolcafriends-almacen-develop.
+name: Almacén - Deploy a Azure
+
+on:
+  push:
+    branches: [7jaylosmolcafriends-almacen-main, 7jaylosmolcafriends-almacen-develop]
+    paths:
+      - "Almacen/Backend/**"
+      - ".github/workflows/7jaylosmolcafriends-almacen-deploy.yml"
+  workflow_dispatch: # botón "Run workflow" para desplegar a mano
+
+permissions:
+  contents: read
+  packages: write # subir imágenes a ghcr.io
+  id-token: write # login a Azure sin contraseña (OIDC)
+
+concurrency:
+  group: jaylmf-deploy-azure
+  cancel-in-progress: false # nunca cortar un despliegue a la mitad
+
+env:
+  CONTEXTO: Almacen/Backend
+  DOCKERFILE_API: Almacen/Backend/src/AlmacenInteligente.Api/Dockerfile
+  DOCKERFILE_WEB: Almacen/Backend/src/AlmacenInteligente.Web/Dockerfile
+
+jobs:
+  imagenes:
+    name: Construir imagen ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      matrix:
+        app: [api, web]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Nombre de la imagen (ghcr exige minúsculas)
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          echo "IMAGEN=ghcr.io/${OWNER}/jaylmf-almacen-${{ matrix.app }}" >> "$GITHUB_ENV"
+          if [ "${{ matrix.app }}" = "api" ]; then
+            echo "DOCKERFILE=$DOCKERFILE_API" >> "$GITHUB_ENV"
+          else
+            echo "DOCKERFILE=$DOCKERFILE_WEB" >> "$GITHUB_ENV"
+          fi
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.CONTEXTO }}
+          file: ${{ env.DOCKERFILE }}
+          push: true
+          tags: |
+            ${{ env.IMAGEN }}:${{ github.sha }}
+            ${{ env.IMAGEN }}:latest
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app }}
+
+  # Primero Blazor: es quien aplica las migraciones al arrancar
+  # (BaseDeDatos__InicializarAlArrancar=true en su configuración). Luego la API.
+  desplegar:
+    name: Desplegar en Azure
+    needs: imagenes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.JAYLMF_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.JAYLMF_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.JAYLMF_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Desplegar Blazor y API
+        env:
+          RG: ${{ vars.JAYLMF_AZURE_RESOURCE_GROUP }}
+          APP_API: ${{ vars.JAYLMF_AZURE_APP_API }}
+          APP_WEB: ${{ vars.JAYLMF_AZURE_APP_WEB }}
+        run: |
+          set -euo pipefail
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          az extension add --name containerapp --upgrade --only-show-errors
+
+          for par in "web:$APP_WEB" "api:$APP_API"; do
+            app="${par%%:*}"; nombre="${par#*:}"
+            echo "::group::$nombre"
+            az containerapp ingress update -n "$nombre" -g "$RG" --target-port 8080 --only-show-errors -o none
+            az containerapp update -n "$nombre" -g "$RG" \
+              --image "ghcr.io/${OWNER}/jaylmf-almacen-${app}:${GITHUB_SHA}" --only-show-errors -o none
+            url=$(az containerapp show -n "$nombre" -g "$RG" --query properties.configuration.ingress.fqdn -o tsv)
+            echo "$nombre → https://$url" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "::endgroup::"
+          done

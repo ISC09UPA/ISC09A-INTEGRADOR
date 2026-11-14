@@ -1,0 +1,121 @@
+@page "/usuarios"
+@attribute [Authorize(Policy = Permisos.Usuarios.Gestionar)]
+@using AlmacenInteligente.Application.Usuarios
+@using AlmacenInteligente.Web.Components.Usuarios
+@inherits PaginaBase
+@inject IDialogService Dialogos
+
+<PageTitle>Usuarios · Almacén inteligente</PageTitle>
+
+<div class="encabezado-pagina">
+    <div>
+        <MudText Typo="Typo.h4">Usuarios</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">Cuentas para entrar al sistema y el rol de cada una.</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="NuevoAsync">
+        Nuevo usuario
+    </MudButton>
+</div>
+
+<MudPaper Outlined="true" Elevation="0">
+    <MudTable T="UsuarioDto" Items="_usuarios" Filter="Coincide" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm"
+              Loading="_cargando" LoadingProgressColor="Color.Primary" Elevation="0">
+        <ToolBarContent>
+            <MudTextField @bind-Value="_busqueda" Placeholder="Buscar por nombre o correo" Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Search" Immediate="true" Clearable="true" Class="mt-0" Style="max-width:360px" />
+            <MudSpacer />
+            <MudSelect T="string" @bind-Value="_rolFiltro" Label="Rol" Clearable="true" Dense="true" Style="max-width:240px" AnchorOrigin="Origin.BottomCenter">
+                @foreach (var rol in Roles.Todos)
+                {
+                    <MudSelectItem T="string" Value="@rol">@Roles.Nombre(rol)</MudSelectItem>
+                }
+            </MudSelect>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Nombre</MudTh>
+            <MudTh>Correo</MudTh>
+            <MudTh>Rol</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh Style="text-align:right">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Nombre"><b>@context.Nombre</b></MudTd>
+            <MudTd DataLabel="Correo"><span class="tabla-celda-secundaria">@context.Correo</span></MudTd>
+            <MudTd DataLabel="Rol">@Roles.Nombre(context.Rol)</MudTd>
+            <MudTd DataLabel="Estado">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@(context.Activo ? Color.Success : Color.Default)">
+                    @(context.Activo ? "Activo" : "Inactivo")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Acciones" Style="text-align:right; white-space:nowrap">
+                <MudTooltip Text="Editar">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" OnClick="() => EditarAsync(context)" aria-label="Editar" />
+                </MudTooltip>
+                <MudTooltip Text="Restablecer contraseña">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Key" Size="Size.Small" OnClick="() => ContrasenaAsync(context)" aria-label="Restablecer contraseña" />
+                </MudTooltip>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-6" Color="Color.Secondary">No hay usuarios que coincidan.</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager RowsPerPageString="Filas por página:" InfoFormat="{first_item}–{last_item} de {all_items}" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private IReadOnlyList<UsuarioDto> _usuarios = [];
+    private string? _busqueda;
+    private string? _rolFiltro;
+    private bool _cargando = true;
+
+    private static readonly DialogOptions Opciones = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+
+    protected override Task AlIniciarAsync() => CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        _cargando = true;
+        var (exito, usuarios) = await IntentarAsync(new ListarUsuarios());
+        if (exito && usuarios is not null)
+            _usuarios = usuarios;
+        _cargando = false;
+    }
+
+    private bool Coincide(UsuarioDto u) =>
+        (_rolFiltro is null || u.Rol == _rolFiltro) &&
+        (string.IsNullOrWhiteSpace(_busqueda)
+            || u.Nombre.Contains(_busqueda, StringComparison.OrdinalIgnoreCase)
+            || u.Correo.Contains(_busqueda, StringComparison.OrdinalIgnoreCase));
+
+    private async Task NuevoAsync()
+    {
+        var dialogo = await Dialogos.ShowAsync<UsuarioDialog>("Nuevo usuario", Opciones);
+        if (await dialogo.Result is { Canceled: false, Data: UsuarioDto creado })
+        {
+            Avisos.Add($"Se creó la cuenta de {creado.Nombre}.", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task EditarAsync(UsuarioDto actual)
+    {
+        var parametros = new DialogParameters<UsuarioDialog> { { d => d.Actual, actual } };
+        var dialogo = await Dialogos.ShowAsync<UsuarioDialog>("Editar usuario", parametros, Opciones);
+        if (await dialogo.Result is { Canceled: false })
+        {
+            Avisos.Add("Cambios guardados.", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task ContrasenaAsync(UsuarioDto usuario)
+    {
+        var parametros = new DialogParameters<ContrasenaDialog> { { d => d.Usuario_, usuario } };
+        var dialogo = await Dialogos.ShowAsync<ContrasenaDialog>("Restablecer contraseña", parametros, Opciones);
+        if (await dialogo.Result is { Canceled: false })
+            Avisos.Add($"Se restableció la contraseña de {usuario.Nombre}.", Severity.Success);
+    }
+}

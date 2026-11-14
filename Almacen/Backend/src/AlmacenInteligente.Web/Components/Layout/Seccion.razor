@@ -1,0 +1,6 @@
+<MudDivider Class="my-2" />
+<MudText Typo="Typo.overline" Class="px-4 menu-seccion">@Titulo</MudText>
+
+@code {
+    [Parameter, EditorRequired] public string Titulo { get; set; } = string.Empty;
+}
