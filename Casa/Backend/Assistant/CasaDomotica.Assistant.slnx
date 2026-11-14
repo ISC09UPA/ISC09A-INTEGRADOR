@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="../Assistant.Tests/CasaDomotica.Assistant.Tests.csproj" />
+  <Project Path="CasaDomotica.Assistant.Api.csproj" />
+</Solution>
