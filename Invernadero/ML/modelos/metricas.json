@@ -1,0 +1,371 @@
+{
+  "version": "1.0.0",
+  "entrenado": "2026-11-17T06:09:56Z",
+  "entorno": {
+    "python": "3.13.18",
+    "scikit_learn": "1.9.1",
+    "pandas": "3.0.5",
+    "numpy": "2.5.3"
+  },
+  "datos": {
+    "origen": "SIMULADO con generar_datos.py (la Raspberry todavia no envia datos reales)",
+    "lecturas_horas": 1440,
+    "riegos_pulsos": 142,
+    "riegos_sesiones": 23,
+    "mediciones_dias": 60,
+    "desde": "2026-09-17 23:00:00+00:00",
+    "hasta": "2026-11-16 22:00:00+00:00"
+  },
+  "metodo": {
+    "separacion": "temporal, ultimo 25 % para prueba",
+    "validacion_cruzada": "TimeSeriesSplit sobre el tramo de entrenamiento",
+    "objetivo_crecimiento": "incremento a 7 dias, no altura absoluta"
+  },
+  "modelos": {
+    "riego_horas": {
+      "objetivo": "objetivo_horas_proximo_riego",
+      "unidad": "horas",
+      "variables_entrada": [
+        "humedad_suelo",
+        "temperatura",
+        "humedad_aire",
+        "luz",
+        "nivel_deposito",
+        "hora_sin",
+        "hora_cos",
+        "secado_3h",
+        "secado_6h",
+        "temp_media_6h",
+        "temp_max_24h",
+        "luz_media_6h",
+        "luz_media_24h",
+        "agua_24h_ml",
+        "riegos_24h"
+      ],
+      "normalizador": null,
+      "filas_totales": 1419,
+      "filas_entrenamiento": 1064,
+      "filas_prueba": 355,
+      "rango_entrenamiento": [
+        "2026-09-18 10:00:00+00:00",
+        "2026-11-01 17:00:00+00:00"
+      ],
+      "rango_prueba": [
+        "2026-11-01 18:00:00+00:00",
+        "2026-11-16 12:00:00+00:00"
+      ],
+      "familia_candidatos": "todos",
+      "modelo_elegido": "gradient_boosting",
+      "candidatos": {
+        "ridge": {
+          "mae_validacion_cruzada_escala_interna": 9.3912,
+          "prueba": {
+            "mae": 10.8133,
+            "rmse": 14.9013,
+            "r2": 0.5946
+          }
+        },
+        "bosque_aleatorio": {
+          "mae_validacion_cruzada_escala_interna": 8.8618,
+          "prueba": {
+            "mae": 13.3625,
+            "rmse": 17.6424,
+            "r2": 0.4318
+          }
+        },
+        "gradient_boosting": {
+          "mae_validacion_cruzada_escala_interna": 7.9017,
+          "prueba": {
+            "mae": 11.398,
+            "rmse": 14.9015,
+            "r2": 0.5946
+          }
+        }
+      },
+      "referencias": {
+        "media_del_entrenamiento": {
+          "mae": 20.0352,
+          "rmse": 23.4173,
+          "r2": -0.0011
+        },
+        "regla_fisica_secado": {
+          "mae": 38.981,
+          "rmse": 65.2468,
+          "r2": -6.7719
+        }
+      },
+      "metricas_modelo_elegido": {
+        "mae": 11.398,
+        "rmse": 14.9015,
+        "r2": 0.5946
+      },
+      "importancia_variables": {
+        "humedad_suelo": 0.7173,
+        "nivel_deposito": 0.1345,
+        "luz_media_24h": 0.0777,
+        "temp_max_24h": 0.028,
+        "agua_24h_ml": 0.0078,
+        "secado_3h": 0.0076,
+        "secado_6h": 0.0075,
+        "riegos_24h": 0.007,
+        "hora_sin": 0.004,
+        "luz": 0.0036,
+        "temperatura": 0.0021,
+        "temp_media_6h": 0.0016,
+        "hora_cos": 0.0007,
+        "luz_media_6h": 0.0005,
+        "humedad_aire": 0.0001
+      },
+      "objetivo_media": 35.031,
+      "objetivo_desviacion": 22.98
+    },
+    "riego_agua_24h": {
+      "objetivo": "objetivo_agua_24h_ml",
+      "unidad": "mL",
+      "variables_entrada": [
+        "humedad_suelo",
+        "temperatura",
+        "humedad_aire",
+        "luz",
+        "nivel_deposito",
+        "hora_sin",
+        "hora_cos",
+        "secado_3h",
+        "secado_6h",
+        "temp_media_6h",
+        "temp_max_24h",
+        "luz_media_6h",
+        "luz_media_24h",
+        "agua_24h_ml",
+        "riegos_24h"
+      ],
+      "normalizador": null,
+      "filas_totales": 1405,
+      "filas_entrenamiento": 1053,
+      "filas_prueba": 352,
+      "rango_entrenamiento": [
+        "2026-09-18 10:00:00+00:00",
+        "2026-11-01 06:00:00+00:00"
+      ],
+      "rango_prueba": [
+        "2026-11-01 07:00:00+00:00",
+        "2026-11-15 22:00:00+00:00"
+      ],
+      "familia_candidatos": "todos",
+      "modelo_elegido": "bosque_aleatorio",
+      "candidatos": {
+        "ridge": {
+          "mae_validacion_cruzada_escala_interna": 104.1187,
+          "prueba": {
+            "mae": 86.9469,
+            "rmse": 112.0779,
+            "r2": 0.6483
+          }
+        },
+        "bosque_aleatorio": {
+          "mae_validacion_cruzada_escala_interna": 39.0039,
+          "prueba": {
+            "mae": 29.0225,
+            "rmse": 66.0513,
+            "r2": 0.8778
+          }
+        },
+        "gradient_boosting": {
+          "mae_validacion_cruzada_escala_interna": 43.5237,
+          "prueba": {
+            "mae": 35.1557,
+            "rmse": 68.7955,
+            "r2": 0.8675
+          }
+        }
+      },
+      "referencias": {
+        "media_del_entrenamiento": {
+          "mae": 168.5096,
+          "rmse": 189.0625,
+          "r2": -0.0009
+        }
+      },
+      "metricas_modelo_elegido": {
+        "mae": 29.0225,
+        "rmse": 66.0513,
+        "r2": 0.8778
+      },
+      "importancia_variables": {
+        "humedad_suelo": 0.8652,
+        "luz_media_24h": 0.0329,
+        "temp_max_24h": 0.0131,
+        "agua_24h_ml": 0.0129,
+        "humedad_aire": 0.0129,
+        "riegos_24h": 0.0113,
+        "temperatura": 0.011,
+        "temp_media_6h": 0.0108,
+        "nivel_deposito": 0.0088,
+        "luz": 0.0065,
+        "luz_media_6h": 0.0045,
+        "hora_cos": 0.0034,
+        "hora_sin": 0.0033,
+        "secado_6h": 0.002,
+        "secado_3h": 0.0014
+      },
+      "objetivo_media": 129.142,
+      "objetivo_desviacion": 192.689
+    },
+    "crecimiento_altura": {
+      "objetivo": "objetivo_crecimiento_cm",
+      "unidad": "cm en 7 dias",
+      "variables_entrada": [
+        "potencial_logistico",
+        "altura_cm",
+        "hojas",
+        "temp_media_7d",
+        "temp_max_7d",
+        "luz_media_7d",
+        "humedad_suelo_media_7d",
+        "horas_estres_7d",
+        "agua_7d_ml"
+      ],
+      "normalizador": "potencial_logistico",
+      "filas_totales": 52,
+      "filas_entrenamiento": 39,
+      "filas_prueba": 13,
+      "rango_entrenamiento": [
+        "2026-09-19 00:00:00+00:00",
+        "2026-10-27 00:00:00+00:00"
+      ],
+      "rango_prueba": [
+        "2026-10-28 00:00:00+00:00",
+        "2026-11-09 00:00:00+00:00"
+      ],
+      "familia_candidatos": "lineales",
+      "modelo_elegido": "ridge_alpha_10.0",
+      "candidatos": {
+        "ridge_alpha_0.3": {
+          "mae_validacion_cruzada_escala_interna": 0.0982,
+          "prueba": {
+            "mae": 0.5003,
+            "rmse": 0.6288,
+            "r2": -0.0775
+          }
+        },
+        "ridge_alpha_1.0": {
+          "mae_validacion_cruzada_escala_interna": 0.0834,
+          "prueba": {
+            "mae": 0.4735,
+            "rmse": 0.5893,
+            "r2": 0.0537
+          }
+        },
+        "ridge_alpha_3.0": {
+          "mae_validacion_cruzada_escala_interna": 0.0696,
+          "prueba": {
+            "mae": 0.4827,
+            "rmse": 0.6136,
+            "r2": -0.0258
+          }
+        },
+        "ridge_alpha_10.0": {
+          "mae_validacion_cruzada_escala_interna": 0.0565,
+          "prueba": {
+            "mae": 0.6333,
+            "rmse": 0.7316,
+            "r2": -0.4583
+          }
+        }
+      },
+      "referencias": {
+        "media_del_entrenamiento": {
+          "mae": 2.5333,
+          "rmse": 2.6048,
+          "r2": -17.488
+        }
+      },
+      "metricas_modelo_elegido": {
+        "mae": 0.6333,
+        "rmse": 0.7316,
+        "r2": -0.4583
+      },
+      "importancia_variables": null,
+      "objetivo_media": 4.162,
+      "objetivo_desviacion": 1.334
+    },
+    "crecimiento_hojas": {
+      "objetivo": "objetivo_hojas_nuevas",
+      "unidad": "hojas en 7 dias",
+      "variables_entrada": [
+        "potencial_logistico",
+        "altura_cm",
+        "hojas",
+        "temp_media_7d",
+        "temp_max_7d",
+        "luz_media_7d",
+        "humedad_suelo_media_7d",
+        "horas_estres_7d",
+        "agua_7d_ml"
+      ],
+      "normalizador": "potencial_logistico",
+      "filas_totales": 52,
+      "filas_entrenamiento": 39,
+      "filas_prueba": 13,
+      "rango_entrenamiento": [
+        "2026-09-19 00:00:00+00:00",
+        "2026-10-27 00:00:00+00:00"
+      ],
+      "rango_prueba": [
+        "2026-10-28 00:00:00+00:00",
+        "2026-11-09 00:00:00+00:00"
+      ],
+      "familia_candidatos": "lineales",
+      "modelo_elegido": "ridge_alpha_3.0",
+      "candidatos": {
+        "ridge_alpha_0.3": {
+          "mae_validacion_cruzada_escala_interna": 0.1434,
+          "prueba": {
+            "mae": 1.0813,
+            "rmse": 1.3828,
+            "r2": 0.3639
+          }
+        },
+        "ridge_alpha_1.0": {
+          "mae_validacion_cruzada_escala_interna": 0.1215,
+          "prueba": {
+            "mae": 1.2423,
+            "rmse": 1.4673,
+            "r2": 0.2838
+          }
+        },
+        "ridge_alpha_3.0": {
+          "mae_validacion_cruzada_escala_interna": 0.1157,
+          "prueba": {
+            "mae": 1.2842,
+            "rmse": 1.4774,
+            "r2": 0.2738
+          }
+        },
+        "ridge_alpha_10.0": {
+          "mae_validacion_cruzada_escala_interna": 0.1217,
+          "prueba": {
+            "mae": 1.2762,
+            "rmse": 1.4417,
+            "r2": 0.3085
+          }
+        }
+      },
+      "referencias": {
+        "media_del_entrenamiento": {
+          "mae": 2.0947,
+          "rmse": 2.5326,
+          "r2": -1.1339
+        }
+      },
+      "metricas_modelo_elegido": {
+        "mae": 1.2842,
+        "rmse": 1.4774,
+        "r2": 0.2738
+      },
+      "importancia_variables": null,
+      "objetivo_media": 5.0,
+      "objetivo_desviacion": 1.645
+    }
+  }
+}

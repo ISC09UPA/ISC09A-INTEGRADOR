@@ -1,0 +1,7 @@
+# Dependencias para entrenar y predecir (generar_datos.py no necesita ninguna).
+# Las versiones son las que entrenaron el modelo guardado: si se cargan los .joblib con otra
+# versión de scikit-learn, salen advertencias y la predicción puede cambiar.
+scikit-learn==1.9.1
+pandas==3.0.5
+numpy==2.5.3
+joblib==1.6.0

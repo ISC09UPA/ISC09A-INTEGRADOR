@@ -1,0 +1,14 @@
+# Entorno del endpoint en línea de Azure Machine Learning.
+# Las versiones deben coincidir con las que entrenaron el modelo (ver modelos/metricas.json).
+name: invernadero-prediccion
+channels:
+  - conda-forge
+dependencies:
+  - python=3.13
+  - pip
+  - pip:
+      - scikit-learn==1.9.1
+      - pandas==3.0.5
+      - numpy==2.5.3
+      - joblib==1.6.0
+      - azureml-inference-server-http

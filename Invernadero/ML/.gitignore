@@ -1,0 +1,8 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Datos reales descargados de la API (no se versionan: pueden ser muchos y cambian a diario)
+datos-reales/
+*.json.tmp

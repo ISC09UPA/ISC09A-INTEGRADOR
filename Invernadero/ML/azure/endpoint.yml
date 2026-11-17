@@ -1,0 +1,4 @@
+$schema: https://azuremlschemas.azureedge.net/latest/managedOnlineEndpoint.schema.json
+name: invernadero-prediccion
+description: Predice crecimiento de la planta, proximo riego y umbral sugerido (Invernadero Inteligente)
+auth_mode: key

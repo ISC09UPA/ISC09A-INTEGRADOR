@@ -1,0 +1,30 @@
+$schema: https://azuremlschemas.azureedge.net/latest/managedOnlineDeployment.schema.json
+name: azul
+endpoint_name: invernadero-prediccion
+
+# El modelo se registra desde la carpeta modelos/ (ver DESPLIEGUE-AZURE-ML.md)
+model: azureml:invernadero-prediccion@latest
+
+# code apunta a la carpeta Invernadero/ML completa porque score.py importa las funciones de
+# entrenar.py y predecir.py: así el cálculo de variables es idéntico al del entrenamiento.
+code_configuration:
+  code: ../
+  scoring_script: score.py
+
+environment:
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu22.04:latest
+  conda_file: conda.yaml
+
+# OJO: Azure for Students suele no traer cuota para endpoints administrados. Si el despliegue
+# falla por cuota, pedir el aumento desde el portal o usar una VM mas chica disponible.
+instance_type: Standard_DS2_v2
+instance_count: 1
+
+request_settings:
+  request_timeout_ms: 30000
+  max_concurrent_requests_per_instance: 2
+
+liveness_probe:
+  initial_delay: 30
+  period: 30
+  failure_threshold: 3

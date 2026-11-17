@@ -1,0 +1,32 @@
+{
+  "generado": "2026-11-17T06:08:55Z",
+  "origen": "SIMULADO con generar_datos.py (la Raspberry todavia no envia datos reales)",
+  "semilla": 20261116,
+  "dias": 60,
+  "inicio": "2026-09-17T23:00:00Z",
+  "fin": "2026-11-16T23:00:00Z",
+  "paso_simulacion_min": 1,
+  "paso_exportacion_lecturas": "1 h (el equipo real publica cada 60 s)",
+  "parametros_config_py": {
+    "HUMEDAD_MINIMA": 35.0,
+    "HUMEDAD_OBJETIVO": 60.0,
+    "NIVEL_MINIMO": 10.0,
+    "TIEMPO_MAX_BOMBA_S": 10,
+    "ESPERA_ENTRE_RIEGOS_S": 300,
+    "TEMP_VENT_ON": 30.0,
+    "TEMP_VENT_OFF": 28.0
+  },
+  "parametros_maqueta": {
+    "CAUDAL_BOMBA_LPM": 0.33,
+    "PUNTOS_HUMEDAD_POR_ML": 0.065,
+    "SECADO_BASE_PCT_MIN": 0.0085,
+    "CAPACIDAD_DEPOSITO_ML": 4000.0,
+    "ALTURA_MAXIMA_CM": 42.0
+  },
+  "totales": {
+    "lecturas": 10080,
+    "riegos": 142,
+    "mediciones": 60,
+    "recargas_deposito": 2
+  }
+}
