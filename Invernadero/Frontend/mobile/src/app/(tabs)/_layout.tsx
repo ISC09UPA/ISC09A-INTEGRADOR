@@ -1,6 +1,6 @@
 import { colores } from '@/theme/tokens';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Tabs, router, usePathname } from 'expo-router';
+import { Redirect, Tabs, router, usePathname } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import type { ComponentProps } from 'react';
 import { Pressable, Text, View } from 'react-native';
@@ -10,6 +10,7 @@ import { StatusPill } from '@/components/ui/StatusPill';
 import { BotonMicrofono } from '@/components/voz/BotonMicrofono';
 import { useDispositivo } from '@/hooks/useTelemetria';
 import { VozProvider } from '@/voz/VozProvider';
+import { useSesion } from '../../../store/useSesionStore';
 
 type NombreIcono = ComponentProps<typeof MaterialIcons>['name'];
 
@@ -93,8 +94,13 @@ function HeaderPersonalizado() {
 
 export default function LayoutPestanas() {
   const { colorScheme } = useColorScheme();
+  const { usuario, inicializando } = useSesion();
 
   const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+
+  // Protección de sesión: sin usuario no se muestran las pestañas.
+  if (inicializando) return null;
+  if (!usuario) return <Redirect href="/(auth)/login" />;
 
   return (
     <VozProvider>

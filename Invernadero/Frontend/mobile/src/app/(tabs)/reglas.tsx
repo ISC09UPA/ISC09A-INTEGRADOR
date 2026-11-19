@@ -9,6 +9,7 @@ import { Confirmar } from '@/components/Confirmar';
 import { REGLAS, construirRegla, type Categoria, type DatosRegla, type Regla } from '@/components/reglas/datos';
 import { colores } from '@/theme/tokens';
 import { useColorScheme } from 'nativewind';
+import { useSesion } from '../../../store/useSesionStore';
 
 export default function Reglas() {
   const [reglas, setReglas] = useState(REGLAS);
@@ -18,6 +19,8 @@ export default function Reglas() {
   const [aEliminar, setAEliminar] = useState<Regla | null>(null);
   const { colorScheme } = useColorScheme();
   const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  // Solo el admin crea, edita, elimina y activa/pausa reglas; el operador solo las ve.
+  const esAdmin = useSesion((e) => e.usuario?.rol === 'admin');
   const visibles = reglas.filter((r) => filtro === 'todas' || r.categoria === filtro);
   const activas = reglas.filter((r) => r.activa).length;
 
@@ -55,21 +58,28 @@ export default function Reglas() {
               key={r.id}
               regla={r}
               onToggle={(a) => alternar(r.id, a)}
-              onEditar={!r.bloqueada && r.condicion ? () => setFormulario(r) : undefined}
-              onEliminar={!r.bloqueada ? () => setAEliminar(r) : undefined}
+              soloLectura={!esAdmin}
+              onEditar={esAdmin && !r.bloqueada && r.condicion ? () => setFormulario(r) : undefined}
+              onEliminar={esAdmin && !r.bloqueada ? () => setAEliminar(r) : undefined}
             />
           ))
         )}
 
-        <Pressable
-          onPress={() => setFormulario('nueva')}
-          accessibilityRole="button"
-          accessibilityLabel="Crear nueva regla"
-          style={[s.nueva, { borderColor: tema.outline }]}
-        >
-          <MaterialIcons name="add-circle-outline" size={20} color={tema.primary} />
-          <Text style={[s.nuevaTexto, { color: tema.primary }]}>Crear nueva regla SI / ENTONCES</Text>
-        </Pressable>
+        {esAdmin ? (
+          <Pressable
+            onPress={() => setFormulario('nueva')}
+            accessibilityRole="button"
+            accessibilityLabel="Crear nueva regla"
+            style={[s.nueva, { borderColor: tema.outline }]}
+          >
+            <MaterialIcons name="add-circle-outline" size={20} color={tema.primary} />
+            <Text style={[s.nuevaTexto, { color: tema.primary }]}>Crear nueva regla SI / ENTONCES</Text>
+          </Pressable>
+        ) : (
+          <Text style={[s.vacio, { color: tema.onSurfaceVariant }]}>
+            🔒 Solo lectura: pide a un administrador que edite las reglas.
+          </Text>
+        )}
       </ScrollView>
 
       {formulario && (

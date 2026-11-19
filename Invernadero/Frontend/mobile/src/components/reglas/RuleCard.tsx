@@ -10,13 +10,15 @@ type Icono = ComponentProps<typeof MaterialIcons>['name'];
 interface Props {
   regla: Regla;
   onToggle: (activa: boolean) => void;
+  /** Rol operador: no puede activar/pausar reglas. */
+  soloLectura?: boolean;
   /** Si no se pasan, el botón correspondiente no se muestra. */
   onEditar?: () => void;
   onEliminar?: () => void;
 }
 
 /** Tarjeta de regla SI/ENTONCES con switch y prioridad. */
-export function RuleCard({ regla, onToggle, onEditar, onEliminar }: Props) {
+export function RuleCard({ regla, onToggle, soloLectura = false, onEditar, onEliminar }: Props) {
   const { colorScheme } = useColorScheme();
   const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
 
@@ -98,7 +100,7 @@ export function RuleCard({ regla, onToggle, onEditar, onEliminar }: Props) {
           style={s.interruptor}
           value={regla.activa}
           onValueChange={onToggle}
-          disabled={regla.bloqueada}
+          disabled={regla.bloqueada || soloLectura}
           trackColor={{
             false: tema.surfaceContainerHighest,
             true: tema.primary,
