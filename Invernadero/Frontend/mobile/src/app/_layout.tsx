@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useColorScheme, vars } from 'nativewind';
 
 import { colores } from '@/theme/tokens';
+import { useSesion } from '../../store/useSesionStore';
 
 // Mantener visible el Splash Screen hasta iniciar.
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -30,9 +31,16 @@ function hexToRgb(hex: string): string {
 export default function LayoutRaiz() {
   const { colorScheme } = useColorScheme();
 
+  const { inicializando, inicializar } = useSesion();
+
+  // Recupera la sesión guardada; el splash se oculta cuando ya se sabe si hay sesión.
   useEffect(() => {
-    SplashScreen.hideAsync().catch(() => {});
-  }, []);
+    void inicializar();
+  }, [inicializar]);
+
+  useEffect(() => {
+    if (!inicializando) SplashScreen.hideAsync().catch(() => {});
+  }, [inicializando]);
 
   // Seleccionar los colores correspondientes al tema.
   const tema = colorScheme === 'dark'
@@ -59,6 +67,7 @@ export default function LayoutRaiz() {
         />
 
         <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(auth)" />
           <Stack.Screen name="(tabs)" />
         </Stack>
       </View>

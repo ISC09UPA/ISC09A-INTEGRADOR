@@ -12,6 +12,8 @@ interface EstadoBd {
   usuarios: Usuario[];
   escaneos: EscaneoPlanta[];
   viveros: Vivero[];
+  /** Contraseñas de cuentas registradas (usuarioId -> contraseña). Mock local. */
+  claves: Record<string, string>;
 }
 
 let estado: EstadoBd | null = null;
@@ -25,6 +27,7 @@ function estadoSemilla(): EstadoBd {
     usuarios: [...USUARIOS_SEMILLA],
     escaneos: JSON.parse(JSON.stringify(ESCANEOS_SEMILLA)) as EscaneoPlanta[],
     viveros: [...VIVEROS_SEMILLA],
+    claves: {},
   };
 }
 
