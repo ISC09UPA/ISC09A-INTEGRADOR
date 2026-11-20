@@ -20,6 +20,9 @@ public sealed class Producto : AggregateRoot
     public Guid UnidadId { get; private set; }
     public bool PermiteFracciones { get; private set; }
     public string? ImagenRuta { get; private set; }
+
+    /// <summary>UID de la etiqueta NFC pegada al producto, para el modo inteligente de venta. Único.</summary>
+    public string? CodigoNfc { get; private set; }
     public bool Activo { get; private set; } = true;
 
     public EstadoAprobacion Estado { get; private set; }
@@ -68,6 +71,8 @@ public sealed class Producto : AggregateRoot
         UnidadId = unidad.Id;
         PermiteFracciones = unidad.PermiteFracciones;
     }
+
+    public void AsignarCodigoNfc(string? codigo) => CodigoNfc = Iot.CodigoNfc.Normalizar(codigo);
 
     public void AsignarImagen(string? ruta) => ImagenRuta = Guard.Opcional(ruta, "La ruta de la imagen", 400);
 

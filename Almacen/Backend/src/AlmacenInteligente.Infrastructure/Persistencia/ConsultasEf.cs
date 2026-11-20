@@ -65,20 +65,30 @@ internal sealed class ConsultasEf(AlmacenDbContext db) : IConsultas
             var p = f.Producto;
             return new ProductoDto(p.Id, p.Referencia, p.Descripcion, p.UnidadId, f.Unidad, p.PermiteFracciones, p.ImagenRuta,
                 p.Activo, p.Estado, p.GerenteAprobadorId, p.GerenteAprobadorId is { } g ? nombres.GetValueOrDefault(g) : null,
-                nombres.GetValueOrDefault(p.Creado.UsuarioId, "—"), p.Creado.Fecha, p.MotivoRechazo, f.Existencia);
+                nombres.GetValueOrDefault(p.Creado.UsuarioId, "—"), p.Creado.Fecha, p.MotivoRechazo, f.Existencia, p.CodigoNfc);
         }).ToList();
     }
 
-    public async Task<IReadOnlyList<ProductoOpcionDto>> BuscarProductosDisponiblesAsync(string? texto, int maximo, CancellationToken ct)
+    public Task<IReadOnlyList<ProductoOpcionDto>> BuscarProductosDisponiblesAsync(string? texto, int maximo, CancellationToken ct)
     {
         var q = db.Productos.AsNoTracking().Where(p => p.Activo && p.Estado == EstadoAprobacion.Aprobado);
         if (!string.IsNullOrWhiteSpace(texto))
         {
             var patron = $"%{texto.Trim()}%";
-            q = q.Where(p => EF.Functions.ILike(p.Referencia, patron) || EF.Functions.ILike(p.Descripcion, patron));
+            var nfc = texto.Trim().Replace(":", "").Replace("-", "").ToUpperInvariant();
+            q = q.Where(p => EF.Functions.ILike(p.Referencia, patron) || EF.Functions.ILike(p.Descripcion, patron) || p.CodigoNfc == nfc);
         }
+        return ProyectarOpciones(q.OrderBy(p => p.Referencia).Take(maximo), ct);
+    }
 
-        var productos = await q.OrderBy(p => p.Referencia).Take(maximo)
+    public Task<IReadOnlyList<ProductoOpcionDto>> ObtenerProductosDisponiblesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
+        ProyectarOpciones(db.Productos.AsNoTracking()
+            .Where(p => ids.Contains(p.Id) && p.Activo && p.Estado == EstadoAprobacion.Aprobado)
+            .OrderBy(p => p.Referencia), ct);
+
+    private async Task<IReadOnlyList<ProductoOpcionDto>> ProyectarOpciones(IQueryable<Producto> q, CancellationToken ct)
+    {
+        var productos = await q
             .Select(p => new
             {
                 p.Id, p.Referencia, p.Descripcion, p.PermiteFracciones,

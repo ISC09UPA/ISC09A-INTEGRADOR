@@ -64,6 +64,12 @@
             }
         }
 
+        @if (Puede(u, Permisos.Iot.VerAccesos))
+        {
+            <Seccion Titulo="IoT" />
+            <MudNavLink Href="iot/accesos" Icon="@Icons.Material.Outlined.SensorDoor">Accesos</MudNavLink>
+        }
+
         @if (Puede(u, Permisos.Usuarios.Gestionar) || Puede(u, Permisos.Api.Acceder))
         {
             <Seccion Titulo="Administración" />

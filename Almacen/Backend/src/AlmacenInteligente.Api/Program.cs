@@ -21,6 +21,8 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ManejadorErrores>();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+// Colas del embebido (acceso con NFC + rostro y escaneos de venta). Sin Iot:ConnectionString solo registran un aviso.
+builder.Services.AddIotWorkers();
 
 var jwt = OpcionesJwt.Desde(builder.Configuration)
     ?? throw new InvalidOperationException("Falta la sección 'Jwt' (Clave, Emisor, Audiencia).");
@@ -91,10 +93,13 @@ app.MapCuenta();
 app.MapCatalogos();
 app.MapOperacion();
 app.MapPdf();
+app.MapIot();
 
-// Imágenes de productos (la ruta viene en imagenRuta del producto).
-app.MapGet("/api/archivos/{**ruta}", async (string ruta, IFileStorage archivos, CancellationToken ct) =>
+// Imágenes de productos (la ruta viene en imagenRuta del producto) y fotos de rostro (solo quien gestiona usuarios).
+app.MapGet("/api/archivos/{**ruta}", async (string ruta, IFileStorage archivos, IUsuarioActual usuario, CancellationToken ct) =>
 {
+    if (ruta.StartsWith("rostros/", StringComparison.Ordinal) && !usuario.TienePermiso(AlmacenInteligente.Application.Seguridad.Permisos.Usuarios.Gestionar))
+        return Results.NotFound();
     var tipo = Path.GetExtension(ruta).ToLowerInvariant() switch
     {
         ".jpg" or ".jpeg" => "image/jpeg",

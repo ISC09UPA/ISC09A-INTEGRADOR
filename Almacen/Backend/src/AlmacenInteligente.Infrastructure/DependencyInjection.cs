@@ -5,11 +5,13 @@ using AlmacenInteligente.Application.Usuarios;
 using AlmacenInteligente.Application.Pdf;
 using AlmacenInteligente.Infrastructure.Archivos;
 using AlmacenInteligente.Infrastructure.Correos;
+using AlmacenInteligente.Infrastructure.Iot;
 using AlmacenInteligente.Infrastructure.Mensajeria;
 using AlmacenInteligente.Infrastructure.Pdf;
 using AlmacenInteligente.Infrastructure.Persistencia;
 using AlmacenInteligente.Infrastructure.Seguridad;
 using Azure.Communication.Email;
+using Azure.Messaging.ServiceBus;
 using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -46,6 +48,7 @@ public static class DependencyInjection
         services.AddSingleton<IGeneradorPdf, GeneradorPdf>();
         AgregarArchivos(services, configuration);
         AgregarCorreo(services, configuration);
+        AgregarIot(services, configuration);
 
         services.AddIdentityCore<Usuario>(o =>
             {
@@ -67,6 +70,39 @@ public static class DependencyInjection
         services.AddHttpContextAccessor();
         services.AddScoped<IUsuarioActual, UsuarioActualHttp>();
         services.AddSingleton<IReloj, RelojSistema>();
+        return services;
+    }
+
+    /// <summary>
+    /// Embebido IoT: Custom Vision (reconocimiento facial) y Service Bus (colas del lector NFC y la webcam).
+    /// Ambos son opcionales: sin configuración la aplicación funciona igual y los workers no arrancan.
+    /// </summary>
+    private static void AgregarIot(IServiceCollection services, IConfiguration configuration)
+    {
+        var iot = configuration.GetSection("Iot");
+        services.AddSingleton(new Application.Iot.OpcionesIot
+        {
+            UmbralConfianza = iot.GetValue("UmbralConfianza", 0.8),
+            TimeoutSesionMinutos = iot.GetValue("TimeoutSesionMinutos", 2.0),
+        });
+        var bus = iot.Get<OpcionesServiceBusIot>() ?? new OpcionesServiceBusIot();
+        services.AddSingleton(bus);
+        if (bus.Configurada)
+            services.AddSingleton(_ => new ServiceBusClient(bus.ConnectionString));
+
+        services.AddSingleton(configuration.GetSection("CustomVision").Get<OpcionesCustomVision>() ?? new OpcionesCustomVision());
+        services.AddHttpClient<Application.Iot.IReconocimientoFacial, ReconocimientoCustomVision>(c => c.Timeout = TimeSpan.FromSeconds(60));
+
+        services.AddScoped<Application.Iot.IFotosRostroRepositorio, FotosRostroRepositorio>();
+        services.AddScoped<Application.Iot.IAccesosIotRepositorio, AccesosIotRepositorio>();
+        services.AddScoped<Application.Iot.ICandadoVentaInteligente, CandadoVentaInteligente>();
+    }
+
+    /// <summary>Workers que procesan las colas del embebido. Solo los registra la API.</summary>
+    public static IServiceCollection AddIotWorkers(this IServiceCollection services)
+    {
+        services.AddHostedService<ProcesadorAccesosIot>();
+        services.AddHostedService<ProcesadorEscaneosIot>();
         return services;
     }
 
@@ -117,7 +153,6 @@ public static class DependencyInjection
             UrlWeb = n["UrlWeb"],
             NombreEmpresa = configuration["Empresa:Nombre"] ?? "Almacén inteligente",
             ComprobanteVentaAlCliente = n.GetValue("ComprobanteVentaAlCliente", true),
-            ComprobanteRecepcionAlProveedor = n.GetValue("ComprobanteRecepcionAlProveedor", true),
         });
 
         if (configuration.GetValue("Outbox:Habilitado", true))

@@ -14,9 +14,11 @@ namespace AlmacenInteligente.Api;
 // Cuerpos de las peticiones que no son un caso de uso completo (el id va en la ruta).
 public sealed record CambioEstado(bool Activo);
 public sealed record Motivo(string Texto);
-public sealed record DatosProducto(string Descripcion, Guid UnidadId);
+/// <param name="CodigoNfc">UID de la etiqueta NFC: si no se envía se conserva; "" la quita.</param>
+public sealed record DatosProducto(string Descripcion, Guid UnidadId, string? CodigoNfc = null);
 public sealed record DatosAlmacen(string Nombre, string Ubicacion);
-public sealed record DatosUsuario(string Nombre, string Rol, bool Activo);
+/// <param name="CodigoNfc">UID de la tarjeta NFC: si no se envía se conserva; "" la quita.</param>
+public sealed record DatosUsuario(string Nombre, string Rol, bool Activo, string? CodigoNfc = null);
 public sealed record NuevaContrasena(string Contrasena);
 public sealed record StockMinimo(decimal Minimo);
 public sealed record StockInicial(decimal Cantidad, decimal CostoUnitario);
@@ -91,7 +93,7 @@ internal static class EndpointsCatalogos
         }).WithName("CrearProducto")
             .WithSummary("Si el usuario no puede aprobar, envía gerenteAprobadorId y el producto queda pendiente.");
         g.MapPut("/{id:guid}", (Guid id, DatosProducto d, IMediador m, CancellationToken ct) =>
-            m.EnviarAsync(new EditarProducto(id, d.Descripcion, d.UnidadId), ct)).WithName("EditarProducto");
+            m.EnviarAsync(new EditarProducto(id, d.Descripcion, d.UnidadId, d.CodigoNfc), ct)).WithName("EditarProducto");
         g.MapPatch("/{id:guid}/estado", (Guid id, CambioEstado c, IMediador m, CancellationToken ct) =>
             m.EnviarAsync(new CambiarEstadoProducto(id, c.Activo), ct)).WithName("CambiarEstadoProducto");
         g.MapPost("/{id:guid}/imagen", async (Guid id, IFormFile imagen, IMediador m, CancellationToken ct) =>
@@ -132,7 +134,7 @@ internal static class EndpointsCatalogos
         g.MapPost("", (CrearUsuario s, IMediador m, CancellationToken ct) => m.EnviarAsync(s, ct)).WithName("CrearUsuario")
             .WithSummary("rol: Superadmin, AgenteVentas, EncargadoRecepciones o Gerente.");
         g.MapPut("/{id:guid}", (Guid id, DatosUsuario d, IMediador m, CancellationToken ct) =>
-            m.EnviarAsync(new ActualizarUsuario(id, d.Nombre, d.Rol, d.Activo), ct)).WithName("ActualizarUsuario");
+            m.EnviarAsync(new ActualizarUsuario(id, d.Nombre, d.Rol, d.Activo, d.CodigoNfc), ct)).WithName("ActualizarUsuario");
         g.MapPost("/{id:guid}/contrasena", async (Guid id, NuevaContrasena c, IMediador m, CancellationToken ct) =>
         {
             await m.EnviarAsync(new RestablecerContrasena(id, c.Contrasena), ct);

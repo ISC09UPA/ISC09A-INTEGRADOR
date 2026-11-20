@@ -35,10 +35,16 @@ public interface IEmailSender
     Task EnviarAsync(MensajeCorreo mensaje, CancellationToken ct = default);
 }
 
-/// <summary>Imágenes de productos, en Azure Blob Storage (Azurite en desarrollo).</summary>
+/// <summary>Imágenes de productos y fotos de rostro, en Azure Blob Storage (Azurite en desarrollo).</summary>
 public interface IFileStorage
 {
-    Task<string> GuardarAsync(Stream contenido, string nombreArchivo, string tipoContenido, CancellationToken ct = default);
+    /// <summary>Guarda en la carpeta "productos".</summary>
+    Task<string> GuardarAsync(Stream contenido, string nombreArchivo, string tipoContenido, CancellationToken ct = default) =>
+        GuardarEnAsync("productos", contenido, nombreArchivo, tipoContenido, ct);
+
+    /// <summary>Guarda en una carpeta (p. ej. "rostros") y devuelve la ruta "carpeta/archivo".</summary>
+    Task<string> GuardarEnAsync(string carpeta, Stream contenido, string nombreArchivo, string tipoContenido, CancellationToken ct = default);
+
     Task<Stream?> AbrirAsync(string ruta, CancellationToken ct = default);
     Task EliminarAsync(string ruta, CancellationToken ct = default);
 }

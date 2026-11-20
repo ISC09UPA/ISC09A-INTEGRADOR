@@ -64,9 +64,12 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-// Imágenes de productos: solo con sesión iniciada.
-app.MapGet("/archivos/{**ruta}", async (string ruta, IFileStorage archivos, CancellationToken ct) =>
+// Imágenes de productos: solo con sesión iniciada. Fotos de rostro: solo quien gestiona usuarios.
+app.MapGet("/archivos/{**ruta}", async (string ruta, IFileStorage archivos, HttpContext http, CancellationToken ct) =>
 {
+    if (ruta.StartsWith("rostros/", StringComparison.Ordinal)
+        && !http.User.HasClaim(UsuarioActualPrincipal.ClaimPermiso, Permisos.Usuarios.Gestionar))
+        return Results.NotFound();
     var tipo = Path.GetExtension(ruta).ToLowerInvariant() switch
     {
         ".jpg" or ".jpeg" => "image/jpeg",

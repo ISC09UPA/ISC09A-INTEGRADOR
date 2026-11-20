@@ -70,6 +70,12 @@ internal sealed class ProductoRepositorio(AlmacenDbContext db) : Repositorio<Pro
     public Task<bool> ExisteReferenciaAsync(string referencia, CancellationToken ct = default) =>
         Db.Productos.AnyAsync(p => p.Referencia == referencia, ct);
 
+    public Task<bool> ExisteCodigoNfcAsync(string codigoNfc, Guid? excepto, CancellationToken ct = default) =>
+        Db.Productos.AnyAsync(p => p.CodigoNfc == codigoNfc && p.Id != excepto, ct);
+
+    public Task<Producto?> ObtenerPorCodigoNfcAsync(string codigoNfc, CancellationToken ct = default) =>
+        Db.Productos.FirstOrDefaultAsync(p => p.CodigoNfc == codigoNfc, ct);
+
     public async Task<IReadOnlyDictionary<Guid, Producto>> ObtenerVariosAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
     {
         var lista = ids.Distinct().ToList();

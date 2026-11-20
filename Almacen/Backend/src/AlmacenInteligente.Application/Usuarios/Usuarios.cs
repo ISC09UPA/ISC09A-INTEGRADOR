@@ -2,11 +2,16 @@ using AlmacenInteligente.Application.Abstracciones;
 using AlmacenInteligente.Application.CasosDeUso;
 using AlmacenInteligente.Application.Seguridad;
 using AlmacenInteligente.Domain.Common;
+using AlmacenInteligente.Domain.Iot;
 using FluentValidation;
 
 namespace AlmacenInteligente.Application.Usuarios;
 
-public sealed record UsuarioDto(Guid Id, string Nombre, string Correo, string Rol, bool Activo);
+/// <param name="CodigoNfc">UID de la tarjeta NFC con la que entra por el acceso IoT.</param>
+/// <param name="FotosRostro">Fotos de rostro cargadas para el reconocimiento facial.</param>
+public sealed record UsuarioDto(
+    Guid Id, string Nombre, string Correo, string Rol, bool Activo,
+    string? CodigoNfc = null, int FotosRostro = 0, EstadoReconocimiento Reconocimiento = EstadoReconocimiento.SinFotos);
 
 /// <summary>Puerto hacia el almacén de usuarios (ASP.NET Core Identity).</summary>
 public interface IGestorUsuarios
@@ -18,9 +23,14 @@ public interface IGestorUsuarios
     Task<IReadOnlyList<UsuarioDto>> ListarConPermisoAsync(string permiso, CancellationToken ct = default);
 
     /// <summary>Lanza DomainException si el correo ya existe o la contraseña no cumple la política.</summary>
-    Task<UsuarioDto> CrearAsync(string nombre, string correo, string rol, string contrasena, CancellationToken ct = default);
+    Task<UsuarioDto> CrearAsync(string nombre, string correo, string rol, string contrasena, string? codigoNfc, CancellationToken ct = default);
 
-    Task<UsuarioDto> ActualizarAsync(Guid id, string nombre, string rol, bool activo, CancellationToken ct = default);
+    Task<UsuarioDto> ActualizarAsync(Guid id, string nombre, string rol, bool activo, string? codigoNfc, CancellationToken ct = default);
+
+    /// <summary>El usuario dueño de esa tarjeta (UID ya normalizado), activo o no.</summary>
+    Task<UsuarioDto?> ObtenerPorNfcAsync(string codigoNfc, CancellationToken ct = default);
+
+    Task<bool> ExisteNfcAsync(string codigoNfc, Guid? excepto, CancellationToken ct = default);
     Task RestablecerContrasenaAsync(Guid id, string contrasena, CancellationToken ct = default);
 }
 
@@ -32,10 +42,11 @@ public sealed record ListarUsuarios(string? Rol = null) : ISolicitud<IReadOnlyLi
 public sealed record ListarGerentes : ISolicitud<IReadOnlyList<UsuarioDto>>;
 
 [RequierePermiso(Permisos.Usuarios.Gestionar)]
-public sealed record CrearUsuario(string Nombre, string Correo, string Rol, string Contrasena) : ISolicitud<UsuarioDto>;
+public sealed record CrearUsuario(string Nombre, string Correo, string Rol, string Contrasena, string? CodigoNfc = null) : ISolicitud<UsuarioDto>;
 
 [RequierePermiso(Permisos.Usuarios.Gestionar)]
-public sealed record ActualizarUsuario(Guid Id, string Nombre, string Rol, bool Activo) : ISolicitud<UsuarioDto>;
+/// <param name="CodigoNfc">null conserva la tarjeta actual; "" la quita.</param>
+public sealed record ActualizarUsuario(Guid Id, string Nombre, string Rol, bool Activo, string? CodigoNfc = null) : ISolicitud<UsuarioDto>;
 
 [RequierePermiso(Permisos.Usuarios.Gestionar)]
 public sealed record RestablecerContrasena(Guid Id, string Contrasena) : ISolicitud<bool>;
@@ -78,15 +89,27 @@ internal sealed class UsuariosManejador(IGestorUsuarios gestor, IUsuarioActual u
     public async Task<IReadOnlyList<UsuarioDto>> ManejarAsync(ListarGerentes s, CancellationToken ct) =>
         (await gestor.ListarAsync(Roles.Gerente, ct)).Where(u => u.Activo).ToList();
 
-    public Task<UsuarioDto> ManejarAsync(CrearUsuario s, CancellationToken ct) =>
-        gestor.CrearAsync(s.Nombre.Trim(), s.Correo.Trim(), s.Rol, s.Contrasena, ct);
+    public async Task<UsuarioDto> ManejarAsync(CrearUsuario s, CancellationToken ct)
+    {
+        var nfc = await ValidarNfcAsync(s.CodigoNfc, null, ct);
+        return await gestor.CrearAsync(s.Nombre.Trim(), s.Correo.Trim(), s.Rol, s.Contrasena, nfc, ct);
+    }
 
     public async Task<UsuarioDto> ManejarAsync(ActualizarUsuario s, CancellationToken ct)
     {
         var actual = await gestor.ObtenerAsync(s.Id, ct) ?? throw new NoEncontradoException("el usuario", s.Id);
         if (s.Id == usuario.Id && (!s.Activo || s.Rol != actual.Rol))
             throw new DomainException("No puedes desactivarte ni cambiarte el rol a ti mismo.");
-        return await gestor.ActualizarAsync(s.Id, s.Nombre.Trim(), s.Rol, s.Activo, ct);
+        var nfc = s.CodigoNfc is null ? actual.CodigoNfc : await ValidarNfcAsync(s.CodigoNfc, s.Id, ct);
+        return await gestor.ActualizarAsync(s.Id, s.Nombre.Trim(), s.Rol, s.Activo, nfc, ct);
+    }
+
+    private async Task<string?> ValidarNfcAsync(string? codigo, Guid? excepto, CancellationToken ct)
+    {
+        var nfc = CodigoNfc.Normalizar(codigo);
+        if (nfc is not null && await gestor.ExisteNfcAsync(nfc, excepto, ct))
+            throw new DomainException($"La tarjeta NFC {nfc} ya está asignada a otro usuario.");
+        return nfc;
     }
 
     public async Task<bool> ManejarAsync(RestablecerContrasena s, CancellationToken ct)
