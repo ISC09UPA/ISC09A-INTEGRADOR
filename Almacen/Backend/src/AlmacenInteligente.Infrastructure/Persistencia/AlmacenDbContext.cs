@@ -4,6 +4,7 @@ using AlmacenInteligente.Domain.Common;
 using AlmacenInteligente.Domain.Documentos;
 using AlmacenInteligente.Domain.Finanzas;
 using AlmacenInteligente.Domain.Inventario;
+using AlmacenInteligente.Domain.Iot;
 using AlmacenInteligente.Domain.Productos;
 using AlmacenInteligente.Domain.Recepciones;
 using AlmacenInteligente.Domain.Terceros;
@@ -32,6 +33,10 @@ public sealed class AlmacenDbContext(DbContextOptions<AlmacenDbContext> options)
     public DbSet<Venta> Ventas => Set<Venta>();
     public DbSet<Traspaso> Traspasos => Set<Traspaso>();
     public DbSet<MensajeOutbox> Outbox => Set<MensajeOutbox>();
+    public DbSet<FotoRostro> FotosRostro => Set<FotoRostro>();
+    public DbSet<AccesoIot> AccesosIot => Set<AccesoIot>();
+    public DbSet<SesionVentaInteligente> SesionVentaInteligente => Set<SesionVentaInteligente>();
+    public DbSet<EscaneoIot> EscaneosIot => Set<EscaneoIot>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -41,7 +46,12 @@ public sealed class AlmacenDbContext(DbContextOptions<AlmacenDbContext> options)
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AlmacenDbContext).Assembly);
 
         // Tablas de Identity con el mismo estilo snake_case que el resto.
-        modelBuilder.Entity<Usuario>().ToTable("usuarios");
+        modelBuilder.Entity<Usuario>(u =>
+        {
+            u.ToTable("usuarios");
+            u.Property(x => x.CodigoNfc).HasMaxLength(CodigoNfc.LongitudMaxima);
+            u.HasIndex(x => x.CodigoNfc).IsUnique().HasFilter("codigo_nfc IS NOT NULL");
+        });
         modelBuilder.Entity<Rol>().ToTable("roles");
         modelBuilder.Entity<IdentityUserRole<Guid>>().ToTable("usuarios_roles");
         modelBuilder.Entity<IdentityUserClaim<Guid>>().ToTable("usuarios_claims");

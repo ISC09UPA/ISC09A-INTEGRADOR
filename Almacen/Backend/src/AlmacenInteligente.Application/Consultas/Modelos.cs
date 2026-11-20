@@ -12,7 +12,7 @@ public sealed record UnidadDto(Guid Id, string Clave, string Nombre, bool Permit
 public sealed record ProductoDto(
     Guid Id, string Referencia, string Descripcion, Guid UnidadId, string Unidad, bool PermiteFracciones,
     string? ImagenRuta, bool Activo, EstadoAprobacion Estado, Guid? GerenteAprobadorId, string? GerenteAprobador,
-    string CreadoPor, DateTimeOffset CreadoEn, string? MotivoRechazo, decimal Existencia);
+    string CreadoPor, DateTimeOffset CreadoEn, string? MotivoRechazo, decimal Existencia, string? CodigoNfc = null);
 
 public sealed record FiltroProductos(
     string? Busqueda = null, EstadoAprobacion? Estado = null, bool IncluirInactivos = false,

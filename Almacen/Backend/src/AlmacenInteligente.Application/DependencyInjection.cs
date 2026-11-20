@@ -12,6 +12,9 @@ public static class DependencyInjection
         var ensamblado = typeof(DependencyInjection).Assembly;
 
         services.AddScoped<IMediador, Mediador>();
+        // Casos de uso del embebido: no tienen usuario en sesión, los invocan los workers de Service Bus.
+        services.AddScoped<Iot.ServicioAccesoIot>();
+        services.AddScoped<Iot.ServicioEscaneosIot>();
         services.AddValidatorsFromAssembly(ensamblado, ServiceLifetime.Scoped, includeInternalTypes: true);
 
         var manejadores = ensamblado.GetTypes()

@@ -13,6 +13,9 @@ public interface IConsultas
     Task<ProductoDto?> ObtenerProductoAsync(Guid id, CancellationToken ct);
     Task<IReadOnlyList<ProductoOpcionDto>> BuscarProductosDisponiblesAsync(string? texto, int maximo, CancellationToken ct);
 
+    /// <summary>Esos productos (si están aprobados y activos) con su existencia por almacén.</summary>
+    Task<IReadOnlyList<ProductoOpcionDto>> ObtenerProductosDisponiblesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct);
+
     Task<IReadOnlyList<AlmacenDto>> ListarAlmacenesAsync(bool incluirInactivos, CancellationToken ct);
     Task<Pagina<ExistenciaDto>> ListarExistenciasAsync(FiltroExistencias filtro, CancellationToken ct);
     Task<IReadOnlyList<KardexDto>> KardexAsync(Guid almacenId, Guid productoId, DateOnly? desde, DateOnly? hasta, CancellationToken ct);

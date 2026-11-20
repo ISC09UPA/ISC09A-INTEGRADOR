@@ -390,6 +390,160 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                     b.ToTable("traspasos", (string)null);
                 });
 
+            modelBuilder.Entity("AlmacenInteligente.Domain.Iot.AccesoIot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<double>("Confianza")
+                        .HasColumnType("double precision")
+                        .HasColumnName("confianza");
+
+                    b.Property<DateTimeOffset>("Fecha")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("motivo");
+
+                    b.Property<string>("Nfc")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("nfc");
+
+                    b.Property<bool>("Permitido")
+                        .HasColumnType("boolean")
+                        .HasColumnName("permitido");
+
+                    b.Property<Guid?>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_iot_accesos");
+
+                    b.HasIndex("Fecha")
+                        .IsDescending()
+                        .HasDatabaseName("ix_iot_accesos_fecha");
+
+                    b.ToTable("iot_accesos", (string)null);
+                });
+
+            modelBuilder.Entity("AlmacenInteligente.Domain.Iot.EscaneoIot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("Fecha")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha");
+
+                    b.Property<bool>("Procesado")
+                        .HasColumnType("boolean")
+                        .HasColumnName("procesado");
+
+                    b.Property<Guid>("ProductoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("producto_id");
+
+                    b.Property<Guid>("SesionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sesion_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_iot_escaneos");
+
+                    b.HasIndex("ProductoId")
+                        .HasDatabaseName("ix_iot_escaneos_producto_id");
+
+                    b.HasIndex("SesionId")
+                        .HasDatabaseName("ix_iot_escaneos_sesion_id")
+                        .HasFilter("NOT procesado");
+
+                    b.ToTable("iot_escaneos", (string)null);
+                });
+
+            modelBuilder.Entity("AlmacenInteligente.Domain.Iot.FotoRostro", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("EntrenadaEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("entrenada_en");
+
+                    b.Property<string>("ImagenRemotaId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("imagen_remota_id");
+
+                    b.Property<string>("Ruta")
+                        .IsRequired()
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)")
+                        .HasColumnName("ruta");
+
+                    b.Property<DateTimeOffset>("SubidaEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("subida_en");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_iot_fotos_rostro");
+
+                    b.HasIndex("UsuarioId")
+                        .HasDatabaseName("ix_iot_fotos_rostro_usuario_id");
+
+                    b.ToTable("iot_fotos_rostro", (string)null);
+                });
+
+            modelBuilder.Entity("AlmacenInteligente.Domain.Iot.SesionVentaInteligente", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AlmacenId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("almacen_id");
+
+                    b.Property<DateTimeOffset?>("Inicio")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("inicio");
+
+                    b.Property<Guid?>("SesionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sesion_id");
+
+                    b.Property<DateTimeOffset?>("UltimoLatido")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ultimo_latido");
+
+                    b.Property<Guid?>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_iot_sesion_venta");
+
+                    b.ToTable("iot_sesion_venta", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_iot_sesion_venta_unica", "id = 1");
+                        });
+                });
+
             modelBuilder.Entity("AlmacenInteligente.Domain.Productos.Producto", b =>
                 {
                     b.Property<Guid>("Id")
@@ -400,6 +554,11 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                     b.Property<bool>("Activo")
                         .HasColumnType("boolean")
                         .HasColumnName("activo");
+
+                    b.Property<string>("CodigoNfc")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("codigo_nfc");
 
                     b.Property<string>("Descripcion")
                         .IsRequired()
@@ -467,6 +626,11 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
 
                     b.HasKey("Id")
                         .HasName("pk_productos");
+
+                    b.HasIndex("CodigoNfc")
+                        .IsUnique()
+                        .HasDatabaseName("ix_productos_codigo_nfc")
+                        .HasFilter("codigo_nfc IS NOT NULL");
 
                     b.HasIndex("Referencia")
                         .IsUnique()
@@ -1118,6 +1282,11 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         .HasColumnType("boolean")
                         .HasColumnName("activo");
 
+                    b.Property<string>("CodigoNfc")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("codigo_nfc");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("text")
@@ -1182,6 +1351,11 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
 
                     b.HasKey("Id")
                         .HasName("pk_usuarios");
+
+                    b.HasIndex("CodigoNfc")
+                        .IsUnique()
+                        .HasDatabaseName("ix_usuarios_codigo_nfc")
+                        .HasFilter("codigo_nfc IS NOT NULL");
 
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
@@ -1388,6 +1562,26 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_traspasos_almacenes_almacen_origen_id");
+                });
+
+            modelBuilder.Entity("AlmacenInteligente.Domain.Iot.EscaneoIot", b =>
+                {
+                    b.HasOne("AlmacenInteligente.Domain.Productos.Producto", null)
+                        .WithMany()
+                        .HasForeignKey("ProductoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_iot_escaneos_productos_producto_id");
+                });
+
+            modelBuilder.Entity("AlmacenInteligente.Domain.Iot.FotoRostro", b =>
+                {
+                    b.HasOne("AlmacenInteligente.Infrastructure.Seguridad.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_iot_fotos_rostro_asp_net_users_usuario_id");
                 });
 
             modelBuilder.Entity("AlmacenInteligente.Domain.Productos.Producto", b =>

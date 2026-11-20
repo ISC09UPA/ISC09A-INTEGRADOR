@@ -1,0 +1,152 @@
+@using AlmacenInteligente.Application.Iot
+@using AlmacenInteligente.Application.Usuarios
+@using AlmacenInteligente.Domain.Iot
+@inherits PaginaBase
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            Fotos del rostro de <b>@Usuario_.Nombre</b> para el acceso con tarjeta NFC. Sube al menos @FotoRostro.MinimoPorUsuario,
+            de frente, con buena luz y algunas con distinto ángulo o expresión. Después usa "Entrenar modelo" en la lista de usuarios.
+        </MudText>
+
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+        }
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-3">
+            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@ColorEstado(Estado)">@TextoEstado(Estado, _fotos.Count)</MudChip>
+            <MudSpacer />
+            <MudFileUpload T="IReadOnlyList<IBrowserFile>" Accept=".jpg,.jpeg,.png" FilesChanged="SubirAsync" MaximumFileCount="20">
+                <CustomContent>
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.AddAPhoto" OnClick="@context.OpenFilePickerAsync"
+                               Disabled="_subiendo">
+                        @(_subiendo ? "Subiendo…" : "Agregar fotos")
+                    </MudButton>
+                </CustomContent>
+                <SelectedTemplate />
+            </MudFileUpload>
+        </MudStack>
+
+        @if (_cargando)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+        }
+        else if (_fotos.Count == 0)
+        {
+            <MudText Class="pa-4" Color="Color.Secondary">Todavía no hay fotos. JPG o PNG, máximo 4 MB cada una.</MudText>
+        }
+        else
+        {
+            <div class="fotos-rostro">
+                @foreach (var foto in _fotos)
+                {
+                    <div class="foto-rostro">
+                        <img src="archivos/@foto.Ruta" alt="Foto de rostro" />
+                        <div class="foto-rostro-pie">
+                            <MudTooltip Text="@(foto.Entrenada ? "Incluida en el modelo publicado" : foto.EnCustomVision ? "En Custom Vision, falta entrenar" : "Se sube a Custom Vision al entrenar")">
+                                <MudIcon Size="Size.Small" Icon="@(foto.Entrenada ? Icons.Material.Filled.Verified : Icons.Material.Outlined.Schedule)"
+                                         Color="@(foto.Entrenada ? Color.Success : Color.Default)" />
+                            </MudTooltip>
+                            <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small" aria-label="Eliminar foto"
+                                           OnClick="() => EliminarAsync(foto)" Disabled="_subiendo" />
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialogo.Close(DialogResult.Ok(_cambio))">Cerrar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    private const long TamanoMaximo = 4 * 1024 * 1024;
+
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+    [Parameter, EditorRequired] public UsuarioDto Usuario_ { get; set; } = default!;
+
+    private List<FotoRostroDto> _fotos = [];
+    private bool _cargando = true;
+    private bool _subiendo;
+    private bool _cambio;
+    private string? _error;
+
+    private EstadoReconocimiento Estado => FotoRostro.Estado(_fotos.Count, _fotos.Count(f => f.Entrenada));
+
+    protected override Task AlIniciarAsync() => CargarAsync();
+
+    private async Task CargarAsync()
+    {
+        _cargando = true;
+        var (exito, fotos) = await IntentarAsync(new ListarFotosRostro(Usuario_.Id));
+        if (exito && fotos is not null)
+            _fotos = fotos.ToList();
+        _cargando = false;
+    }
+
+    private async Task SubirAsync(IReadOnlyList<IBrowserFile>? archivos)
+    {
+        _error = null;
+        if (archivos is null || archivos.Count == 0)
+            return;
+
+        _subiendo = true;
+        var errores = new List<string>();
+        foreach (var archivo in archivos)
+        {
+            if (archivo.Size > TamanoMaximo)
+            {
+                errores.Add($"{archivo.Name}: pesa más de 4 MB.");
+                continue;
+            }
+            await using var flujo = archivo.OpenReadStream(TamanoMaximo);
+            using var memoria = new MemoryStream();
+            await flujo.CopyToAsync(memoria);
+            var (foto, mensaje) = await EjecutarAsync(new SubirFotoRostro(Usuario_.Id, archivo.Name, archivo.ContentType, memoria.ToArray()));
+            if (mensaje is not null)
+                errores.Add($"{archivo.Name}: {mensaje}");
+            else if (foto is not null)
+            {
+                _fotos.Add(foto);
+                _cambio = true;
+            }
+            StateHasChanged();
+        }
+        _subiendo = false;
+        if (errores.Count > 0)
+            _error = string.Join(" ", errores);
+    }
+
+    private async Task EliminarAsync(FotoRostroDto foto)
+    {
+        _error = null;
+        var (_, mensaje) = await EjecutarAsync(new EliminarFotoRostro(Usuario_.Id, foto.Id));
+        if (mensaje is not null)
+        {
+            _error = mensaje;
+            return;
+        }
+        _cambio = true;
+        await CargarAsync();
+    }
+
+    public static string TextoEstado(EstadoReconocimiento estado, int fotos) => estado switch
+    {
+        EstadoReconocimiento.SinFotos => "Sin fotos",
+        EstadoReconocimiento.FaltanFotos => $"Faltan fotos ({fotos} de {FotoRostro.MinimoPorUsuario})",
+        EstadoReconocimiento.PendienteDeEntrenar => "Falta entrenar",
+        EstadoReconocimiento.Entrenado => "Entrenado",
+        _ => estado.ToString(),
+    };
+
+    public static Color ColorEstado(EstadoReconocimiento estado) => estado switch
+    {
+        EstadoReconocimiento.Entrenado => Color.Success,
+        EstadoReconocimiento.PendienteDeEntrenar => Color.Info,
+        EstadoReconocimiento.FaltanFotos => Color.Warning,
+        _ => Color.Default,
+    };
+}
