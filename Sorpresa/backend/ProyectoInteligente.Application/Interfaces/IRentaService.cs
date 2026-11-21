@@ -15,9 +15,5 @@ public interface IRentaService
 
     Task<List<Renta>> ListarActivasAsync();
 
-    Task<bool> FinalizarAsync(
-        int id,
-        double? pesoFinalKg);
-
     Task<int> ActualizarVencidasAsync();
 }

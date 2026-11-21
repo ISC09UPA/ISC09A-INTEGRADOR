@@ -80,40 +80,7 @@ public class RentaService(AppDbContext db) : IRentaService
             .OrderBy(r => r.Fin)
             .ToListAsync();
 
-    public async Task<bool> FinalizarAsync(
-        int id,
-        double? pesoFinalKg)
-    {
-        await using var tx = await db.Database.BeginTransactionAsync();
 
-        var renta = await db.Rentas
-            .FirstOrDefaultAsync(r => r.Id == id);
-
-        if (renta is null ||
-            renta.Estado == RentaEstado.Finalizada)
-            return false;
-
-        if (pesoFinalKg.HasValue && pesoFinalKg.Value < 0)
-            return false;
-
-        var locker = await db.Lockers
-            .FirstOrDefaultAsync(l => l.Id == renta.LockerId);
-
-        if (locker is null)
-            return false;
-
-        renta.FechaFinalizacion = DateTime.UtcNow;
-        renta.PesoFinalKg = pesoFinalKg;
-        renta.Estado = RentaEstado.Finalizada;
-
-        locker.Estado = LockerEstado.Disponible;
-        locker.PesoActualKg = 0;
-
-        await db.SaveChangesAsync();
-        await tx.CommitAsync();
-
-        return true;
-    }
 
     public async Task<int> ActualizarVencidasAsync()
     {

@@ -4,7 +4,6 @@ using LockerSmart.Application.Interfaces;
 namespace LockerSmart.API.Endpoints;
 
 public record CrearRentaRequest(double PesoDeclaradoKg, int DuracionHoras);
-public record FinalizarRentaRequest(double? PesoFinalKg);
 
 public static class RentaEndpoints
 {
@@ -84,37 +83,5 @@ public static class RentaEndpoints
             return Results.Ok(renta);
         });
 
-        // Finalizar una renta: propietario o administrador.
-        g.MapPost("/{id:int}/finalizar", async (
-            int id,
-            FinalizarRentaRequest request,
-            ClaimsPrincipal principal,
-            IRentaService service) =>
-        {
-            var claim = principal.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            if (!int.TryParse(claim, out var usuarioId))
-                return Results.Unauthorized();
-
-            var renta = await service.ObtenerAsync(id);
-
-            if (renta is null)
-                return Results.NotFound();
-
-            if (renta.UsuarioId != usuarioId &&
-                !principal.IsInRole("Administrador"))
-                return Results.Forbid();
-
-            if (request.PesoFinalKg < 0)
-                return Results.BadRequest("El peso final no puede ser negativo.");
-
-            var finalizada = await service.FinalizarAsync(
-                id,
-                request.PesoFinalKg);
-
-            return finalizada
-                ? Results.NoContent()
-                : Results.Conflict("No fue posible finalizar la renta.");
-        });
     }
 }

@@ -51,8 +51,14 @@ public sealed class AzureServiceBusEventsWorker(
         try
         {
             var evt = JsonSerializer.Deserialize<DeviceEventMessage>(args.Message.Body.ToString(), JsonOptions);
-            if (evt is null || string.IsNullOrWhiteSpace(evt.EventId) || string.IsNullOrWhiteSpace(evt.LockerCodigo))
-                throw new JsonException("El evento requiere EventId y LockerCodigo.");
+            if (evt is null ||
+                string.IsNullOrWhiteSpace(evt.EventId) ||
+                string.IsNullOrWhiteSpace(evt.LockerCodigo) ||
+                string.IsNullOrWhiteSpace(evt.Tipo))
+            {
+                throw new JsonException(
+                    "El evento requiere EventId, LockerCodigo y Tipo.");
+            }
 
             await using var scope = scopeFactory.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -75,23 +81,37 @@ public sealed class AzureServiceBusEventsWorker(
             if (evt.Tipo.Equals("Falla", StringComparison.OrdinalIgnoreCase))
                 locker.Estado = LockerEstado.Mantenimiento;
 
-            // Solo un evento explícito de devolución confirmada puede cerrar una renta y liberar el locker.
+            // Solo se permite finalizar una renta con una devolución confirmada y validada.
             if (evt.Tipo.Equals("DevolucionConfirmada", StringComparison.OrdinalIgnoreCase))
             {
+                if (!evt.RentaId.HasValue || evt.RentaId.Value <= 0)
+                    throw new JsonException("La devolución requiere un RentaId válido.");
+
+                if (!evt.PesoKg.HasValue || evt.PesoKg.Value < 0)
+                    throw new JsonException("La devolución requiere un peso final válido.");
+
                 if (evt.PuertaCerrada != true || evt.PresenciaDetectada != false)
-                    throw new InvalidOperationException("DevolucionConfirmada requiere puerta cerrada y presencia no detectada.");
-                var query = db.Rentas.Where(r => r.LockerId == locker.Id &&
-                    (r.Estado == RentaEstado.Activa || r.Estado == RentaEstado.Excedida));
-                if (evt.RentaId.HasValue) query = query.Where(r => r.Id == evt.RentaId.Value);
-                var renta = await query.OrderByDescending(r => r.Inicio).FirstOrDefaultAsync();
-                if (renta is not null)
-                {
-                    renta.Estado = RentaEstado.Finalizada;
-                    renta.FechaFinalizacion = evt.TimestampUtc?.ToUniversalTime() ?? DateTime.UtcNow;
-                    renta.PesoFinalKg = evt.PesoKg;
-                    locker.Estado = LockerEstado.Disponible;
-                    locker.PesoActualKg = 0;
-                }
+                    throw new JsonException(
+                        "La devolución requiere puerta cerrada y ausencia de objetos o personas.");
+
+                var renta = await db.Rentas.FirstOrDefaultAsync(r =>
+                    r.Id == evt.RentaId.Value &&
+                    r.LockerId == locker.Id &&
+                    (r.Estado == RentaEstado.Activa ||
+                    r.Estado == RentaEstado.Excedida));
+
+                if (renta is null)
+                    throw new JsonException(
+                        "No existe una renta activa o excedida que coincida con el locker y RentaId.");
+
+                var fechaFinalizacion = evt.TimestampUtc ?? DateTime.UtcNow;
+
+                renta.Estado = RentaEstado.Finalizada;
+                renta.FechaFinalizacion = fechaFinalizacion.ToUniversalTime();
+                renta.PesoFinalKg = evt.PesoKg.Value;
+
+                locker.Estado = LockerEstado.Disponible;
+                locker.PesoActualKg = 0;
             }
 
             db.EventosDispositivo.Add(new LockerSmart.Domain.Entities.EventoDispositivo

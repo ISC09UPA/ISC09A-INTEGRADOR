@@ -35,20 +35,54 @@ public sealed class AzureBlobStorageService : IBlobStorageService
         _container.CreateIfNotExists(PublicAccessType.None);
     }
 
-    public async Task<string> UploadAsync(Stream content, string contentType, CancellationToken cancellationToken = default)
+    public async Task<string> UploadAsync(
+        Stream content,
+        string contentType,
+        CancellationToken cancellationToken = default)
     {
-        var blobName = $"usuarios/{Guid.NewGuid():N}.jpg";
+        if (content is null || !content.CanRead)
+            throw new ArgumentException("El contenido de la imagen no es válido.");
+
+        var extension = contentType switch
+        {
+            "image/jpeg" => ".jpg",
+            "image/png" => ".png",
+            _ => throw new ArgumentException("Solo se permiten imágenes JPG o PNG.")
+        };
+
+        var blobName = $"usuarios/{Guid.NewGuid():N}{extension}";
         var blob = _container.GetBlobClient(blobName);
+
         await blob.UploadAsync(content, new BlobUploadOptions
         {
-            HttpHeaders = new BlobHttpHeaders { ContentType = contentType }
+            HttpHeaders = new BlobHttpHeaders
+            {
+                ContentType = contentType
+            }
         }, cancellationToken);
+
         return blobName;
     }
 
-    public Task<string> CreateReadSasUrlAsync(string blobName, TimeSpan validity, CancellationToken cancellationToken = default)
+    public async Task<string> CreateReadSasUrlAsync(
+        string blobName,
+        TimeSpan validity,
+        CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(blobName) ||
+            !blobName.StartsWith("usuarios/", StringComparison.Ordinal) ||
+            blobName.Contains(".."))
+            throw new ArgumentException("Referencia de fotografía no válida.");
+
+        if (validity <= TimeSpan.Zero || validity > TimeSpan.FromMinutes(10))
+            throw new ArgumentOutOfRangeException(
+                nameof(validity), "La vigencia máxima permitida es de 10 minutos.");
+
         var blob = _container.GetBlobClient(blobName);
+
+        if (!await blob.ExistsAsync(cancellationToken))
+            throw new FileNotFoundException("La fotografía no existe en Blob Storage.");
+
         var builder = new BlobSasBuilder
         {
             BlobContainerName = _container.Name,
@@ -56,13 +90,22 @@ public sealed class AzureBlobStorageService : IBlobStorageService
             Resource = "b",
             ExpiresOn = DateTimeOffset.UtcNow.Add(validity)
         };
+
         builder.SetPermissions(BlobSasPermissions.Read);
-        var sas = blob.GenerateSasUri(builder);
-        return Task.FromResult(sas.ToString());
+
+        return blob.GenerateSasUri(builder).ToString();
     }
 
-    public async Task DeleteAsync(string blobName, CancellationToken cancellationToken = default)
+    public async Task DeleteAsync(
+        string blobName,
+        CancellationToken cancellationToken = default)
     {
-        await _container.DeleteBlobIfExistsAsync(blobName, cancellationToken: cancellationToken);
+        if (string.IsNullOrWhiteSpace(blobName) ||
+            !blobName.StartsWith("usuarios/", StringComparison.Ordinal) ||
+            blobName.Contains(".."))
+            throw new ArgumentException("Referencia de fotografía no válida.");
+
+        var blob = _container.GetBlobClient(blobName);
+        await blob.DeleteIfExistsAsync(cancellationToken: cancellationToken);
     }
 }

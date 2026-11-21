@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LockerSmart.Infrastructure.Data;
 
+
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<Locker> Lockers => Set<Locker>();
@@ -44,5 +45,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(r => r.LockerId);
         });
         b.Entity<Renta>().Property(r => r.Estado).HasConversion<string>().HasMaxLength(20);
+        b.Entity<EventoDispositivo>(e =>
+        {
+            e.Property(x => x.EventId)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            e.Property(x => x.LockerCodigo)
+                .HasMaxLength(20)
+                .IsRequired();
+
+            e.Property(x => x.Tipo)
+                .HasMaxLength(50)
+                .IsRequired();
+
+            e.HasIndex(x => x.EventId)
+                .IsUnique();
+        });
     }
 }

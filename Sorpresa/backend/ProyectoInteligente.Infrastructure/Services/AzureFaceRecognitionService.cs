@@ -35,7 +35,7 @@ public sealed class AzureFaceRecognitionService : IFaceRecognitionService
         var createPerson = await _http.PostAsJsonAsync(
             $"{_endpoint}/face/{_apiVersion}/persongroups/{_groupId}/persons",
             new { name = displayName }, cancellationToken);
-        createPerson.EnsureSuccessStatusCode();
+        await EnsureFaceSuccessAsync(createPerson, "Crear persona", cancellationToken);
 
         using var personJson = JsonDocument.Parse(await createPerson.Content.ReadAsStringAsync(cancellationToken));
         var personId = personJson.RootElement.GetProperty("personId").GetString()
@@ -48,12 +48,12 @@ public sealed class AzureFaceRecognitionService : IFaceRecognitionService
         {
             await _http.DeleteAsync(
                 $"{_endpoint}/face/{_apiVersion}/persongroups/{_groupId}/persons/{personId}", cancellationToken);
-            addFace.EnsureSuccessStatusCode();
+            await EnsureFaceSuccessAsync(addFace, "Agregar rostro", cancellationToken);
         }
 
         var train = await _http.PostAsync(
             $"{_endpoint}/face/{_apiVersion}/persongroups/{_groupId}/train", content: null, cancellationToken);
-        train.EnsureSuccessStatusCode();
+        await EnsureFaceSuccessAsync(train, "Entrenar grupo", cancellationToken);
         await WaitForTrainingAsync(cancellationToken);
 
         return personId;
@@ -111,7 +111,23 @@ public sealed class AzureFaceRecognitionService : IFaceRecognitionService
         if (response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.Conflict)
             return;
 
-        response.EnsureSuccessStatusCode();
+        await EnsureFaceSuccessAsync(response, "Crear grupo de personas", cancellationToken);
+    }
+
+    private static async Task EnsureFaceSuccessAsync(
+    HttpResponseMessage response,
+    string operation,
+    CancellationToken cancellationToken)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        throw new InvalidOperationException(
+            $"Azure Face falló en '{operation}'. " +
+            $"HTTP {(int)response.StatusCode} ({response.StatusCode}). " +
+            $"Respuesta: {body}");
     }
 
     private async Task WaitForTrainingAsync(CancellationToken cancellationToken)
