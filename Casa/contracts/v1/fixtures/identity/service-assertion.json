@@ -1,0 +1,23 @@
+{
+  "fixture": "service-assertion",
+  "schema": "jwt-contract.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Illustrative Home service assertion. exp-iat <= 60s, aud Identity.TokenEndpoint exact, jti anti-replay.",
+  "data": {
+    "header": {
+      "alg": "ES256",
+      "typ": "JWT",
+      "kid": "home-dev-001"
+    },
+    "payload": {
+      "iss": "service:home",
+      "sub": "service:home",
+      "aud": "Identity.TokenEndpoint",
+      "jti": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "iat": 1762444800,
+      "exp": 1762444860,
+      "client_id": "home"
+    }
+  }
+}

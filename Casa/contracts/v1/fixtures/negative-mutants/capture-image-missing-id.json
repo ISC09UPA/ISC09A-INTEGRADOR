@@ -1,0 +1,16 @@
+{
+  "fixture": "capture-image-missing-id",
+  "schema": "device-command.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "Reject capture commands without the server-issued capture identifier.",
+  "data": {
+    "commandId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    "deviceId": "device-test",
+    "type": "CaptureImage",
+    "commandSequence": 2,
+    "issuedAtUtc": "2026-10-31T18:00:00Z",
+    "expiresAtUtc": "2026-10-31T18:00:30Z",
+    "payload": {}
+  }
+}

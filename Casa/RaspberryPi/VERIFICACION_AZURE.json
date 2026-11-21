@@ -1,0 +1,106 @@
+{
+  "utc": "2026-10-27T00:42:47.645990+00:00",
+  "hub": "i9n-karma-iothub",
+  "device": "raspberry-sim",
+  "checks": [
+    {
+      "check": "device reported state visible",
+      "passed": true
+    },
+    {
+      "check": "SetLight executed confirmed in Azure",
+      "passed": true
+    },
+    {
+      "check": "Azure -> light on -> actual simulated output -> Azure",
+      "passed": true
+    },
+    {
+      "check": "SetLight executed confirmed in Azure",
+      "passed": true
+    },
+    {
+      "check": "desired configuration applied and version confirmed",
+      "passed": true
+    },
+    {
+      "check": "invalid desired configuration acknowledged",
+      "passed": true
+    },
+    {
+      "check": "desired configuration restored",
+      "passed": true
+    },
+    {
+      "check": "OpenDoor executed confirmed in Azure",
+      "passed": true
+    },
+    {
+      "check": "door pulse closed",
+      "passed": true
+    },
+    {
+      "check": "OpenDoor executed confirmed in Azure",
+      "passed": true
+    },
+    {
+      "check": "cloud duplicate does not repeat door pulse",
+      "passed": true
+    },
+    {
+      "check": "OpenDoor rejected confirmed in Azure",
+      "passed": true
+    },
+    {
+      "check": "SetSecurityMode executed confirmed in Azure",
+      "passed": true
+    },
+    {
+      "check": "SetLight executed confirmed in Azure",
+      "passed": true
+    },
+    {
+      "check": "SetLightingMode executed confirmed in Azure",
+      "passed": true
+    }
+  ],
+  "finalReportedState": {
+    "configuration": {
+      "appliedVersion": 4,
+      "observedVersion": 4,
+      "status": "applied",
+      "values": {
+        "lightOffAbove": 60,
+        "lightOnBelow": 30,
+        "lightingMode": "auto",
+        "reportSeconds": 30
+      }
+    },
+    "deviceId": "raspberry-sim",
+    "doorPulseActive": false,
+    "lastCommand": {
+      "commandId": "e998b5c8-9c46-4810-b148-44fc4f815903",
+      "reason": "Orden vencida o ventana invalida",
+      "status": "executed",
+      "type": "SetLightingMode"
+    },
+    "lightOn": false,
+    "lightingMode": "auto",
+    "mode": "simulado",
+    "securityModeApplied": "disarmed"
+  },
+  "postRestartChecks": [
+    {
+      "check": "SetLight executed confirmed in Azure",
+      "passed": true
+    },
+    {
+      "check": "SetLight executed confirmed in Azure",
+      "passed": true
+    },
+    {
+      "check": "SetLightingMode executed confirmed in Azure",
+      "passed": true
+    }
+  ]
+}

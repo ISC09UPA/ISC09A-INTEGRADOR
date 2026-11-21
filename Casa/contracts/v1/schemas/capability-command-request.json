@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/capability-command-request.json",
+  "title": "Capability command request v1",
+  "type": "object",
+  "required": [
+    "type",
+    "payload",
+    "idempotencyKey",
+    "expiresAtUtc"
+  ],
+  "properties": {
+    "type": {
+      "enum": [
+        "SetSecurityMode",
+        "OpenDoor",
+        "CaptureImage"
+      ]
+    },
+    "payload": {
+      "type": "object"
+    },
+    "idempotencyKey": {
+      "$ref": "common.json#/$defs/uuid"
+    },
+    "expiresAtUtc": {
+      "$ref": "common.json#/$defs/dateTimeUtc"
+    },
+    "correlationId": {
+      "anyOf": [
+        {
+          "$ref": "common.json#/$defs/uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "SetSecurityMode"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": [
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "enum": [
+                  "armed",
+                  "disarmed"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "OpenDoor",
+              "CaptureImage"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "maxProperties": 0
+          }
+        }
+      }
+    }
+  ]
+}

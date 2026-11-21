@@ -1,0 +1,17 @@
+{
+  "fixture": "rejected-unauthorized",
+  "schema": "command-result.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Home API accepted the request but dispatch authorization check failed. Rejected without acting.",
+  "data": {
+    "commandId": "cmd-unauth-005",
+    "status": "rejected",
+    "type": "SetLight",
+    "reasonCode": "unauthorized",
+    "reason": "dispatch denied: user revoked before dispatch",
+    "snapshot": null,
+    "stateRevision": null,
+    "correlationId": "00000000-0000-0000-0000-000000000004"
+  }
+}

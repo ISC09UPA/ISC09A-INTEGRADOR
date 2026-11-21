@@ -1,0 +1,21 @@
+{
+  "fixture": "start-video",
+  "schema": "device-command.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Isolated StartVideo command fixture; no camera or production session.",
+  "data": {
+    "commandId": "cmd-StartVideo-014",
+    "deviceId": "device-test",
+    "type": "StartVideo",
+    "commandSequence": 3,
+    "issuedAtUtc": "2026-10-31T18:00:00Z",
+    "expiresAtUtc": "2026-10-31T18:00:30Z",
+    "payload": {
+      "sessionId": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+      "uploadUrl": "https://example.invalid/internal/video/dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+      "uploadToken": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+      "uploadExpiresAtUtc": "2026-10-31T18:03:00Z"
+    }
+  }
+}

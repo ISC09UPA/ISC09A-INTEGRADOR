@@ -1,0 +1,290 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Identity API",
+    "description": "Casa Dom\u00f3tica Identity service v1. User sessions, JWKS and internal service-token endpoint.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5001/api/v1",
+      "description": "Local dev"
+    },
+    {
+      "url": "https://i9n-identity-karma26.azurewebsites.net/api/v1",
+      "description": "Azure dev (proposed, not operational)"
+    }
+  ],
+  "paths": {
+    "/identity/auth/login": {
+      "post": {
+        "operationId": "login",
+        "summary": "Create a user session",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/identity-login-request.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/identity-token-response.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/identity/auth/refresh": {
+      "post": {
+        "operationId": "refresh",
+        "summary": "Rotate access token using refresh token",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/identity-refresh-request.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "New tokens.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/identity-token-response.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/identity/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "summary": "Revoke refresh token family",
+        "description": "Accepts an opaque refresh token. Access token does not need to be valid or still present. Response is idempotent.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/identity-logout-request.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Revoked or unknown."
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          }
+        }
+      }
+    },
+    "/identity/me": {
+      "get": {
+        "operationId": "getMe",
+        "summary": "User and authorized houses",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User context.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/identity-me-response.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/identity/.well-known/jwks.json": {
+      "get": {
+        "operationId": "getJwks",
+        "summary": "Public signing keys",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "JWKS.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/identity-jwks.json"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/identity/internal/token": {
+      "post": {
+        "operationId": "exchangeServiceAssertion",
+        "summary": "Exchange a signed service assertion",
+        "description": "Home, Security, Notifications or Assistant authenticates with its independently pinned ES256 key. Identity issues a short-lived service token.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/identity-service-token-request.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Service token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/identity-service-token-response.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/identity/internal/authz/check": {
+      "post": {
+        "operationId": "checkUserMembership",
+        "summary": "Check whether a user/session may perform an action in a house",
+        "description": "Authenticated services may request only their allowlisted actions. Identity checks the current user session and house membership; denied or revoked decisions return HTTP 403.",
+        "security": [
+          {
+            "serviceBearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/authz-check-request.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Allowed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/authz-check-response.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "userBearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT-user"
+      },
+      "serviceBearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT-service"
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Unauthorized or invalid service credential",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../schemas/problem-details.json"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Denied or revoked",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../schemas/problem-details.json"
+            }
+          }
+        }
+      },
+      "TooManyRequests": {
+        "description": "Rate limited / lockout",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../schemas/problem-details.json"
+            }
+          }
+        }
+      },
+      "ServiceUnavailable": {
+        "description": "Identity unavailable",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../schemas/problem-details.json"
+            }
+          }
+        }
+      }
+    }
+  }
+}

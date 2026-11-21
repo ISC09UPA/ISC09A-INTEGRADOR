@@ -1,0 +1,18 @@
+{
+  "fixture": "start-video-unknown",
+  "schema": "command-result.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "StartVideo with an ambiguous device outcome remains unknown and never becomes live.",
+  "data": {
+    "commandId": "cmd-StartVideo-015",
+    "status": "unknown",
+    "type": "StartVideo",
+    "reasonCode": "unknown",
+    "reason": "The device call ended without a confirmed outcome.",
+    "snapshot": null,
+    "stateRevision": null,
+    "eventId": "33333333-3333-3333-3333-333333333333",
+    "correlationId": "00000000-0000-0000-0000-000000000000"
+  }
+}

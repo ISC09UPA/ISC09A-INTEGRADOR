@@ -1,0 +1,16 @@
+{
+  "fixture": "check-response-denied",
+  "schema": "problem-details.json",
+  "httpStatus": 403,
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "HTTP 403 because the user is not a member of the requested house (IDOR protection).",
+  "data": {
+    "type": "https://integrador9nocuatri.local/errors/forbidden",
+    "title": "Forbidden",
+    "status": 403,
+    "detail": "user is not a member of this house",
+    "correlationId": "00000000-0000-0000-0000-000000000013",
+    "code": "forbidden"
+  }
+}

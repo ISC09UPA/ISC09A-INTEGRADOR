@@ -1,0 +1,16 @@
+{
+  "fixture": "check-request",
+  "schema": "authz-check-request.json",
+  "httpStatus": 200,
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Home API (service-authenticated) asks Identity whether a user/session may control lights in a house.",
+  "data": {
+    "userId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "sessionId": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+    "houseId": "55555555-5555-5555-5555-555555555555",
+    "action": "home:control:lights",
+    "resourceId": "sala",
+    "correlationId": "00000000-0000-0000-0000-000000000013"
+  }
+}

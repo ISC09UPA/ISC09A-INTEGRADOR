@@ -1,0 +1,10 @@
+{
+  "fixture": "notification-preferences-request",
+  "schema": "notification-preferences-request.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Isolated contract fixture; not production data.",
+  "data": {
+    "email": true
+  }
+}

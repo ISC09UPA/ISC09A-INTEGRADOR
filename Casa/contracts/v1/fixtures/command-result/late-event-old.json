@@ -1,0 +1,23 @@
+{
+  "fixture": "late-event-old",
+  "schema": "command-result.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Old CommandResult with lower stateRevision arrives after a newer one. Projection must not roll back; keep historical record only.",
+  "data": {
+    "commandId": "cmd-SetLight-on-001",
+    "status": "executed",
+    "type": "SetLight",
+    "reasonCode": null,
+    "reason": null,
+    "snapshot": {
+      "lightOn": true,
+      "lightingMode": "manual",
+      "source": "device",
+      "appliedAtUtc": "2026-10-31T18:00:04Z"
+    },
+    "stateRevision": 6,
+    "eventId": "77777777-7777-7777-7777-777777777777",
+    "correlationId": "00000000-0000-0000-0000-000000000000"
+  }
+}

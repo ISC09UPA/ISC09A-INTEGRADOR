@@ -1,0 +1,9 @@
+# Local development environment and cache
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# OS files
+.DS_Store

@@ -12,6 +12,7 @@ public static class ContractProblems
         {
             "invalidCredential" or "invalid_credentials" => "invalidCredential",
             "sessionRevoked" => "sessionRevoked",
+            "pendingCommand" or "manualModeRequired" or "duplicateChanged" or "deviceOffline" or "requestExpired" or "noReport" => raw,
             _ => status switch { 400 or 422 => "badRequest", 401 => "invalidCredential", 403 => "forbidden", 404 => "notFound", 409 => "conflict", 429 => "rateLimited", _ => "serviceUnavailable" }
         };
         context.ProblemDetails.Extensions.Clear();

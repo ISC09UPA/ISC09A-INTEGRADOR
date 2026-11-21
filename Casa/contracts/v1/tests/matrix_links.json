@@ -1,0 +1,473 @@
+{
+  "version": "1.0.0",
+  "description": "Explicit endpoint-method-direction-status-schema-fixture links derived from the OpenAPI contracts. The checker loads the OAS operations and validates that every link matches the declared security, response status and schema reference, and that fixture data validates against the exact schema linked by the OAS.",
+  "links": [
+    {
+      "apiPath": "/identity/auth/login",
+      "method": "post",
+      "direction": "request",
+      "security": "public",
+      "schema": "identity-login-request.json",
+      "fixture": "identity/login-request.json"
+    },
+    {
+      "apiPath": "/identity/auth/login",
+      "method": "post",
+      "direction": "response",
+      "security": "public",
+      "status": 200,
+      "schema": "identity-token-response.json",
+      "fixture": "identity/login-response.json"
+    },
+    {
+      "apiPath": "/identity/auth/refresh",
+      "method": "post",
+      "direction": "request",
+      "security": "public",
+      "schema": "identity-refresh-request.json",
+      "fixture": "identity/refresh-request.json"
+    },
+    {
+      "apiPath": "/identity/auth/refresh",
+      "method": "post",
+      "direction": "response",
+      "security": "public",
+      "status": 200,
+      "schema": "identity-token-response.json",
+      "fixture": "identity/login-response.json"
+    },
+    {
+      "apiPath": "/identity/auth/logout",
+      "method": "post",
+      "direction": "request",
+      "security": "public",
+      "schema": "identity-logout-request.json",
+      "fixture": "identity/logout-request.json"
+    },
+    {
+      "apiPath": "/identity/auth/logout",
+      "method": "post",
+      "direction": "response",
+      "security": "public",
+      "status": 204
+    },
+    {
+      "apiPath": "/identity/me",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "identity-me-response.json",
+      "fixture": "identity/me-response.json"
+    },
+    {
+      "apiPath": "/identity/.well-known/jwks.json",
+      "method": "get",
+      "direction": "response",
+      "security": "public",
+      "status": 200,
+      "schema": "identity-jwks.json",
+      "fixture": "identity/jwks.json"
+    },
+    {
+      "apiPath": "/identity/internal/token",
+      "method": "post",
+      "direction": "request",
+      "security": "public",
+      "schema": "identity-service-token-request.json",
+      "fixture": "identity/service-token-request.json"
+    },
+    {
+      "apiPath": "/identity/internal/token",
+      "method": "post",
+      "direction": "response",
+      "security": "public",
+      "status": 200,
+      "schema": "identity-service-token-response.json",
+      "fixture": "identity/service-token-response.json"
+    },
+    {
+      "apiPath": "/identity/internal/authz/check",
+      "method": "post",
+      "direction": "request",
+      "security": "serviceBearerAuth",
+      "schema": "authz-check-request.json",
+      "fixture": "authz/check-request.json"
+    },
+    {
+      "apiPath": "/identity/internal/authz/check",
+      "method": "post",
+      "direction": "response",
+      "security": "serviceBearerAuth",
+      "status": 200,
+      "schema": "authz-check-response.json",
+      "fixture": "authz/check-response-granted.json"
+    },
+    {
+      "apiPath": "/identity/internal/authz/check",
+      "method": "post",
+      "direction": "response",
+      "security": "serviceBearerAuth",
+      "status": 401,
+      "schema": "problem-details.json",
+      "fixture": "authz/check-response-unauthorized-401.json"
+    },
+    {
+      "apiPath": "/identity/internal/authz/check",
+      "method": "post",
+      "direction": "response",
+      "security": "serviceBearerAuth",
+      "status": 403,
+      "schema": "problem-details.json",
+      "fixture": "authz/check-response-denied.json"
+    },
+    {
+      "apiPath": "/identity/internal/authz/check",
+      "method": "post",
+      "direction": "response",
+      "security": "serviceBearerAuth",
+      "status": 503,
+      "schema": "problem-details.json",
+      "fixture": "authz/check-response-unavailable.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/status",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "home-status.json",
+      "fixture": "home-api/status-response.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/lights/{lightId}/commands",
+      "method": "post",
+      "direction": "request",
+      "security": "userBearerAuth",
+      "schema": "light-command-request.json",
+      "fixture": "home-api/command-request.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/lights/{lightId}/commands",
+      "method": "post",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 202,
+      "schema": "home-command-response.json",
+      "fixture": "home-api/command-response-202.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/lights/{lightId}/commands",
+      "method": "post",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "home-command-resource.json",
+      "fixture": "home-api/command-response-applied.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/lights/{lightId}/commands",
+      "method": "post",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 409,
+      "schema": "problem-details.json",
+      "fixture": "home-api/command-response-conflict-409.json"
+    },
+    {
+      "apiPath": "/commands/{commandId}",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "home-command-resource.json",
+      "fixture": "home-api/command-get-pending.json"
+    },
+    {
+      "apiPath": "/commands/{commandId}",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "home-command-resource.json",
+      "fixture": "home-api/command-response-applied.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/resources",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "capability-resources.json",
+      "fixture": "home-api/capability-resources.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/resources/{resourceId}/commands",
+      "method": "post",
+      "direction": "request",
+      "security": "userBearerAuth",
+      "schema": "capability-command-request.json",
+      "fixture": "home-api/capability-request.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/resources/{resourceId}/commands",
+      "method": "post",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 202,
+      "schema": "home-command-response.json",
+      "fixture": "home-api/command-response-202.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/resources/{resourceId}/commands",
+      "method": "post",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "capability-command-resource.json",
+      "fixture": "home-api/capability-resource.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/commands/by-key/{key}",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "home-command-resource.json",
+      "fixture": "home-api/capability-union-resource.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/telemetry",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "home-telemetry.json",
+      "fixture": "home-api/sensor-readings.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/security",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "home-security-status.json",
+      "fixture": "home-api/security-status.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/mode",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "security-mode.json",
+      "fixture": "security/mode.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/activity",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "security-page.json",
+      "fixture": "security/page.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/activity/{eventId}",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "security-entry.json",
+      "fixture": "security/activity.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/incidents",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "security-page.json",
+      "fixture": "security/page.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/incidents/{eventId}",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "security-entry.json",
+      "fixture": "security/activity.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/captures",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "security-page.json",
+      "fixture": "security/capture-page.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/captures/{captureId}",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "security-entry.json",
+      "fixture": "security/capture.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/video/sessions",
+      "method": "post",
+      "direction": "request",
+      "security": "userBearerAuth",
+      "schema": "video-start-request.json",
+      "fixture": "home-api/video-start-request.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/video/sessions",
+      "method": "post",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 202,
+      "schema": "video-session.json",
+      "fixture": "home-api/video-session-connecting.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/video/sessions/by-key/{key}",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "video-session.json",
+      "fixture": "home-api/video-session-live.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/video/sessions/{sessionId}",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "video-session.json",
+      "fixture": "home-api/video-session-live.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/video/sessions/{sessionId}",
+      "method": "delete",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "video-session.json",
+      "fixture": "home-api/video-session-ended.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/video/sessions/{sessionId}/playlist.m3u8",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200
+    },
+    {
+      "apiPath": "/houses/{houseId}/video/sessions/{sessionId}/segments/{sequence}.ts",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200
+    },
+    {
+      "apiPath": "/internal/video/{sessionId}/segments/{sequence}",
+      "method": "post",
+      "direction": "response",
+      "security": "videoProducerToken",
+      "status": 200,
+      "schema": "video-segment-upload-result.json",
+      "fixture": "video-producer/segment-result.json"
+    },
+    {
+      "apiPath": "/internal/video/{sessionId}/playlist",
+      "method": "post",
+      "direction": "request",
+      "security": "videoProducerToken",
+      "schema": "video-playlist-request.json",
+      "fixture": "video-producer/playlist-valid.json"
+    },
+    {
+      "apiPath": "/internal/video/{sessionId}/playlist",
+      "method": "post",
+      "direction": "response",
+      "security": "videoProducerToken",
+      "status": 204
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/preferences",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "security-preferences.json",
+      "fixture": "security/preferences.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/preferences",
+      "method": "put",
+      "direction": "request",
+      "security": "userBearerAuth",
+      "schema": "security-preferences.json",
+      "fixture": "security/preferences.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/preferences",
+      "method": "put",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "security-preferences.json",
+      "fixture": "security/preferences.json"
+    },
+    {
+      "apiPath": "/notifications/houses/{houseId}/preferences",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "notification-preferences.json",
+      "fixture": "notifications/preferences.json"
+    },
+    {
+      "apiPath": "/notifications/houses/{houseId}/preferences",
+      "method": "put",
+      "direction": "request",
+      "security": "userBearerAuth",
+      "schema": "notification-preferences-request.json",
+      "fixture": "notifications/preferences-request.json"
+    },
+    {
+      "apiPath": "/notifications/houses/{houseId}/preferences",
+      "method": "put",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "notification-preferences.json",
+      "fixture": "notifications/preferences.json"
+    },
+    {
+      "apiPath": "/notifications/houses/{houseId}/test-email",
+      "method": "post",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 202,
+      "schema": "notification-delivery.json",
+      "fixture": "notifications/delivery-accepted.json"
+    },
+    {
+      "apiPath": "/notifications/houses/{houseId}/deliveries/{deliveryId}",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "notification-delivery.json",
+      "fixture": "notifications/delivery-get.json"
+    }
+  ]
+}

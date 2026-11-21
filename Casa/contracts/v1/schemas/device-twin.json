@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/device-twin.json",
+  "title": "Device twin desired configuration v1",
+  "description": "Desired properties patch delivered through IoT Hub twin. Used only for thresholds, report interval and version. It never confirms a command, never opens doors and never changes security mode. The legacy lightingMode field must be ignored with a warning/diagnostic and must not overwrite the locally stored lighting_mode.",
+  "type": "object",
+  "required": ["$version", "agentConfiguration"],
+  "properties": {
+    "$version": { "type": "integer", "minimum": 1, "description": "Twin desired properties version." },
+    "agentConfiguration": {
+      "type": "object",
+      "description": "Allowed configuration keys. Additional keys cause rejection of the whole patch.",
+      "properties": {
+        "lightOnBelow": { "type": "number", "minimum": 0, "maximum": 100 },
+        "lightOffAbove": { "type": "number", "minimum": 0, "maximum": 100 },
+        "reportSeconds": { "type": "number", "minimum": 1, "maximum": 3600 },
+        "lightingMode": {
+          "type": "string",
+          "enum": ["auto", "manual"],
+          "description": "LEGACY. Must be ignored with a warning/diagnostic. The device stores lighting_mode only through SetLightingMode commands."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

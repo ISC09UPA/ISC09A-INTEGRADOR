@@ -1,0 +1,23 @@
+{
+  "fixture": "jwt-service-assertion-ttl-too-long",
+  "schema": "jwt-contract.json",
+  "expectedValid": false,
+  "expectedShapeValid": true,
+  "description": "Service assertion shape valid but TTL exceeds 60s. Semantic check must reject.",
+  "data": {
+    "header": {
+      "alg": "ES256",
+      "typ": "JWT",
+      "kid": "home-dev-001"
+    },
+    "payload": {
+      "iss": "service:home",
+      "sub": "service:home",
+      "aud": "Identity.TokenEndpoint",
+      "jti": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "iat": 1762444800,
+      "exp": 1762444900,
+      "client_id": "home"
+    }
+  }
+}

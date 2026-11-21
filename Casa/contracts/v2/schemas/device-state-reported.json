@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Initial and periodic applied-state report from the physical device",
+  "type": "object",
+  "required": ["schemaVersion", "type", "eventId", "correlationId", "occurredAtUtc", "payload"],
+  "properties": {
+    "schemaVersion": { "const": 2 },
+    "type": { "const": "DeviceStateReported" },
+    "eventId": { "type": "string", "format": "uuid" },
+    "correlationId": { "type": "string", "format": "uuid" },
+    "occurredAtUtc": { "type": "string", "format": "date-time" },
+    "payload": {
+      "type": "object",
+      "required": ["lightId", "snapshot", "stateRevision", "securityModeApplied"],
+      "properties": {
+        "lightId": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "stateRevision": { "type": "integer", "minimum": 0 },
+        "securityModeApplied": { "enum": ["armed", "disarmed"] },
+        "snapshot": {
+          "type": "object",
+          "required": ["lightOn", "lightingMode", "source", "appliedAtUtc"],
+          "properties": {
+            "lightOn": { "type": "boolean" },
+            "lightingMode": { "enum": ["auto", "manual"] },
+            "source": { "const": "device" },
+            "appliedAtUtc": { "type": "string", "format": "date-time" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

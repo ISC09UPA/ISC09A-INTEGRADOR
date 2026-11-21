@@ -1,0 +1,21 @@
+{
+  "fixture": "command-result-executed-missing-stateRevision",
+  "schema": "command-result.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "executed status requires non-null integer stateRevision.",
+  "data": {
+    "commandId": "cmd-mutant-002",
+    "status": "executed",
+    "type": "SetLight",
+    "reasonCode": null,
+    "reason": null,
+    "snapshot": {
+      "lightOn": true,
+      "lightingMode": "manual",
+      "source": "device",
+      "appliedAtUtc": "2026-10-31T18:00:05Z"
+    },
+    "stateRevision": null
+  }
+}

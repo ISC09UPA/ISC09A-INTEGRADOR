@@ -1,0 +1,28 @@
+{
+  "fixture": "command-result-envelope",
+  "schema": "telemetry-envelope.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "CommandResult wrapped in telemetry envelope. Payload type=SetLight.",
+  "data": {
+    "schemaVersion": 1,
+    "type": "CommandResult",
+    "eventId": "11111111-1111-1111-1111-111111111111",
+    "occurredAtUtc": "2026-10-31T18:00:05Z",
+    "correlationId": "00000000-0000-0000-0000-000000000000",
+    "payload": {
+      "commandId": "cmd-SetLight-on-001",
+      "status": "executed",
+      "type": "SetLight",
+      "reasonCode": null,
+      "reason": null,
+      "snapshot": {
+        "lightOn": true,
+        "lightingMode": "manual",
+        "source": "device",
+        "appliedAtUtc": "2026-10-31T18:00:05Z"
+      },
+      "stateRevision": 7
+    }
+  }
+}

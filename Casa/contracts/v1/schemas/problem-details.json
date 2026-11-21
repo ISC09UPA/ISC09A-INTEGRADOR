@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/problem-details.json",
+  "title": "Problem Details v1",
+  "type": "object",
+  "required": ["type", "title", "status", "correlationId", "code"],
+  "properties": {
+    "type": { "type": "string", "format": "uri" },
+    "title": { "type": "string" },
+    "status": { "type": "integer", "minimum": 400, "maximum": 599 },
+    "detail": { "type": "string" },
+    "instance": { "type": "string" },
+    "correlationId": { "$ref": "common.json#/$defs/uuid" },
+    "code": { "type": "string", "enum": ["invalidCredential", "forbidden", "sessionRevoked", "serviceUnavailable", "rateLimited", "notFound", "conflict", "badRequest", "pendingCommand", "manualModeRequired", "duplicateChanged", "deviceOffline", "requestExpired", "noReport"] }
+  },
+  "additionalProperties": false
+}

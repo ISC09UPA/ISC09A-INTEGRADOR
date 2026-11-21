@@ -1,0 +1,16 @@
+{
+  "fixture": "video-session-ended",
+  "schema": "video-session.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Closed session; no stream URL is exposed.",
+  "data": {
+    "id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    "status": "ended",
+    "expiresAtUtc": "2026-10-31T18:03:00Z",
+    "commandId": "cmd-StartVideo-014",
+    "streamUrl": null,
+    "streamType": null
+  },
+  "httpStatus": 200
+}

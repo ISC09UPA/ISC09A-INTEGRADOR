@@ -1,0 +1,12 @@
+{
+  "fixture": "video-start-request",
+  "schema": "video-start-request.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Isolated video session start request; not a real camera operation.",
+  "data": {
+    "resourceId": "camera-sala",
+    "idempotencyKey": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "correlationId": "00000000-0000-0000-0000-000000000000"
+  }
+}

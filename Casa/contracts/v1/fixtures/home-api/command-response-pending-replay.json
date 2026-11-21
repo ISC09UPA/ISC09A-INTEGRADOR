@@ -1,0 +1,13 @@
+{
+  "fixture": "command-response-pending-replay",
+  "schema": "home-command-response.json",
+  "httpStatus": 202,
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Replay of a still-pending command returns 202 with the original commandId.",
+  "data": {
+    "commandId": "cmd-SetLight-on-003",
+    "status": "pending",
+    "correlationId": "00000000-0000-0000-0000-000000000002"
+  }
+}

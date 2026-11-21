@@ -1,0 +1,9 @@
+{
+  "fixture": "invalid-json",
+  "schema": "common.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "Malformed JSON must be reported cleanly without UnboundLocalError.",
+  "data": {
+    "broken": true,
+    "missing closing brace"

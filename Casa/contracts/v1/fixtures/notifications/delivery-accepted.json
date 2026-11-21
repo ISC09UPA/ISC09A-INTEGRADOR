@@ -1,0 +1,17 @@
+{
+  "fixture": "notification-delivery-accepted",
+  "schema": "notification-delivery.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Isolated contract fixture; not production data.",
+  "data": {
+    "id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "kind": "test",
+    "status": "accepted",
+    "providerOperationId": "op-fixture-01",
+    "errorCode": null,
+    "createdAtUtc": "2026-11-18T12:00:00Z",
+    "updatedAtUtc": "2026-11-18T12:00:01Z"
+  },
+  "httpStatus": 202
+}

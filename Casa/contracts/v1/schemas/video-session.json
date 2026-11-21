@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/video-session.json",
+  "title": "Private video session v1",
+  "description": "State of one short-lived private HLS session. A stream URL exists only while real playlist and ready segments are recent; connecting, ended and failed never carry a URL. The URL requires the authenticated user's Bearer token on the playlist and every segment.",
+  "type": "object",
+  "required": [
+    "id",
+    "status",
+    "expiresAtUtc",
+    "commandId",
+    "streamUrl",
+    "streamType"
+  ],
+  "properties": {
+    "id": {
+      "$ref": "common.json#/$defs/uuid"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["connecting", "live", "ended", "failed"]
+    },
+    "expiresAtUtc": {
+      "$ref": "common.json#/$defs/dateTimeUtc"
+    },
+    "commandId": {
+      "$ref": "common.json#/$defs/commandId"
+    },
+    "streamUrl": {
+      "type": ["string", "null"],
+      "format": "uri",
+      "pattern": "^https://",
+      "maxLength": 2048
+    },
+    "streamType": {
+      "type": ["string", "null"],
+      "enum": ["hls", null]
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": { "status": { "const": "live" } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "streamUrl": { "type": "string" },
+          "streamType": { "const": "hls" }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "enum": ["connecting", "ended", "failed"] } },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "streamUrl": { "const": null },
+          "streamType": { "const": null }
+        }
+      }
+    }
+  ]
+}

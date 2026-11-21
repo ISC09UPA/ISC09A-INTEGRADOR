@@ -1,0 +1,16 @@
+{
+  "fixture": "capture",
+  "schema": "security-entry.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Isolated contract fixture; no production capture.",
+  "data": {
+    "id": "44444444-4444-4444-8444-444444444444",
+    "title": "Captura de la casa",
+    "status": "pending",
+    "analysis": null,
+    "occurredAtUtc": "2026-10-31T18:00:00Z",
+    "receivedAtUtc": "2026-10-31T18:00:00Z"
+  },
+  "httpStatus": 200
+}

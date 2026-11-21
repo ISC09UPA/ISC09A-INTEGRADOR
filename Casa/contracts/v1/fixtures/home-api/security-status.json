@@ -1,0 +1,13 @@
+{
+  "fixture": "security-status",
+  "schema": "home-security-status.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Isolated contract fixture, not a real reading or command.",
+  "data": {
+    "mode": "armed",
+    "updatedAtUtc": "2026-10-31T18:00:00Z",
+    "receivedAtUtc": "2026-10-31T18:00:00Z"
+  },
+  "httpStatus": 200
+}

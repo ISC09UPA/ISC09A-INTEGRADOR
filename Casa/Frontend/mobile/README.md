@@ -1,56 +1,30 @@
-# Welcome to your Expo app 👋
+# Casa Domótica — aplicación Android
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+React Native, Expo Router y TypeScript. La aplicación exige una sesión para entrar a las pantallas y muestra estados vacíos hasta recibir información de servicios reales. Identidad, Casa, Seguridad y el Asistente de lectura tienen APIs publicadas en Azure. La cámara usa sesiones privadas con playlist y segmentos HLS autenticados; sin cámara física no hay transmisión. Notificaciones, miembros y biometría siguen pendientes.
 
-## Get started
+## Ejecutar
 
-1. Install dependencies
+Usa las versiones de Node compatibles con `package.json` y Expo SDK 58. Ejecuta `npm ci`, `npm start` y abre Android con Expo; `npm run web` permite revisar la interfaz en navegador. Configura las variables de `.env.example` en un archivo `.env` local y reinicia Metro al cambiarlas. En navegador usa `localhost` y configura CORS del backend. En emulador Android usa `10.0.2.2`; en teléfono físico, la dirección accesible de tu servidor o `adb reverse` con localhost.
 
-   ```bash
-   bun install
-   ```
+La copia de trabajo ya tiene `.env.local` (excluido de Git) con las URL HTTPS reales de Identidad, Casa y Asistente. Para desarrollar contra servicios locales, ajusta ese archivo; `.env.local` tiene prioridad sobre `.env`. Reinicia Metro para aplicar cambios. No añadas claves, tokens o contraseñas a variables `EXPO_PUBLIC_*`.
 
-2. Start the app
+## Preparación para backend
 
-   ```bash
-   bunx expo start
-   ```
+- `src/core/api.ts`: HTTP, sesión, renovación, errores y rutas existentes de Identity/Home. No reintenta automáticamente órdenes físicas.
+- `src/core/models.ts`: modelos y puertos de servicios pendientes. Registra el adaptador real con `configureExtensions` antes de montar la aplicación. `requestService` permite reutilizar HTTP autenticado.
+- `src/core/events.ts`: invalidación de consultas al recibir notificaciones autorizadas. El adaptador `subscribe` gestiona la negociación y reconexión; después de reconectar debe invalidar para volver a consultar por REST.
+- `src/features/app`: pantallas, formularios y controles. No contienen credenciales ni acceso directo a IoT Hub.
 
-In the output, you'll find options to open the app in a
+En Android, el token de renovación se guarda con Expo SecureStore; acceso y datos permanecen en memoria. En web, la sesión es solo en memoria. No se guardan contraseñas. El rol proviene del perfil autenticado; el servidor debe autorizar cada operación.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Lee [la guía de conexión y los pendientes](docs/INTEGRACION.md). No confundir interfaces preparadas con integración ya probada.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Verificar
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-bun run reset-project
+```sh
+npm run typecheck
+npm run lint
+npm test -- --watchman=false --runInBand
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-### Other setup steps
-
-- To set up ESLint for linting, run `bunx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Las respuestas controladas existen exclusivamente en pruebas unitarias; no hay adaptador simulado ni datos ficticios en la aplicación.

@@ -1,0 +1,10 @@
+{
+  "fixture": "logout-request",
+  "schema": "identity-logout-request.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Logout request body with opaque refresh token. Access token validity is not required.",
+  "data": {
+    "refreshToken": "rotating-refresh-token-hash-not-a-jwt"
+  }
+}

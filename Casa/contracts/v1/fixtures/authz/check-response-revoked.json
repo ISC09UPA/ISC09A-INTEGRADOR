@@ -1,0 +1,16 @@
+{
+  "fixture": "check-response-revoked",
+  "schema": "problem-details.json",
+  "httpStatus": 403,
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "HTTP 403 because the session was revoked after request acceptance.",
+  "data": {
+    "type": "https://integrador9nocuatri.local/errors/session-revoked",
+    "title": "Session revoked",
+    "status": 403,
+    "detail": "session revoked",
+    "correlationId": "00000000-0000-0000-0000-000000000013",
+    "code": "sessionRevoked"
+  }
+}

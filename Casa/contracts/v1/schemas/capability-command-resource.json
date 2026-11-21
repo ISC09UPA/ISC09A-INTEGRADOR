@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/capability-command-resource.json",
+  "title": "Capability command resource v1",
+  "description": "Durable command, not proof of physical execution while pending or unknown.",
+  "type": "object",
+  "required": [
+    "commandId",
+    "houseId",
+    "resourceId",
+    "status",
+    "type",
+    "requestedAtUtc",
+    "expiresAtUtc",
+    "correlationId",
+    "result"
+  ],
+  "properties": {
+    "commandId": {
+      "$ref": "common.json#/$defs/commandId"
+    },
+    "houseId": {
+      "$ref": "common.json#/$defs/houseId"
+    },
+    "resourceId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "status": {
+      "enum": [
+        "pending",
+        "executed",
+        "rejected",
+        "expired",
+        "unknown",
+        "failed"
+      ]
+    },
+    "type": {
+      "enum": [
+        "SetSecurityMode",
+        "OpenDoor",
+        "CaptureImage"
+      ]
+    },
+    "requestedAtUtc": {
+      "$ref": "common.json#/$defs/dateTimeUtc"
+    },
+    "expiresAtUtc": {
+      "$ref": "common.json#/$defs/dateTimeUtc"
+    },
+    "correlationId": {
+      "$ref": "common.json#/$defs/uuid"
+    },
+    "result": {
+      "anyOf": [
+        {
+          "$ref": "command-result.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "pending"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "executed",
+              "rejected",
+              "expired",
+              "unknown",
+              "failed"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "executed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "type": "object",
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "const": "executed"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "rejected"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "type": "object",
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "const": "rejected"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "expired"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "type": "object",
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "const": "expired"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "unknown"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "type": "object",
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "const": "unknown"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "failed"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "type": "object",
+            "required": [
+              "status"
+            ],
+            "properties": {
+              "status": {
+                "const": "failed"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

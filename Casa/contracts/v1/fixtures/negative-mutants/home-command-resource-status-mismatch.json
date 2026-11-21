@@ -1,0 +1,25 @@
+{
+  "fixture": "home-command-resource-status-mismatch",
+  "schema": "home-command-resource.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "Resource status executed requires result.status executed.",
+  "data": {
+    "commandId": "cmd-status-mismatch-002",
+    "houseId": "55555555-5555-5555-5555-555555555555",
+    "lightId": "sala",
+    "status": "executed",
+    "type": "SetLight",
+    "requestedAtUtc": "2026-10-31T18:00:00Z",
+    "correlationId": "00000000-0000-0000-0000-000000000021",
+    "result": {
+      "commandId": "cmd-status-mismatch-002",
+      "status": "rejected",
+      "type": "SetLight",
+      "reasonCode": "invalidPayload",
+      "reason": "mutant",
+      "snapshot": null,
+      "stateRevision": null
+    }
+  }
+}

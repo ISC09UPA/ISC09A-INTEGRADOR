@@ -32,9 +32,11 @@ class AgentTests(unittest.TestCase):
         self.temp.cleanup()
 
     def command(self, **changes):
+        from uuid import uuid4
         now = utcnow()
         c = {"commandId": "test-one", "deviceId": "raspberry-sim", "type": "OpenDoor",
-             "attemptId": "attempt-one", "issuedAtUtc": now.isoformat(),
+             "commandSequence": 0, "attemptId": str(uuid4()),
+             "issuedAtUtc": now.isoformat(),
              "expiresAtUtc": (now + timedelta(seconds=8)).isoformat(),
              "payload": {"doorId": "principal", "durationMs": 1500}}
         c.update(changes)
@@ -111,7 +113,7 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(self.hardware.outputs["door_pulses"], 0)
 
     def test_manual_light_and_security_persist(self):
-        self.commands.apply(self.command(type="SetLight", payload={"on": True}), True)
+        self.commands.apply(self.command(type="SetLight", commandSequence=1, payload={"on": True}), True)
         self.commands.apply(self.command(commandId="arm", type="SetSecurityMode", payload={"mode": "armed"}), True)
         self.assertTrue(self.store.get("light_on"))
         self.assertEqual(self.store.get("lighting_mode"), "manual")

@@ -1,0 +1,19 @@
+{
+  "fixture": "duplicate-changed",
+  "schema": "command-result.json",
+  "referenceFixture": "command-result/applied-device.json",
+  "expectedValid": false,
+  "expectedShapeValid": true,
+  "description": "Same commandId with different content. Shape is valid but business rule rejects it without overwriting the original.",
+  "data": {
+    "commandId": "cmd-SetLight-on-001",
+    "status": "rejected",
+    "type": "SetLight",
+    "reasonCode": "duplicateChanged",
+    "reason": "idempotency key reused with different content",
+    "snapshot": null,
+    "stateRevision": null,
+    "eventId": "33333333-3333-3333-3333-333333333333",
+    "correlationId": "00000000-0000-0000-0000-000000000000"
+  }
+}

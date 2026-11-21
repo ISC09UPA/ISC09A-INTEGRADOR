@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/capability-resources.json",
+  "title": "Configured capabilities v1",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "resourceId",
+      "kind",
+      "deviceReportedAtUtc",
+      "pendingCommand"
+    ],
+    "properties": {
+      "resourceId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      },
+      "kind": {
+        "enum": [
+          "security",
+          "door",
+          "camera"
+        ]
+      },
+      "deviceReportedAtUtc": {
+        "anyOf": [
+          {
+            "$ref": "common.json#/$defs/dateTimeUtc"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "pendingCommand": {
+        "anyOf": [
+          {
+            "$ref": "capability-command-resource.json"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "additionalProperties": false
+  }
+}

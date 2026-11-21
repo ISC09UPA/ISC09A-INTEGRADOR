@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AssemblyName>CasaDomotica.Security.Application</AssemblyName></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../CasaDomotica.Security.Domain/CasaDomotica.Security.Domain.csproj" /></ItemGroup>
+</Project>

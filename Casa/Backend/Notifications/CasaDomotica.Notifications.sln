@@ -1,0 +1,39 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CasaDomotica.Notifications.Domain", "src\CasaDomotica.Notifications.Domain\CasaDomotica.Notifications.Domain.csproj", "{B7C28D64-32A4-4A43-B390-A1E3E6AE1001}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CasaDomotica.Notifications.Application", "src\CasaDomotica.Notifications.Application\CasaDomotica.Notifications.Application.csproj", "{B7C28D64-32A4-4A43-B390-A1E3E6AE1002}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CasaDomotica.Notifications.Infrastructure", "src\CasaDomotica.Notifications.Infrastructure\CasaDomotica.Notifications.Infrastructure.csproj", "{B7C28D64-32A4-4A43-B390-A1E3E6AE1003}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CasaDomotica.Notifications.Functions", "src\CasaDomotica.Notifications.Functions\CasaDomotica.Notifications.Functions.csproj", "{B7C28D64-32A4-4A43-B390-A1E3E6AE1004}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CasaDomotica.Notifications.Tests", "tests\CasaDomotica.Notifications.Tests\CasaDomotica.Notifications.Tests.csproj", "{B7C28D64-32A4-4A43-B390-A1E3E6AE1005}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1001}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1001}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1001}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1001}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1002}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1002}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1002}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1002}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1003}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1003}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1003}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1003}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1004}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1004}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1004}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1004}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1005}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1005}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1005}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7C28D64-32A4-4A43-B390-A1E3E6AE1005}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

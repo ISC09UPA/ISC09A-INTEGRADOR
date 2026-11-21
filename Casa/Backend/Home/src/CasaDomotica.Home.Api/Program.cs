@@ -10,7 +10,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
-var operatorFlags = new[] { "--migrate", "--provision-runtime", "--bind-device", "--bind-resource" };
+var operatorFlags = new[] { "--migrate", "--provision-runtime", "--bind-device", "--bind-resource", "--verify-sql-isolation" };
 if (args.Any(operatorFlags.Contains))
 {
     var hostBuilder = Host.CreateApplicationBuilder(args.Where(argument => !operatorFlags.Contains(argument)).ToArray());
@@ -21,6 +21,7 @@ if (args.Any(operatorFlags.Contains))
     if (args.Contains("--provision-runtime")) await administration.ProvisionRuntimeAsync(hostBuilder.Configuration["Runtime:Password"] ?? "", CancellationToken.None);
     if (args.Contains("--bind-device")) await administration.BindDeviceAsync(Guid.Parse(hostBuilder.Configuration["Device:HouseId"] ?? ""), hostBuilder.Configuration["Device:Id"] ?? "", hostBuilder.Configuration["Device:LightId"] ?? "", CancellationToken.None);
     if (args.Contains("--bind-resource")) await administration.BindResourceAsync(Guid.Parse(hostBuilder.Configuration["Device:HouseId"] ?? ""), hostBuilder.Configuration["Device:Id"] ?? "", hostBuilder.Configuration["Device:ResourceId"] ?? "", hostBuilder.Configuration["Device:ResourceKind"] ?? "", hostBuilder.Configuration["Device:ResourceDeviceId"] ?? "", CancellationToken.None);
+    if (args.Contains("--verify-sql-isolation")) await administration.VerifySqlIsolationAsync(hostBuilder.Configuration.GetConnectionString("HomeDb") ?? "", CancellationToken.None);
     Console.WriteLine("Home database operation completed."); return;
 }
 var builder = WebApplication.CreateBuilder(args);
@@ -90,7 +91,7 @@ app.MapGet("/api/v1/houses/{houseId:guid}/status", async (Guid houseId, ClaimsPr
 }).RequireAuthorization();
 app.MapPost("/api/v1/houses/{houseId:guid}/lights/{lightId}/commands", async (Guid houseId, string lightId, LightCommandRequest request, ClaimsPrincipal user, HomeOperations operations, RuntimeWakeups wakeups, CancellationToken ct) =>
 {
-    var command = await operations.SendAsync(Context(user), houseId, lightId, request.Type, request.Payload, request.IdempotencyKey, request.CorrelationId ?? Guid.NewGuid(), ct);
+    var command = await operations.SendAsync(Context(user), houseId, lightId, request.Type, request.Payload, request.IdempotencyKey, request.CorrelationId ?? Guid.NewGuid(), ct, request.ExpiresAtUtc);
     if (command.Status == "pending") wakeups.Commands();
     return command.Status == "pending" ? Results.Accepted($"/api/v1/commands/{Uri.EscapeDataString(command.CommandId)}", new { commandId = command.CommandId, status = command.Status, correlationId = command.CorrelationId }) : Results.Ok(Resource(command));
 }).RequireAuthorization();
@@ -104,9 +105,9 @@ app.MapGet("/api/v1/commands/{commandId}", async (string commandId, ClaimsPrinci
 {
     var command = await operations.CommandAsync(Context(user), commandId, ct); return command is null ? Results.NotFound() : Results.Ok(Resource(command));
 }).RequireAuthorization();
-app.MapGet("/api/v1/houses/{houseId:guid}/commands/by-key/{key}", async (Guid houseId, string key, ClaimsPrincipal user, HomeOperations operations, CancellationToken ct) =>
+app.MapGet("/api/v1/houses/{houseId:guid}/commands/by-key/{key}", async (Guid houseId, string key, DateTimeOffset? expiresAtUtc, ClaimsPrincipal user, HomeOperations operations, CancellationToken ct) =>
 {
-    var command = await operations.ByKeyAsync(Context(user), houseId, key, ct); return command is null ? Results.NotFound() : Results.Ok(Resource(command));
+    var command = await operations.ByKeyAsync(Context(user), houseId, key, ct, expiresAtUtc); return command is null ? Results.NotFound() : Results.Ok(Resource(command));
 }).RequireAuthorization();
 app.MapGet("/api/v1/houses/{houseId:guid}/resources", async (Guid houseId, ClaimsPrincipal user, IUserAuthorizer authorizer, HomeDb db, CancellationToken ct) =>
 {
@@ -159,7 +160,7 @@ static JsonElement? Result(StoredCommand? command) => command?.ResultJson is nul
 static object Resource(StoredCommand command) => command.Type is "SetLight" or "SetLightingMode"
     ? new { commandId = command.CommandId, houseId = command.HouseId, lightId = command.LightId, status = command.Status, type = command.Type, requestedAtUtc = command.RequestedAtUtc, correlationId = command.CorrelationId, result = Result(command) }
     : new { commandId = command.CommandId, houseId = command.HouseId, resourceId = command.LightId, status = command.Status, type = command.Type, requestedAtUtc = command.RequestedAtUtc, expiresAtUtc = command.ExpiresAtUtc, correlationId = command.CorrelationId, result = Result(command) };
-public sealed record LightCommandRequest(string Type, JsonElement Payload, string IdempotencyKey, Guid? CorrelationId);
+public sealed record LightCommandRequest(string Type, JsonElement Payload, string IdempotencyKey, Guid? CorrelationId, DateTimeOffset? ExpiresAtUtc = null);
 public sealed record CapabilityCommandRequest(string Type, JsonElement Payload, string IdempotencyKey, Guid? CorrelationId, DateTimeOffset ExpiresAtUtc);
 public sealed record IngestionRequest(string SourceDeviceId, JsonElement Envelope);
 public sealed class HomeApiErrors : Microsoft.AspNetCore.Diagnostics.IExceptionHandler
@@ -168,7 +169,7 @@ public sealed class HomeApiErrors : Microsoft.AspNetCore.Diagnostics.IExceptionH
     {
         var code = error is HomeException home ? home.Code : "unavailable";
         if (error is not (HomeException or SqlException or DbUpdateException)) return false;
-        var status = code switch { "invalidPayload" or "invalidEvent" => 400, "unauthorized" or "sessionRevoked" => 401, "forbidden" => 403, "notFound" or "unknownDevice" => 404, "conflict" or "duplicateChanged" or "pendingCommand" or "manualModeRequired" => 409, "requestExpired" => 422, _ => 503 };
+        var status = code switch { "invalidPayload" or "invalidEvent" => 400, "unauthorized" or "sessionRevoked" => 401, "forbidden" => 403, "notFound" or "unknownDevice" => 404, "conflict" or "duplicateChanged" or "pendingCommand" or "manualModeRequired" or "deviceOffline" => 409, "requestExpired" => 422, _ => 503 };
         context.Response.StatusCode = status;
         await Results.Problem(statusCode: status, title: error is HomeException ? error.Message : "Home storage unavailable", extensions: new Dictionary<string, object?> { ["code"] = code, ["correlationId"] = context.TraceIdentifier }).ExecuteAsync(context); return true;
     }

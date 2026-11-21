@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/identity-jwks.json",
+  "title": "JWKS response v1",
+  "description": "Public JSON Web Key Set for Identity signing keys. Contains only public key material. Discovery URL: {base}/api/v1/identity/.well-known/jwks.json.",
+  "type": "object",
+  "required": ["keys"],
+  "properties": {
+    "keys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kty", "kid", "use", "alg", "crv", "x", "y"],
+        "properties": {
+          "kty": { "const": "EC" },
+          "kid": { "type": "string", "minLength": 1 },
+          "use": { "const": "sig" },
+          "alg": { "const": "ES256" },
+          "crv": { "const": "P-256" },
+          "x": { "type": "string", "minLength": 40, "pattern": "^[A-Za-z0-9_-]+$" },
+          "y": { "type": "string", "minLength": 40, "pattern": "^[A-Za-z0-9_-]+$" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

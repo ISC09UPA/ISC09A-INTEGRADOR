@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/video-playlist-request.json",
+  "title": "Video producer playlist request v1",
+  "description": "The device publishes a bounded, ascending, contiguous window of already uploaded segment sequences. The server generates the HLS playlist; the device never supplies URLs or paths.",
+  "type": "object",
+  "required": ["segments"],
+  "properties": {
+    "segments": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 119
+      },
+      "description": "Contiguous ascending sequence numbers."
+    }
+  },
+  "additionalProperties": false
+}

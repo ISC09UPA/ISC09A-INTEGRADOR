@@ -1,0 +1,15 @@
+{
+  "fixture": "bad-uuid",
+  "schema": "authz-check-request.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "Correlation id must be a valid UUID shape.",
+  "data": {
+    "userId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "sessionId": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+    "houseId": "55555555-5555-5555-5555-555555555555",
+    "action": "home:control:lights",
+    "resourceId": "sala",
+    "correlationId": "not-a-uuid"
+  }
+}

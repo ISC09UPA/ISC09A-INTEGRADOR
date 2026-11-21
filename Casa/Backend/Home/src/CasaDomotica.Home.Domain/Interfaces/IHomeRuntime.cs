@@ -12,7 +12,7 @@ public interface IHomeRuntime
 {
     Task<StoredStatus?> StatusAsync(Guid houseId, CancellationToken ct);
     Task<StoredCommand?> FindAsync(string commandId, CancellationToken ct);
-    Task<StoredCommand?> FindByKeyAsync(Guid houseId, string key, CancellationToken ct);
+    Task<StoredCommand?> FindByKeyAsync(Guid houseId, string key, CancellationToken ct, DateTimeOffset? clientExpiresAtUtc = null);
     Task<StoredCommand> AdmitAsync(UserContext user, Guid houseId, string lightId, string type, string payloadJson, string requestHash, string key, Guid correlationId, DateTimeOffset requestedAt, DateTimeOffset expiresAt, CancellationToken ct);
 }
 public interface IDeviceDispatcher { Task<bool> DispatchNextAsync(CancellationToken ct); }

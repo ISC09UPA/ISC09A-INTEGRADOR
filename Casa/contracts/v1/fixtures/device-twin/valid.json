@@ -1,0 +1,15 @@
+{
+  "fixture": "valid",
+  "schema": "device-twin.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Twin patch with thresholds and report interval. Does not include lightingMode (legacy) or commands.",
+  "data": {
+    "$version": 5,
+    "agentConfiguration": {
+      "lightOnBelow": 25,
+      "lightOffAbove": 65,
+      "reportSeconds": 10
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "fixture": "set-light-off",
+  "schema": "device-command.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "SetLight off also forces manual mode.",
+  "data": {
+    "commandId": "cmd-SetLight-off-010",
+    "deviceId": "raspberry-sim",
+    "type": "SetLight",
+    "commandSequence": 8,
+    "issuedAtUtc": "2026-10-31T18:01:00Z",
+    "expiresAtUtc": "2026-10-31T18:01:30Z",
+    "payload": { "on": false }
+  }
+}

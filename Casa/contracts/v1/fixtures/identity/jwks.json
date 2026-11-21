@@ -1,0 +1,20 @@
+{
+  "fixture": "jwks",
+  "schema": "identity-jwks.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Public signing keys for Identity. Discovery URL: {base}/api/v1/identity/.well-known/jwks.json. Contains only public key material.",
+  "data": {
+    "keys": [
+      {
+        "kty": "EC",
+        "kid": "identity-dev-001",
+        "use": "sig",
+        "alg": "ES256",
+        "crv": "P-256",
+        "x": "base64url_public_x_coordinate_32bytes_len_43chars",
+        "y": "base64url_public_y_coordinate_32bytes_len_43chars"
+      }
+    ]
+  }
+}

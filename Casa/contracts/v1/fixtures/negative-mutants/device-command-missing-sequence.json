@@ -1,0 +1,15 @@
+{
+  "fixture": "device-command-missing-sequence",
+  "schema": "device-command.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "commandSequence is required for per-light serialization.",
+  "data": {
+    "commandId": "cmd-mutant-004",
+    "deviceId": "raspberry-sim",
+    "type": "SetLight",
+    "issuedAtUtc": "2026-10-31T18:07:00Z",
+    "expiresAtUtc": "2026-10-31T18:07:30Z",
+    "payload": { "on": true }
+  }
+}

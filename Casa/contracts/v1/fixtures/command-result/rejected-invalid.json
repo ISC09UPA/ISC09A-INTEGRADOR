@@ -1,0 +1,18 @@
+{
+  "fixture": "rejected-invalid",
+  "schema": "command-result.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Device rejects a command because the payload is invalid. No snapshot applied.",
+  "data": {
+    "commandId": "cmd-invalid-004",
+    "status": "rejected",
+    "type": "SetLight",
+    "reasonCode": "invalidPayload",
+    "reason": "on debe ser booleano",
+    "snapshot": null,
+    "stateRevision": null,
+    "eventId": "44444444-4444-4444-4444-444444444444",
+    "correlationId": "00000000-0000-0000-0000-000000000003"
+  }
+}

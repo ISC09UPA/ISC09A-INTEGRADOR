@@ -1,0 +1,17 @@
+{
+  "fixture": "check-response-granted",
+  "schema": "authz-check-response.json",
+  "httpStatus": 200,
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "HTTP 200 allowed response. Resident can read and control lights.",
+  "data": {
+    "decision": "allowed",
+    "checkedAtUtc": "2026-10-31T18:12:01Z",
+    "correlationId": "00000000-0000-0000-0000-000000000013",
+    "userId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "sessionId": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+    "houseId": "55555555-5555-5555-5555-555555555555",
+    "action": "home:control:lights"
+  }
+}

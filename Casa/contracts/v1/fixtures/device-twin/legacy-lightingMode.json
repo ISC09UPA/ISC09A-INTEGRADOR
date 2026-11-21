@@ -1,0 +1,16 @@
+{
+  "fixture": "legacy-lightingMode",
+  "schema": "device-twin.json",
+  "expectedValid": false,
+  "expectedShapeValid": true,
+  "description": "Twin patch contains legacy lightingMode. Shape valid; business rule ignores it with warning/diagnostic and preserves existing lighting_mode.",
+  "data": {
+    "$version": 6,
+    "agentConfiguration": {
+      "lightOnBelow": 25,
+      "lightOffAbove": 65,
+      "reportSeconds": 10,
+      "lightingMode": "auto"
+    }
+  }
+}

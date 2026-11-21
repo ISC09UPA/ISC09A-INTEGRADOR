@@ -1,0 +1,33 @@
+{
+  "fixture": "command-response-applied",
+  "schema": "home-command-resource.json",
+  "httpStatus": 200,
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Terminal replay returns the durable command resource with the Pi CommandResult nested.",
+  "data": {
+    "commandId": "cmd-SetLight-on-001",
+    "houseId": "55555555-5555-5555-5555-555555555555",
+    "lightId": "sala",
+    "status": "executed",
+    "type": "SetLight",
+    "requestedAtUtc": "2026-10-31T18:00:00Z",
+    "correlationId": "00000000-0000-0000-0000-000000000000",
+    "result": {
+      "commandId": "cmd-SetLight-on-001",
+      "status": "executed",
+      "type": "SetLight",
+      "reasonCode": null,
+      "reason": null,
+      "snapshot": {
+        "lightOn": true,
+        "lightingMode": "manual",
+        "source": "device",
+        "appliedAtUtc": "2026-10-31T18:00:05Z"
+      },
+      "stateRevision": 7,
+      "eventId": "11111111-1111-1111-1111-111111111111",
+      "correlationId": "00000000-0000-0000-0000-000000000000"
+    }
+  }
+}

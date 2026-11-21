@@ -1,0 +1,30 @@
+{
+  "fixture": "user-access-token",
+  "schema": "jwt-contract.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Illustrative user token with all configured public audiences; not a signed credential.",
+  "data": {
+    "header": {
+      "alg": "ES256",
+      "typ": "JWT",
+      "kid": "identity-dev-001"
+    },
+    "payload": {
+      "iss": "Identity",
+      "aud": [
+        "Identity.Public",
+        "Home.Public",
+        "Security.Public",
+        "Notifications.Public",
+        "Assistant.Public"
+      ],
+      "sub": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "sid": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "jti": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+      "iat": 1762444800,
+      "exp": 1762445100,
+      "scope": "home:read home:control:lights"
+    }
+  }
+}

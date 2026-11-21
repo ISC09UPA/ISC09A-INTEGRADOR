@@ -1,0 +1,15 @@
+{
+  "fixture": "command-result-unknown-no-reasonCode",
+  "schema": "command-result.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "Unknown terminal state requires a non-null reasonCode.",
+  "data": {
+    "commandId": "cmd-no-reason-003",
+    "status": "unknown",
+    "type": "SetLight",
+    "reason": "missing reasonCode",
+    "snapshot": null,
+    "stateRevision": null
+  }
+}

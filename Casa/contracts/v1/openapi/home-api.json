@@ -1,0 +1,1137 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Home API",
+    "description": "Casa Dom\u00f3tica Home v1: authenticated home, telemetry, capability resources and durable commands.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5002/api/v1",
+      "description": "Local dev"
+    },
+    {
+      "url": "https://i9n-home-karma26.azurewebsites.net/api/v1",
+      "description": "Azure development"
+    }
+  ],
+  "paths": {
+    "/houses/{houseId}/status": {
+      "get": {
+        "operationId": "getHouseStatus",
+        "summary": "Current device projection",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Status projection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/home-status.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/houses/{houseId}/lights/{lightId}/commands": {
+      "post": {
+        "operationId": "sendLightCommand",
+        "summary": "Request a light change",
+        "description": "Returns 202 when first accepted or when replaying a still-pending command. Returns 200 with the current command resource when replaying a terminal command. Returns 409 if idempotency key is reused with different content.",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/uuid"
+            }
+          },
+          {
+            "name": "lightId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/lightId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/light-command-request.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted or pending replay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/home-command-response.json"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Terminal replay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/home-command-resource.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/commands/{commandId}": {
+      "get": {
+        "operationId": "getCommandResult",
+        "summary": "Durable command resource",
+        "description": "Returns pending or terminal command resource. Authorizes via house membership.",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "commandId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/commandId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Command resource.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/home-command-resource.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/houses/{houseId}/resources": {
+      "get": {
+        "operationId": "listCapabilityResources",
+        "summary": "List authorized mapped capabilities and unresolved commands",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Configured resources.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/capability-resources.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/houses/{houseId}/resources/{resourceId}/commands": {
+      "post": {
+        "operationId": "sendCapabilityCommand",
+        "summary": "Request an authorized physical capability",
+        "description": "A 202 response means accepted, not executed. The deadline is bounded at the client and again before admission and dispatch. Door identifiers and pulse duration come from server configuration.",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/uuid"
+            }
+          },
+          {
+            "name": "resourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/resourceId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/capability-command-request.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Pending or pending replay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/home-command-response.json"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Non-pending replay.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/capability-command-resource.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/houses/{houseId}/commands/by-key/{key}": {
+      "get": {
+        "operationId": "getCommandByIdempotencyKey",
+        "summary": "Recover a command after an ambiguous request",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/uuid"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/uuid"
+            }
+          },
+          {
+            "name": "expiresAtUtc",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/dateTimeUtc"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Durable command.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/home-command-resource.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/houses/{houseId}/telemetry": {
+      "get": {
+        "operationId": "getTelemetry",
+        "summary": "Retrieve the latest real sensor readings",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sensor readings; empty if none.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/home-telemetry.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/houses/{houseId}/security": {
+      "get": {
+        "operationId": "getSecurityMode",
+        "summary": "Retrieve the last applied mode from the mapped security device",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Last reported mode.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/home-security-status.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/internal/captures/{captureId}/upload": {
+      "post": {
+        "summary": "Upload one bounded image using its one-time device ticket",
+        "servers": [
+          {
+            "url": "http://localhost:5002",
+            "description": "Local dev"
+          },
+          {
+            "url": "https://i9n-home-karma26.azurewebsites.net",
+            "description": "Azure development"
+          }
+        ],
+        "security": [
+          {
+            "captureUploadToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "captureId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "image/png": {
+              "schema": {
+                "type": "string",
+                "contentMediaType": "image/png"
+              }
+            },
+            "image/jpeg": {
+              "schema": {
+                "type": "string",
+                "contentMediaType": "image/jpeg"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upload recorded or idempotently recovered."
+          },
+          "400": {
+            "description": "Invalid image, content type or size."
+          },
+          "401": {
+            "description": "Invalid ticket or session."
+          },
+          "403": {
+            "description": "Permission revoked."
+          },
+          "409": {
+            "description": "Upload in progress."
+          },
+          "422": {
+            "description": "Expired ticket."
+          },
+          "503": {
+            "description": "Storage unavailable."
+          }
+        }
+      }
+    },
+    "/houses/{houseId}/video/sessions": {
+      "post": {
+        "operationId": "startVideoSession",
+        "summary": "Start one short-lived private video session",
+        "description": "Creates a durable StartVideo order and a private session bound to the requesting user session and house. A 202 means connecting, not live. Only one active session per house is allowed.",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/houseId"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/video-start-request.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Session accepted and connecting; no stream URL is returned before real producer progress.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/video-session.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/houses/{houseId}/video/sessions/by-key/{key}": {
+      "get": {
+        "operationId": "getVideoSessionByKey",
+        "summary": "Recover an owned video session by its idempotency key",
+        "description": "Never starts a second producer or repeats a physical action. Returns 404 when the key is unknown or belongs to another user session.",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/houseId"
+            }
+          },
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owned session state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/video-session.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/houses/{houseId}/video/sessions/{sessionId}": {
+      "get": {
+        "operationId": "getVideoSession",
+        "summary": "Read an owned private video session",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/houseId"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owned session state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/video-session.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "closeVideoSession",
+        "summary": "Close an owned private video session",
+        "description": "Idempotent close. Playback and producer writes stop immediately; storage cleanup is asynchronous.",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/houseId"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session ended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/video-session.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/houses/{houseId}/video/sessions/{sessionId}/playlist.m3u8": {
+      "get": {
+        "operationId": "getVideoPlaylist",
+        "summary": "Read the server-generated private HLS playlist",
+        "description": "Requires the authenticated viewer Bearer token. Returns 404 when there is no recent real playlist or segment. Relative segment URLs only; no external or device-supplied URLs.",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/houseId"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Private HLS playlist.",
+            "content": {
+              "application/vnd.apple.mpegurl": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/houses/{houseId}/video/sessions/{sessionId}/segments/{sequence}.ts": {
+      "get": {
+        "operationId": "getVideoSegment",
+        "summary": "Read one private MPEG-TS segment",
+        "description": "Requires the authenticated viewer Bearer token. The segment must be ready, not deleted, and belong to an active unexpired session.",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/houseId"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/uuid"
+            }
+          },
+          {
+            "name": "sequence",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 119
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Private MPEG-TS segment.",
+            "content": {
+              "video/mp2t": {
+                "schema": {
+                  "type": "string",
+                  "contentMediaType": "video/mp2t"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/internal/video/{sessionId}/segments/{sequence}": {
+      "post": {
+        "operationId": "uploadVideoSegment",
+        "summary": "Upload one bounded MPEG-TS segment with the producer ticket",
+        "description": "The device appends a strictly sequential segment using the upload URL and one-time token received in StartVideo. The server validates the one-time token hash, session state, sequential order, exact Content-Length, MPEG-TS packet alignment, size and total session limits.",
+        "servers": [
+          {
+            "url": "http://localhost:5002",
+            "description": "Local dev"
+          },
+          {
+            "url": "https://i9n-home-karma26.azurewebsites.net",
+            "description": "Azure development"
+          }
+        ],
+        "security": [
+          {
+            "videoProducerToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/uuid"
+            }
+          },
+          {
+            "name": "sequence",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 119
+            }
+          },
+          {
+            "name": "X-Segment-Duration-Ms",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 250,
+              "maximum": 10000
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "video/mp2t": {
+              "schema": {
+                "type": "string",
+                "contentMediaType": "video/mp2t"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Segment stored or idempotently recovered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/video-segment-upload-result.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/internal/video/{sessionId}/playlist": {
+      "post": {
+        "operationId": "publishVideoPlaylist",
+        "summary": "Publish the current contiguous HLS window",
+        "description": "The device supplies only ascending segment numbers. The server verifies every referenced segment is ready and generates the playlist itself.",
+        "servers": [
+          {
+            "url": "http://localhost:5002",
+            "description": "Local dev"
+          },
+          {
+            "url": "https://i9n-home-karma26.azurewebsites.net",
+            "description": "Azure development"
+          }
+        ],
+        "security": [
+          {
+            "videoProducerToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/video-playlist-request.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Playlist window accepted."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "userBearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT-user"
+      },
+      "captureUploadToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Capture-Token"
+      },
+      "videoProducerToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Video-Token",
+        "description": "One-time producer secret delivered by Home through the authenticated StartVideo direct method. Only its SHA-256 hash is stored."
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Bad request",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../schemas/problem-details.json"
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Unauthorized",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../schemas/problem-details.json"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Forbidden or revoked",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../schemas/problem-details.json"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "House, light or command not found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../schemas/problem-details.json"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Duplicate idempotency key with different content",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../schemas/problem-details.json"
+            }
+          }
+        }
+      },
+      "TooManyRequests": {
+        "description": "Rate limited",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../schemas/problem-details.json"
+            }
+          }
+        }
+      },
+      "ServiceUnavailable": {
+        "description": "Dependency unavailable (Identity, IoT Hub, etc.)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "../schemas/problem-details.json"
+            }
+          }
+        }
+      }
+    }
+  }
+}

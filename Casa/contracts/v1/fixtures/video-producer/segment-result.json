@@ -1,0 +1,12 @@
+{
+  "fixture": "video-segment-result",
+  "schema": "video-segment-upload-result.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Durable confirmation for one bounded segment.",
+  "data": {
+    "sequence": 0,
+    "status": "ready"
+  },
+  "httpStatus": 200
+}

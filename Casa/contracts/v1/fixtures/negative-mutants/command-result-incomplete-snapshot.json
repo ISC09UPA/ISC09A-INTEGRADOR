@@ -1,0 +1,19 @@
+{
+  "fixture": "command-result-incomplete-snapshot",
+  "schema": "command-result.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "executed snapshot must include lightOn, lightingMode, source and appliedAtUtc.",
+  "data": {
+    "commandId": "cmd-mutant-005",
+    "status": "executed",
+    "type": "SetLight",
+    "reasonCode": null,
+    "reason": null,
+    "snapshot": {
+      "lightOn": true,
+      "appliedAtUtc": "2026-10-31T18:00:05Z"
+    },
+    "stateRevision": 7
+  }
+}

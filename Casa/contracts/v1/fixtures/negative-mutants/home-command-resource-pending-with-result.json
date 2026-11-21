@@ -1,0 +1,25 @@
+{
+  "fixture": "home-command-resource-pending-with-result",
+  "schema": "home-command-resource.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "Pending command resource must not carry a Pi result.",
+  "data": {
+    "commandId": "cmd-SetLight-on-003",
+    "houseId": "55555555-5555-5555-5555-555555555555",
+    "lightId": "sala",
+    "status": "pending",
+    "type": "SetLight",
+    "requestedAtUtc": "2026-10-31T18:00:00Z",
+    "correlationId": "00000000-0000-0000-0000-000000000002",
+    "result": {
+      "commandId": "cmd-SetLight-on-003",
+      "status": "pending",
+      "type": "SetLight",
+      "reasonCode": null,
+      "reason": null,
+      "snapshot": null,
+      "stateRevision": null
+    }
+  }
+}

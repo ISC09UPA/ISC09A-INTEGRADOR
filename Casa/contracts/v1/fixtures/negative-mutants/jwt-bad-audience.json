@@ -1,0 +1,24 @@
+{
+  "fixture": "jwt-bad-audience",
+  "schema": "jwt-contract.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "User access token audience must be explicit array with Identity.Public and Home.Public; no wildcard.",
+  "data": {
+    "header": {
+      "alg": "ES256",
+      "typ": "JWT",
+      "kid": "identity-dev-001"
+    },
+    "payload": {
+      "iss": "Identity",
+      "aud": "*",
+      "sub": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+      "sid": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+      "jti": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+      "iat": 1762444800,
+      "exp": 1762445100,
+      "scope": "home:read home:control:lights"
+    }
+  }
+}

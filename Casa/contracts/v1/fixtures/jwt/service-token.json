@@ -1,0 +1,24 @@
+{
+  "fixture": "service-token",
+  "schema": "jwt-contract.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Illustrative Home service token for Identity.Internal. Never includes user sid.",
+  "data": {
+    "header": {
+      "alg": "ES256",
+      "typ": "JWT",
+      "kid": "identity-dev-001"
+    },
+    "payload": {
+      "iss": "Identity",
+      "aud": "Identity.Internal",
+      "sub": "service:home",
+      "client_id": "home",
+      "scope": "identity:authorize",
+      "jti": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+      "iat": 1762444800,
+      "exp": 1762445100
+    }
+  }
+}

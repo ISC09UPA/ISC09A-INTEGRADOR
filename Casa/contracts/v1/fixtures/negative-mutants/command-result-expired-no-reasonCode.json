@@ -1,0 +1,15 @@
+{
+  "fixture": "command-result-expired-no-reasonCode",
+  "schema": "command-result.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "Expired terminal state requires reasonCode=expired.",
+  "data": {
+    "commandId": "cmd-no-reason-002",
+    "status": "expired",
+    "type": "SetLight",
+    "reason": "missing reasonCode",
+    "snapshot": null,
+    "stateRevision": null
+  }
+}

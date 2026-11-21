@@ -1,0 +1,21 @@
+{
+  "fixture": "capture-image",
+  "schema": "device-command.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Isolated syntax fixture; no physical camera or production capture.",
+  "data": {
+    "commandId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    "deviceId": "device-test",
+    "type": "CaptureImage",
+    "commandSequence": 2,
+    "issuedAtUtc": "2026-10-31T18:00:00Z",
+    "expiresAtUtc": "2026-10-31T18:00:30Z",
+    "payload": {
+      "captureId": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      "uploadUrl": "https://example.invalid/internal/captures/cccccccc-cccc-4ccc-8ccc-cccccccccccc/upload",
+      "uploadToken": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "uploadExpiresAtUtc": "2026-10-31T18:05:00Z"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "fixture": "security-mode",
+  "schema": "security-mode.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Isolated contract fixture; not production data.",
+  "data": {
+    "mode": "armed",
+    "updatedAtUtc": "2026-10-31T18:00:00Z",
+    "receivedAtUtc": "2026-10-31T18:00:00Z",
+    "incident": null
+  },
+  "httpStatus": 200
+}

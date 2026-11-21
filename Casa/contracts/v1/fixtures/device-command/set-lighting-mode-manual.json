@@ -1,0 +1,16 @@
+{
+  "fixture": "set-lighting-mode-manual",
+  "schema": "device-command.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "SetLightingMode switches to manual.",
+  "data": {
+    "commandId": "cmd-SetLightingMode-manual-012",
+    "deviceId": "raspberry-sim",
+    "type": "SetLightingMode",
+    "commandSequence": 10,
+    "issuedAtUtc": "2026-10-31T18:03:00Z",
+    "expiresAtUtc": "2026-10-31T18:03:30Z",
+    "payload": { "mode": "manual" }
+  }
+}

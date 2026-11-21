@@ -1,0 +1,12 @@
+{
+  "fixture": "home-command-request-missing-idempotency",
+  "schema": "light-command-request.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "Light command request requires idempotencyKey.",
+  "data": {
+    "type": "SetLight",
+    "payload": { "on": true },
+    "correlationId": "00000000-0000-0000-0000-000000000011"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "fixture": "home-command-resource-terminal-null",
+  "schema": "home-command-resource.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "Terminal executed resource must not have result=null.",
+  "data": {
+    "commandId": "cmd-terminal-null-001",
+    "houseId": "55555555-5555-5555-5555-555555555555",
+    "lightId": "sala",
+    "status": "executed",
+    "type": "SetLight",
+    "requestedAtUtc": "2026-10-31T18:00:00Z",
+    "correlationId": "00000000-0000-0000-0000-000000000020",
+    "result": null
+  }
+}

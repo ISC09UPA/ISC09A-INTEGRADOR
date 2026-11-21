@@ -1,0 +1,15 @@
+{
+  "fixture": "video-session-live-without-url",
+  "schema": "video-session.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "Live must carry a real private HLS URL.",
+  "data": {
+    "id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    "status": "live",
+    "expiresAtUtc": "2026-10-31T18:03:00Z",
+    "commandId": "cmd-StartVideo-014",
+    "streamUrl": null,
+    "streamType": null
+  }
+}

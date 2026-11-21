@@ -1,0 +1,16 @@
+{
+  "fixture": "video-session-live",
+  "schema": "video-session.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Live only after a recent server-generated playlist references ready segments.",
+  "data": {
+    "id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    "status": "live",
+    "expiresAtUtc": "2026-10-31T18:03:00Z",
+    "commandId": "cmd-StartVideo-014",
+    "streamUrl": "https://home.example.invalid/api/v1/houses/55555555-5555-5555-5555-555555555555/video/sessions/dddddddd-dddd-4ddd-8ddd-dddddddddddd/playlist.m3u8",
+    "streamType": "hls"
+  },
+  "httpStatus": 200
+}

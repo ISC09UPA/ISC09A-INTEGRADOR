@@ -18,10 +18,10 @@ probar-azure
 
 ## 2. Abrir el monitor en la Mac
 
-Desde la raíz de este repositorio, en otra terminal de la Mac, ejecuta:
+En otra terminal de la Mac, no dentro de la Raspberry, ejecuta:
 
 ```bash
-python3 Casa/RaspberryPi/tools/monitorear-sensores.py
+~/integrador9nocuatri/monitorear-sensores.py
 ```
 
 Déjalo abierto. Para detenerlo usa Ctrl+C. La Mac debe tener Azure CLI y la extensión `azure-iot`, con sesión iniciada en la suscripción del proyecto. El monitor muestra mensajes nuevos; ábrelo antes de iniciar la simulación.

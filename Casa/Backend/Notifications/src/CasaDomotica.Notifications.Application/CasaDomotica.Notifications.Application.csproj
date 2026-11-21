@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>CasaDomotica.Notifications.Application</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../CasaDomotica.Notifications.Domain/CasaDomotica.Notifications.Domain.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,16 @@
+{
+  "fixture": "identity-unavailable-response",
+  "schema": "problem-details.json",
+  "httpStatus": 503,
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "HTTP 503 from Home API when Identity is unavailable before dispatch. Fail closed, no action.",
+  "data": {
+    "type": "https://integrador9nocuatri.local/errors/service-unavailable",
+    "title": "Service unavailable",
+    "status": 503,
+    "detail": "identity service unavailable",
+    "correlationId": "00000000-0000-0000-0000-000000000008",
+    "code": "serviceUnavailable"
+  }
+}

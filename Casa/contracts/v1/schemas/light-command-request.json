@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/light-command-request.json",
+  "title": "Light command request v1",
+  "description": "Request body for POST /api/v1/houses/{houseId}/lights/{lightId}/commands. Device target is resolved server-side from the house/light mapping. Idempotency key is required.",
+  "type": "object",
+  "required": ["type", "payload", "idempotencyKey"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["SetLight", "SetLightingMode"]
+    },
+    "payload": { "type": "object" },
+    "idempotencyKey": { "$ref": "common.json#/$defs/uuid" },
+    "correlationId": { "$ref": "common.json#/$defs/correlationId" },
+    "expiresAtUtc": { "$ref": "common.json#/$defs/dateTimeUtc" }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "type": { "const": "SetLight" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["on"],
+            "properties": { "on": { "type": "boolean" } },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "SetLightingMode" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": ["mode"],
+            "properties": { "mode": { "type": "string", "enum": ["auto", "manual"] } },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,361 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Casa Domótica Notifications API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:7071/api/v1"
+    }
+  ],
+  "paths": {
+    "/notifications/houses/{houseId}/preferences": {
+      "get": {
+        "summary": "Read email notification preferences and verified recipient state",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification preferences.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/notification-preferences.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No house permission."
+          },
+          "503": {
+            "description": "Service unavailable."
+          }
+        }
+      },
+      "put": {
+        "summary": "Enable or disable email notifications for a house with a verified recipient",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/notification-preferences-request.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated preferences.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/notification-preferences.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request."
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No administrative permission."
+          },
+          "422": {
+            "description": "No verified recipient configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/problem-details.json"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service unavailable."
+          }
+        }
+      }
+    },
+    "/notifications/houses/{houseId}/recipient/verify": {
+      "post": {
+        "summary": "Start verification of a recipient email address",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 254
+                  },
+                  "dryRun": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Verification code recorded."
+          },
+          "400": {
+            "description": "Invalid email."
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No administrative permission."
+          },
+          "503": {
+            "description": "Service unavailable."
+          }
+        }
+      }
+    },
+    "/notifications/houses/{houseId}/recipient/confirm": {
+      "post": {
+        "summary": "Confirm recipient email ownership using verification code",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "code"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 64
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recipient verified.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/notification-preferences.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid code format."
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No administrative permission."
+          },
+          "404": {
+            "description": "No pending verification."
+          },
+          "422": {
+            "description": "Code invalid or expired."
+          },
+          "503": {
+            "description": "Service unavailable."
+          }
+        }
+      }
+    },
+    "/notifications/houses/{houseId}/test-email": {
+      "post": {
+        "summary": "Request an explicit test notification email to the verified house recipient",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Delivery request recorded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/notification-delivery.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No administrative permission."
+          },
+          "422": {
+            "description": "No verified recipient configured or provider rejected request."
+          },
+          "503": {
+            "description": "Service unavailable."
+          }
+        }
+      }
+    },
+    "/notifications/houses/{houseId}/deliveries/{deliveryId}": {
+      "get": {
+        "summary": "Query provider-reported status of a notification delivery",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "deliveryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Delivery state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/notification-delivery.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No house permission."
+          },
+          "404": {
+            "description": "Delivery not found."
+          },
+          "503": {
+            "description": "Service unavailable."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "userBearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

@@ -35,6 +35,10 @@ class SimulatedHardware:
             raise ValueError("Entrada simulada demasiado grande")
         return json.loads(self.inputs.read_text())
 
+    def _write_inputs(self, values):
+        """Test helper to set simulated inputs without using the control console."""
+        atomic_json(self.inputs, values)
+
     def light(self, on):
         self.outputs["light_on"] = bool(on)
         self.save()

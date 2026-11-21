@@ -1,0 +1,17 @@
+{
+  "fixture": "session-revoked",
+  "schema": "command-result.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Identity returns revoked decision at the pre-dispatch check. Accepted request is rejected without acting.",
+  "data": {
+    "commandId": "cmd-revoked-008",
+    "status": "rejected",
+    "type": "SetLight",
+    "reasonCode": "unauthorized",
+    "reason": "session revoked",
+    "snapshot": null,
+    "stateRevision": null,
+    "correlationId": "00000000-0000-0000-0000-000000000007"
+  }
+}

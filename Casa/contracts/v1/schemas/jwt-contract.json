@@ -1,0 +1,437 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/jwt-contract.json",
+  "title": "JWT contract v1",
+  "description": "Contracts for user and service tokens. No secrets or real keys are stored here. Fixtures are illustrative and not cryptographic proof.",
+  "type": "object",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/userAccessToken"
+    },
+    {
+      "$ref": "#/$defs/userRefreshToken"
+    },
+    {
+      "$ref": "#/$defs/serviceAssertion"
+    },
+    {
+      "$ref": "#/$defs/serviceToken"
+    }
+  ],
+  "$defs": {
+    "tokenLifetime": {
+      "type": "integer",
+      "minimum": 60,
+      "maximum": 604800
+    },
+    "userAccessToken": {
+      "type": "object",
+      "title": "User access token",
+      "description": "Issued by Identity for end users. The explicit audience array contains Identity.Public and Home.Public and may include the other public services. No wildcard.",
+      "required": [
+        "header",
+        "payload"
+      ],
+      "properties": {
+        "header": {
+          "$ref": "common.json#/$defs/jwtHeader"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "iss",
+            "aud",
+            "sub",
+            "sid",
+            "jti",
+            "iat",
+            "exp",
+            "scope"
+          ],
+          "properties": {
+            "iss": {
+              "const": "Identity"
+            },
+            "aud": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 5,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "Identity.Public",
+                  "Home.Public",
+                  "Security.Public",
+                  "Notifications.Public",
+                  "Assistant.Public"
+                ]
+              },
+              "allOf": [
+                {
+                  "contains": {
+                    "const": "Identity.Public"
+                  }
+                },
+                {
+                  "contains": {
+                    "const": "Home.Public"
+                  }
+                }
+              ]
+            },
+            "sub": {
+              "$ref": "common.json#/$defs/uuid"
+            },
+            "sid": {
+              "$ref": "common.json#/$defs/uuid"
+            },
+            "jti": {
+              "$ref": "common.json#/$defs/uuid"
+            },
+            "iat": {
+              "type": "integer"
+            },
+            "exp": {
+              "type": "integer"
+            },
+            "scope": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "userRefreshToken": {
+      "type": "object",
+      "title": "User refresh token",
+      "description": "Opaque rotating hash stored server-side. Never a JWT with secrets.",
+      "required": [
+        "tokenFamily",
+        "hash",
+        "expiresAtUtc",
+        "issuedAtUtc",
+        "sessionId"
+      ],
+      "properties": {
+        "tokenFamily": {
+          "$ref": "common.json#/$defs/uuid"
+        },
+        "hash": {
+          "type": "string",
+          "minLength": 32
+        },
+        "expiresAtUtc": {
+          "$ref": "common.json#/$defs/dateTimeUtc"
+        },
+        "issuedAtUtc": {
+          "$ref": "common.json#/$defs/dateTimeUtc"
+        },
+        "sessionId": {
+          "$ref": "common.json#/$defs/uuid"
+        },
+        "revokedAtUtc": {
+          "$ref": "common.json#/$defs/dateTimeUtc"
+        }
+      },
+      "additionalProperties": false
+    },
+    "serviceAssertion": {
+      "type": "object",
+      "title": "Service-to-token-endpoint assertion (Home \u2192 Identity)",
+      "description": "Signed service identity with an explicit allowlisted client and matching issuer/subject; validated with its independently pinned public key.",
+      "required": [
+        "header",
+        "payload"
+      ],
+      "properties": {
+        "header": {
+          "$ref": "common.json#/$defs/jwtHeader"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "iss",
+            "sub",
+            "aud",
+            "jti",
+            "iat",
+            "exp",
+            "client_id"
+          ],
+          "properties": {
+            "iss": {
+              "enum": [
+                "service:home",
+                "service:security",
+                "service:notifications",
+                "service:assistant"
+              ]
+            },
+            "sub": {
+              "enum": [
+                "service:home",
+                "service:security",
+                "service:notifications",
+                "service:assistant"
+              ]
+            },
+            "aud": {
+              "const": "Identity.TokenEndpoint"
+            },
+            "jti": {
+              "$ref": "common.json#/$defs/uuid"
+            },
+            "iat": {
+              "type": "integer"
+            },
+            "exp": {
+              "type": "integer"
+            },
+            "client_id": {
+              "enum": [
+                "home",
+                "security",
+                "notifications",
+                "assistant"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "client_id": {
+                    "const": "home"
+                  }
+                },
+                "required": [
+                  "client_id"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "sub": {
+                    "const": "service:home"
+                  },
+                  "iss": {
+                    "const": "service:home"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "client_id": {
+                    "const": "security"
+                  }
+                },
+                "required": [
+                  "client_id"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "sub": {
+                    "const": "service:security"
+                  },
+                  "iss": {
+                    "const": "service:security"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "client_id": {
+                    "const": "notifications"
+                  }
+                },
+                "required": [
+                  "client_id"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "sub": {
+                    "const": "service:notifications"
+                  },
+                  "iss": {
+                    "const": "service:notifications"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "client_id": {
+                    "const": "assistant"
+                  }
+                },
+                "required": [
+                  "client_id"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "sub": {
+                    "const": "service:assistant"
+                  },
+                  "iss": {
+                    "const": "service:assistant"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "serviceToken": {
+      "type": "object",
+      "title": "Service token (Home \u2192 Identity internal API)",
+      "description": "Signed service identity with an explicit allowlisted client and matching issuer/subject; validated with its independently pinned public key.",
+      "required": [
+        "header",
+        "payload"
+      ],
+      "properties": {
+        "header": {
+          "$ref": "common.json#/$defs/jwtHeader"
+        },
+        "payload": {
+          "type": "object",
+          "required": [
+            "iss",
+            "aud",
+            "sub",
+            "client_id",
+            "scope",
+            "jti",
+            "iat",
+            "exp"
+          ],
+          "properties": {
+            "iss": {
+              "const": "Identity"
+            },
+            "aud": {
+              "const": "Identity.Internal"
+            },
+            "sub": {
+              "enum": [
+                "service:home",
+                "service:security",
+                "service:notifications",
+                "service:assistant"
+              ]
+            },
+            "client_id": {
+              "enum": [
+                "home",
+                "security",
+                "notifications",
+                "assistant"
+              ]
+            },
+            "scope": {
+              "const": "identity:authorize"
+            },
+            "jti": {
+              "$ref": "common.json#/$defs/uuid"
+            },
+            "iat": {
+              "type": "integer"
+            },
+            "exp": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false,
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "client_id": {
+                    "const": "home"
+                  }
+                },
+                "required": [
+                  "client_id"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "sub": {
+                    "const": "service:home"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "client_id": {
+                    "const": "security"
+                  }
+                },
+                "required": [
+                  "client_id"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "sub": {
+                    "const": "service:security"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "client_id": {
+                    "const": "notifications"
+                  }
+                },
+                "required": [
+                  "client_id"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "sub": {
+                    "const": "service:notifications"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "client_id": {
+                    "const": "assistant"
+                  }
+                },
+                "required": [
+                  "client_id"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "sub": {
+                    "const": "service:assistant"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

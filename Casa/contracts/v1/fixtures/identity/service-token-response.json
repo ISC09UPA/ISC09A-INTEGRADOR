@@ -1,0 +1,12 @@
+{
+  "fixture": "service-token-response",
+  "schema": "identity-service-token-response.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Short-lived service token issued by Identity for Home internal API calls. No refresh token.",
+  "data": {
+    "accessToken": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImlkZW50aXR5LWRldi0wMDEifQ.eyJpc3MiOiJJZGVudGl0eSIsInN1YiI6InNlcnZpY2U6aG9tZSIsImF1ZCI6IklkZW50aXR5LkludGVybmFsIiwiY2xpZW50X2lkIjoiaG9tZSIsInNjb3BlIjoiaWRlbnRpdHk6YXV0aG9yaXplIiwianRpIjoiYmJiYmJiYmItYmJiYi1iYmJiLWJiYmItYmJiYmJiYmJiYmJiIiwiaWF0IjoxNzYyNDQ0ODAwLCJleHAiOjE3NjI0NDUxMDB9.SIGNED",
+    "expiresIn": 300,
+    "tokenType": "Bearer"
+  }
+}

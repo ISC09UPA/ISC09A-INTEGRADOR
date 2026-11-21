@@ -1,0 +1,34 @@
+{
+  "fixture": "status-response",
+  "schema": "home-status.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Home status projection with current state, separate from historical results.",
+  "data": {
+    "houseId": "55555555-5555-5555-5555-555555555555",
+    "updatedAtUtc": "2026-10-31T18:12:00Z",
+    "lights": [
+      {
+        "lightId": "sala",
+        "lightOn": true,
+        "lightingMode": "manual",
+        "stateRevision": 7,
+        "lastCommand": {
+          "commandId": "cmd-SetLight-on-001",
+          "status": "executed",
+          "type": "SetLight",
+          "reasonCode": null,
+          "reason": null,
+          "snapshot": {
+            "lightOn": true,
+            "lightingMode": "manual",
+            "source": "device",
+            "appliedAtUtc": "2026-10-31T18:00:05Z"
+          },
+          "stateRevision": 7
+        },
+        "pendingCommand": null
+      }
+    ]
+  }
+}

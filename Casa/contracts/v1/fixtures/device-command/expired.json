@@ -1,0 +1,16 @@
+{
+  "fixture": "expired",
+  "schema": "device-command.json",
+  "expectedValid": false,
+  "expectedShapeValid": true,
+  "description": "expiresAtUtc is before issuedAtUtc. Shape valid but business rule rejects it.",
+  "data": {
+    "commandId": "cmd-expired-014",
+    "deviceId": "raspberry-sim",
+    "type": "SetLight",
+    "commandSequence": 12,
+    "issuedAtUtc": "2026-10-31T18:05:00Z",
+    "expiresAtUtc": "2026-10-31T18:04:00Z",
+    "payload": { "on": true }
+  }
+}

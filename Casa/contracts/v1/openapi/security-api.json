@@ -1,0 +1,926 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Casa Domótica Security API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5004/api/v1"
+    }
+  ],
+  "paths": {
+    "/security/houses/{houseId}/mode": {
+      "get": {
+        "summary": "Current confirmed mode for the associated controller",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/security-mode.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid filter or cursor."
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No house permission."
+          },
+          "404": {
+            "description": "No matching record or device report."
+          },
+          "503": {
+            "description": "Required service unavailable."
+          }
+        }
+      }
+    },
+    "/security/houses/{houseId}/activity": {
+      "get": {
+        "summary": "House activity, newest first",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "result",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/security-page.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid filter or cursor."
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No house permission."
+          },
+          "404": {
+            "description": "No matching record or device report."
+          },
+          "503": {
+            "description": "Required service unavailable."
+          }
+        }
+      }
+    },
+    "/security/houses/{houseId}/activity/{eventId}": {
+      "get": {
+        "summary": "Activity detail",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/security-entry.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid filter or cursor."
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No house permission."
+          },
+          "404": {
+            "description": "No matching record or device report."
+          },
+          "503": {
+            "description": "Required service unavailable."
+          }
+        }
+      }
+    },
+    "/security/houses/{houseId}/incidents": {
+      "get": {
+        "summary": "House incidents, newest first",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/security-page.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid filter or cursor."
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No house permission."
+          },
+          "404": {
+            "description": "No matching record or device report."
+          },
+          "503": {
+            "description": "Required service unavailable."
+          }
+        }
+      }
+    },
+    "/security/houses/{houseId}/incidents/{eventId}": {
+      "get": {
+        "summary": "Incident detail",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "eventId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/security-entry.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid filter or cursor."
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No house permission."
+          },
+          "404": {
+            "description": "No matching record or device report."
+          },
+          "503": {
+            "description": "Required service unavailable."
+          }
+        }
+      }
+    },
+    "/security/houses/{houseId}/captures": {
+      "get": {
+        "summary": "List available private captures",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/security-page.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request."
+          },
+          "401": {
+            "description": "Missing or revoked session."
+          },
+          "403": {
+            "description": "Not authorized."
+          },
+          "404": {
+            "description": "Capture not found."
+          },
+          "503": {
+            "description": "Service unavailable."
+          }
+        }
+      }
+    },
+    "/security/houses/{houseId}/captures/{captureId}": {
+      "get": {
+        "summary": "Capture metadata",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "captureId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authorized result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/security-entry.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request."
+          },
+          "401": {
+            "description": "Missing or revoked session."
+          },
+          "403": {
+            "description": "Not authorized."
+          },
+          "404": {
+            "description": "Capture not found."
+          },
+          "503": {
+            "description": "Service unavailable."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Request deletion of this capture",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "captureId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Already deleted."
+          },
+          "202": {
+            "description": "Deletion is pending or blocked."
+          },
+          "400": {
+            "description": "Invalid request."
+          },
+          "401": {
+            "description": "Missing or revoked session."
+          },
+          "403": {
+            "description": "Not authorized."
+          },
+          "404": {
+            "description": "Capture not found."
+          },
+          "503": {
+            "description": "Service unavailable."
+          }
+        }
+      }
+    },
+    "/security/houses/{houseId}/captures/{captureId}/content": {
+      "get": {
+        "summary": "Read the verified version of a capture",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "captureId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authenticated private image; no-store.",
+            "content": {
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "contentMediaType": "image/png"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "contentMediaType": "image/jpeg"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request."
+          },
+          "401": {
+            "description": "Missing or revoked session."
+          },
+          "403": {
+            "description": "Not authorized."
+          },
+          "404": {
+            "description": "Capture not found."
+          },
+          "503": {
+            "description": "Service unavailable."
+          }
+        }
+      }
+    },
+    "/security/houses/{houseId}/captures/{captureId}/analysis": {
+      "post": {
+        "summary": "Request image analysis",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "captureId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Analysis previously completed."
+          },
+          "202": {
+            "description": "Analysis pending."
+          },
+          "400": {
+            "description": "Invalid request."
+          },
+          "401": {
+            "description": "Missing or revoked session."
+          },
+          "403": {
+            "description": "Not authorized."
+          },
+          "404": {
+            "description": "Capture not found."
+          },
+          "503": {
+            "description": "Service unavailable."
+          }
+        }
+      }
+    },
+    "/security/houses/{houseId}/capture-retention": {
+      "get": {
+        "summary": "Get the administrative capture retention policy",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retention policy; null disables automatic deletion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "retentionDays"
+                  ],
+                  "properties": {
+                    "retentionDays": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1,
+                      "maximum": 3650
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request."
+          },
+          "401": {
+            "description": "Missing or revoked session."
+          },
+          "403": {
+            "description": "Not authorized."
+          },
+          "404": {
+            "description": "Capture not found."
+          },
+          "503": {
+            "description": "Service unavailable."
+          }
+        }
+      },
+      "put": {
+        "summary": "Change capture retention; existing old captures may be deleted",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retention policy; null disables automatic deletion.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "retentionDays"
+                  ],
+                  "properties": {
+                    "retentionDays": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ],
+                      "minimum": 1,
+                      "maximum": 3650
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request."
+          },
+          "401": {
+            "description": "Missing or revoked session."
+          },
+          "403": {
+            "description": "Not authorized."
+          },
+          "404": {
+            "description": "Capture not found."
+          },
+          "503": {
+            "description": "Service unavailable."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "retentionDays"
+                ],
+                "properties": {
+                  "retentionDays": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1,
+                    "maximum": 3650
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        }
+      }
+    },
+    "/security/houses/{houseId}/captures/{captureId}/deletion": {
+      "get": {
+        "summary": "Check whether an authorized deletion is pending, blocked or completed",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "captureId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deletion status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "status"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "status": {
+                      "enum": [
+                        "none",
+                        "pending",
+                        "blocked",
+                        "deleted"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request."
+          },
+          "401": {
+            "description": "Missing or revoked session."
+          },
+          "403": {
+            "description": "Not authorized."
+          },
+          "404": {
+            "description": "Capture not found."
+          },
+          "503": {
+            "description": "Service unavailable."
+          }
+        }
+      }
+    },
+    "/security/houses/{houseId}/preferences": {
+      "get": {
+        "summary": "Get evidence capture and automatic image analysis preferences for a house",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Security preferences.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/security-preferences.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No house permission."
+          },
+          "503": {
+            "description": "Service unavailable."
+          }
+        }
+      },
+      "put": {
+        "summary": "Configure automatic capture and image analysis preferences for a house",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/security-preferences.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved security preferences.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/security-preferences.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request."
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No administrative house permission."
+          },
+          "503": {
+            "description": "Service unavailable."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "userBearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

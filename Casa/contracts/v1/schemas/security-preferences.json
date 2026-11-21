@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/security-preferences.json",
+  "title": "Security Preferences",
+  "type": "object",
+  "required": [
+    "captures",
+    "analysis"
+  ],
+  "properties": {
+    "captures": {
+      "type": "boolean"
+    },
+    "analysis": {
+      "type": "boolean"
+    },
+    "updatedAtUtc": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

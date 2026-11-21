@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/command-result.json",
+  "title": "CommandResult payload v1",
+  "description": "Durable outcome of a physical command. This payload is carried inside a Telemetry envelope with type=CommandResult, and is also returned by GET /commands/{commandId}. EXECUTED requires a complete snapshot and a non-null stateRevision. Terminal error states require a non-null reasonCode. Pending is a Home order state, not a Pi result.",
+  "type": "object",
+  "required": ["commandId", "status", "type"],
+  "properties": {
+    "commandId": { "$ref": "common.json#/$defs/commandId" },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "executed", "rejected", "expired", "unknown", "failed"]
+    },
+    "type": {
+      "type": "string",
+      "enum": ["SetLight", "SetLightingMode", "SetSecurityMode", "OpenDoor", "CaptureImage", "StartVideo"]
+    },
+    "reasonCode": { "$ref": "common.json#/$defs/reasonCode" },
+    "reason": {
+      "type": ["string", "null"],
+      "maxLength": 2048
+    },
+    "snapshot": {
+      "type": ["object", "null"],
+      "description": "Capability snapshot required for integration. Null for terminal states without applied effect.",
+      "required": ["lightOn", "lightingMode", "source", "appliedAtUtc"],
+      "properties": {
+        "lightOn": { "type": "boolean" },
+        "lightingMode": { "type": "string", "enum": ["auto", "manual"] },
+        "source": {
+          "type": "string",
+          "enum": ["simulated", "device"],
+          "description": "device = driver reported success, not optical physical proof."
+        },
+        "appliedAtUtc": { "$ref": "common.json#/$defs/dateTimeUtc" }
+      },
+      "additionalProperties": false
+    },
+    "stateRevision": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Monotonic per-light revision persisted by Home. Pi emits it authenticated; Home validates association and monotonicity."
+    },
+    "eventId": {
+      "$ref": "common.json#/$defs/uuid",
+      "description": "Event id from the device envelope."
+    },
+    "correlationId": {
+      "$ref": "common.json#/$defs/correlationId"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": { "const": "executed" },
+          "type": { "const": "StartVideo" }
+        },
+        "required": ["status", "type"]
+      },
+      "then": {
+        "required": ["snapshot", "stateRevision", "reasonCode"],
+        "properties": {
+          "snapshot": { "const": null },
+          "stateRevision": { "const": null },
+          "reasonCode": { "const": null },
+          "reason": { "const": null }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "const": "executed" } },
+        "required": ["status"],
+        "not": {
+          "properties": { "type": { "const": "StartVideo" } },
+          "required": ["type"]
+        }
+      },
+      "then": {
+        "required": ["snapshot", "stateRevision", "reasonCode"],
+        "properties": {
+          "snapshot": { "type": "object" },
+          "stateRevision": { "type": "integer" },
+          "reasonCode": { "const": null },
+          "reason": { "const": null }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "pending" } } },
+      "then": {
+        "required": ["reasonCode"],
+        "properties": {
+          "snapshot": { "const": null },
+          "stateRevision": { "const": null },
+          "reasonCode": { "const": null },
+          "reason": { "const": null }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "status": { "enum": ["rejected", "expired", "unknown", "failed"] } }
+      },
+      "then": {
+        "required": ["reasonCode"],
+        "properties": {
+          "snapshot": { "const": null },
+          "stateRevision": { "const": null },
+          "reasonCode": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "rejected" } } },
+      "then": {
+        "properties": {
+          "reasonCode": { "enum": ["invalidPayload", "unauthorized", "forbidden", "duplicateChanged", "sequenceRejected", "deviceRejected"] }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "expired" } } },
+      "then": {
+        "properties": {
+          "reasonCode": { "const": "expired" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "unknown" } } },
+      "then": {
+        "properties": {
+          "reasonCode": { "enum": ["unknown", "failed"] }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "status": { "const": "failed" } } },
+      "then": {
+        "properties": {
+          "reasonCode": { "const": "failed" }
+        }
+      }
+    }
+  ]
+}

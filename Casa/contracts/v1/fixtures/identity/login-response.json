@@ -1,0 +1,15 @@
+{
+  "fixture": "login-response",
+  "schema": "identity-token-response.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Session created. Access token is a JWT signed by Identity; refresh token is a hash stored server-side. TTLs closed.",
+  "data": {
+    "accessToken": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImlkZW50aXR5LWRldi0wMDEifQ.eyJzdWIiOiJjY2NjY2NjYy1jY2NjLWNjY2MtY2NjYy1jY2NjY2NjY2NjY2MiLCJzaWQiOiJkZGRkZGRkZC1kZGRkLWRkZGQtZGRkZC1kZGRkZGRkZGRkZGQiLCJhdWQiOlsiSWRlbnRpdHkuUHVibGljIiwiSG9tZS5QdWJsaWMiXSwic2NvcGUiOiJob21lOnJlYWQgaG9tZTpjb250cm9sOmxpZ2h0cyIsImp0aSI6ImZmZmZmZmZmLWZmZmYtZmZmZi1mZmZmLWZmZmZmZmZmZmZmZiIsImlzcyI6IklkZW50aXR5IiwiaWF0IjoxNzYyNDQ0ODAwLCJleHAiOjE3NjI0NDUxMDB9.SIGNED",
+    "refreshToken": "rotating-refresh-token-hash-not-a-jwt",
+    "expiresIn": 300,
+    "refreshExpiresIn": 604800,
+    "sessionId": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+    "userId": "cccccccc-cccc-cccc-cccc-cccccccccccc"
+  }
+}

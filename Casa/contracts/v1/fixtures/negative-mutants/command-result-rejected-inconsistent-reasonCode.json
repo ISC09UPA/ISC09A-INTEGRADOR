@@ -1,0 +1,16 @@
+{
+  "fixture": "command-result-rejected-inconsistent-reasonCode",
+  "schema": "command-result.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "Rejected status does not admit reasonCode=expired.",
+  "data": {
+    "commandId": "cmd-bad-reason-004",
+    "status": "rejected",
+    "type": "SetLight",
+    "reasonCode": "expired",
+    "reason": "inconsistent reasonCode",
+    "snapshot": null,
+    "stateRevision": null
+  }
+}

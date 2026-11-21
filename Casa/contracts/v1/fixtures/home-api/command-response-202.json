@@ -1,0 +1,12 @@
+{
+  "fixture": "command-response-202",
+  "schema": "home-command-response.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Home API returns 202 pending. The effect has not been applied.",
+  "data": {
+    "commandId": "cmd-SetLight-on-015",
+    "status": "pending",
+    "correlationId": "00000000-0000-0000-0000-000000000012"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/home-command-response.json",
+  "title": "Home command response v1",
+  "description": "Response for POST /houses/{houseId}/lights/{lightId}/commands. HTTP 202 accepted; 409 if idempotency key reused with different content.",
+  "type": "object",
+  "required": ["commandId", "status", "correlationId"],
+  "properties": {
+    "commandId": { "$ref": "common.json#/$defs/commandId" },
+    "status": { "type": "string", "enum": ["pending"] },
+    "correlationId": { "$ref": "common.json#/$defs/correlationId" }
+  },
+  "additionalProperties": false
+}

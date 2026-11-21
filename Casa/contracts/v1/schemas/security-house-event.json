@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/security-house-event.json",
+  "title": "Authenticated Home event for Security v1",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "type",
+    "eventId",
+    "correlationId",
+    "houseId",
+    "sourceDeviceId",
+    "occurredAtUtc",
+    "receivedAtUtc",
+    "payload"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "type": {
+      "enum": [
+        "DeviceStateChanged",
+        "MotionDetected",
+        "AccessRequested",
+        "CaptureAvailable",
+        "HouseMembershipChanged"
+      ]
+    },
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "correlationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "houseId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sourceDeviceId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "occurredAtUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "receivedAtUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "isSecurityController": {
+      "type": "boolean",
+      "description": "Home asserts this only when the authenticated source is the sole enabled security controller; absent means false."
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}

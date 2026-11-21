@@ -1,0 +1,13 @@
+{
+  "fixture": "video-playlist-gap",
+  "schema": "video-playlist-request.json",
+  "expectedValid": false,
+  "expectedShapeValid": true,
+  "description": "Shape-valid but semantically invalid playlist with a gap; the server must reject it.",
+  "data": {
+    "segments": [
+      0,
+      2
+    ]
+  }
+}

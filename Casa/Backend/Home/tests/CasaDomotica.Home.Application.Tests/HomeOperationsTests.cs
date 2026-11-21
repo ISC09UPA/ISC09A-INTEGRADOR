@@ -11,7 +11,7 @@ public sealed class HomeOperationsTests
         public int Admissions;
         public Task<StoredStatus?> StatusAsync(Guid houseId, CancellationToken ct) => Task.FromResult<StoredStatus?>(null);
         public Task<StoredCommand?> FindAsync(string commandId, CancellationToken ct) => Task.FromResult<StoredCommand?>(null);
-        public Task<StoredCommand?> FindByKeyAsync(Guid houseId, string key, CancellationToken ct) => Task.FromResult<StoredCommand?>(null);
+        public Task<StoredCommand?> FindByKeyAsync(Guid houseId, string key, CancellationToken ct, DateTimeOffset? clientExpiresAtUtc = null) => Task.FromResult<StoredCommand?>(null);
         public Task<StoredCommand> AdmitAsync(UserContext user, Guid houseId, string lightId, string type, string payloadJson, string requestHash, string key, Guid correlationId, DateTimeOffset requestedAt, DateTimeOffset expiresAt, CancellationToken ct)
         {
             Admissions++;

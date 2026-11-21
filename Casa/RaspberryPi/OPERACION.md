@@ -22,19 +22,22 @@ journalctl -u casa-pi -n 30 --no-pager
 casa-pi-sim status
 casa-pi-sim sensor --light 10
 casa-pi-sim sensor --light 90
-casa-pi-sim command SetLight --on true
-casa-pi-sim command SetLightingMode --mode auto
-casa-pi-sim command SetSecurityMode --mode armed
 casa-pi-sim sensor --motion on
 casa-pi-sim sensor --motion off
 casa-pi-sim sensor --fingerprint demo-1
 casa-pi-sim sensor --fingerprint none
-casa-pi-sim command OpenDoor --duration-ms 1500
+
+# C11: device-command.json requires commandSequence for every v1 command.
+casa-pi-sim command SetLight --on true --sequence 1
+casa-pi-sim command SetLightingMode --mode auto --sequence 2
+# SetSecurityMode defaults to armed if --mode is omitted.
+casa-pi-sim command SetSecurityMode --mode armed --sequence 3
+casa-pi-sim command OpenDoor --duration-ms 1500 --sequence 4
 ```
 
 `OpenDoor` en esta consola es una inyeccion local de prueba y solo se procesa en modo simulado. No representa reconocimiento biometrico ni autorizacion del backend. El modo real no lee la carpeta de ordenes locales. No se expone un servidor HTTP.
 
-Las ordenes llevan commandId, deviceId, issuedAtUtc, expiresAtUtc y payload. OpenDoor exige ademas attemptId y doorId. Ventana maxima: 30 segundos. Pulso maximo configurado: 3000 ms. Un ID ya ejecutado o desconocido no repite la accion; reutilizarlo con otro contenido se rechaza. Una apertura activa no se prolonga con otra orden. Al reiniciar se desactiva la salida de puerta y las ejecuciones incompletas quedan unknown. En una orden de apertura, executed significa que se inicio el pulso, no que un sensor confirmo la posicion fisica de la puerta.
+Las ordenes llevan commandId, deviceId, issuedAtUtc, expiresAtUtc y payload. A partir de C11, `SetLight` y `SetLightingMode` exigen ademas `commandSequence`: un entero no negativo monotono por luz generado por la autoridad Home (en simulacion, el operador lo provee con `--sequence`). OpenDoor exige ademas attemptId y doorId. Ventana maxima: 30 segundos. Pulso maximo configurado: 3000 ms. Un ID ya ejecutado o desconocido no repite la accion; reutilizarlo con otro contenido se rechaza. Una apertura activa no se prolonga con otra orden. Al reiniciar se desactiva la salida de puerta y las ejecuciones incompletas quedan unknown. En una orden de apertura, executed significa que se inicio el pulso, no que un sensor confirmo la posicion fisica de la puerta.
 
 Para que una apertura pueda ejecutarse el reloj debe aparecer sincronizado en timedatectl. La validacion vuelve a comprobar vigencia inmediatamente antes de actuar. La simulacion tiene cierre por software; el montaje real requerira un controlador adecuado y proteccion de tiempo independiente del proceso.
 
@@ -55,15 +58,21 @@ Quedan por implementar cargas autorizadas a Blob, captura real/CSI, reconocimien
 ## Pruebas
 
 ```bash
-cd /opt/casa-pi
-PYTHONPATH=src:vendor python3 -m unittest discover -s tests -v
+./scripts/verify-agent.sh
 ```
 
-Incluyen luz/histeresis, entradas invalidas, deteccion de flanco, huella sin apertura, canal no confiable, destino, caducidad, reloj, duracion, duplicados, reinicio durante ejecucion, persistencia y cola acotada. Las pruebas de software no certifican hardware.
+Ejecuta 54 pruebas unitarias del agente y la validación formal offline de los schemas y fixtures del contrato v1. También se puede correr manualmente:
+
+```bash
+cd /opt/casa-pi
+PYTHONPATH=src python3 -m unittest discover -s tests -v
+```
+
+Incluyen luz/histeresis, entradas invalidas, deteccion de flanco, huella sin apertura, canal no confiable, destino, caducidad, reloj, duracion, duplicados, reinicio durante ejecucion, persistencia, cola acotada, correlación de admisión separada del body, protección de resultados terminales, fallo post-efecto del driver y revisión efectiva de estado. Las pruebas de software no certifican hardware.
 
 ## Evidencia del 26 de octubre de 2026
 
-La suite actual pasa 24 pruebas de software. La instalación original se verificó con IoT Hub y con una instancia aislada sin red. Los archivos de evidencia de aquella ejecución permanecen en la copia original del proyecto; no se incluyen como datos de ejecución en este paquete.
+La suite actual pasa 24 pruebas de software. `VERIFICACION_AZURE.json` registra 15 comprobaciones con el IoT Hub existente. `VERIFICACION_SIN_RED.json` registra 7 comprobaciones en una instancia con espacio de red Linux aislado, sin interrumpir el servicio principal. Se verifico que el SDK no bloquee el arranque al registrar receptores sin internet. `VERIFICACION.json` conserva la evidencia anterior de la primera version local.
 
 ## Simular y observar telemetría
 

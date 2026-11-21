@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/authz-check-request.json",
+  "title": "User membership authorization check request v1",
+  "description": "Body for the authenticated service authorization endpoint. The caller uses its own service token and submits the user and session to be checked. Service/action access is restricted server-side.",
+  "type": "object",
+  "required": [
+    "userId",
+    "sessionId",
+    "houseId",
+    "action",
+    "correlationId"
+  ],
+  "properties": {
+    "userId": {
+      "$ref": "common.json#/$defs/uuid"
+    },
+    "sessionId": {
+      "$ref": "common.json#/$defs/uuid"
+    },
+    "houseId": {
+      "$ref": "common.json#/$defs/houseId"
+    },
+    "action": {
+      "enum": [
+        "home:read",
+        "home:control:lights",
+        "home:control:security",
+        "home:control:door",
+        "home:control:capture",
+        "security:read",
+        "security:manage",
+        "notifications:read",
+        "notifications:manage",
+        "assistant:read",
+        "identity:manage:members"
+      ]
+    },
+    "resourceId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "correlationId": {
+      "$ref": "common.json#/$defs/correlationId"
+    }
+  },
+  "additionalProperties": false
+}

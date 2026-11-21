@@ -1,0 +1,18 @@
+{
+  "fixture": "command-result-start-video-executed-with-stateRevision",
+  "schema": "command-result.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "StartVideo executed must not carry a light state revision.",
+  "data": {
+    "commandId": "cmd-StartVideo-014",
+    "status": "executed",
+    "type": "StartVideo",
+    "reasonCode": null,
+    "reason": null,
+    "snapshot": null,
+    "stateRevision": 1,
+    "eventId": "22222222-2222-2222-2222-222222222222",
+    "correlationId": "00000000-0000-0000-0000-000000000000"
+  }
+}

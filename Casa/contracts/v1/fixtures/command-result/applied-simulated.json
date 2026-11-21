@@ -1,0 +1,23 @@
+{
+  "fixture": "applied-simulated",
+  "schema": "command-result.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Simulated device reports SetLightingMode manual. source=simulated explicit for dev adapters.",
+  "data": {
+    "commandId": "cmd-SetLightingMode-manual-002",
+    "status": "executed",
+    "type": "SetLightingMode",
+    "reasonCode": null,
+    "reason": null,
+    "snapshot": {
+      "lightOn": false,
+      "lightingMode": "manual",
+      "source": "simulated",
+      "appliedAtUtc": "2026-10-31T18:05:00Z"
+    },
+    "stateRevision": 8,
+    "eventId": "22222222-2222-2222-2222-222222222222",
+    "correlationId": "00000000-0000-0000-0000-000000000001"
+  }
+}

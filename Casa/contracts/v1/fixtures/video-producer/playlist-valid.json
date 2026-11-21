@@ -1,0 +1,14 @@
+{
+  "fixture": "video-playlist-valid",
+  "schema": "video-playlist-request.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Contiguous ascending window of already-uploaded segment sequences.",
+  "data": {
+    "segments": [
+      0,
+      1,
+      2
+    ]
+  }
+}

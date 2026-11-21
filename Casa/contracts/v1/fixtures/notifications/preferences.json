@@ -1,0 +1,15 @@
+{
+  "fixture": "notification-preferences",
+  "schema": "notification-preferences.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Isolated contract fixture; not production data.",
+  "data": {
+    "email": true,
+    "verifiedEmail": "owner@example.invalid",
+    "verifiedAtUtc": "2026-11-18T12:00:00Z",
+    "pendingRecipientEmail": null,
+    "updatedAtUtc": "2026-11-18T12:00:00Z"
+  },
+  "httpStatus": 200
+}

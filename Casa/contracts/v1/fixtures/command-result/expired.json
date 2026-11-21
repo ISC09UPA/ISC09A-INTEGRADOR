@@ -1,0 +1,18 @@
+{
+  "fixture": "expired",
+  "schema": "command-result.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Expired only if there is evidence of non-execution. No snapshot applied.",
+  "data": {
+    "commandId": "cmd-expired-006",
+    "status": "expired",
+    "type": "OpenDoor",
+    "reasonCode": "expired",
+    "reason": "Orden vencida o ventana invalida",
+    "snapshot": null,
+    "stateRevision": null,
+    "eventId": "55555555-5555-5555-5555-555555555555",
+    "correlationId": "00000000-0000-0000-0000-000000000005"
+  }
+}

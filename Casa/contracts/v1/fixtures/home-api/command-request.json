@@ -1,0 +1,13 @@
+{
+  "fixture": "command-request",
+  "schema": "light-command-request.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "App requests SetLight on for a specific light. Idempotency key required.",
+  "data": {
+    "type": "SetLight",
+    "payload": { "on": true },
+    "idempotencyKey": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "correlationId": "00000000-0000-0000-0000-000000000011"
+  }
+}

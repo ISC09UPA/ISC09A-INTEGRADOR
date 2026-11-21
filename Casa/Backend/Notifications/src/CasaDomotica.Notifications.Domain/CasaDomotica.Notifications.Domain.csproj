@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>CasaDomotica.Notifications.Domain</AssemblyName>
+  </PropertyGroup>
+</Project>

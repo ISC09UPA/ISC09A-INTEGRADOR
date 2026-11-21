@@ -1,0 +1,11 @@
+{
+  "fixture": "service-token-request",
+  "schema": "identity-service-token-request.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Service token request body. assertion is a syntactic placeholder, NOT a real signed JWT; JWT claims are tested separately in jwt-contract.json fixtures.",
+  "data": {
+    "grantType": "urn:ietf:params:oauth:grant-type:jwt-bearer",
+    "assertion": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImhvbWUtZGV2LTAwMSJ9.SIGNED_PLACEHOLDER_NOT_REAL"
+  }
+}

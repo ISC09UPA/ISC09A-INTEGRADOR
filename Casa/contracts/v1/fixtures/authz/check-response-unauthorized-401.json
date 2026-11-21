@@ -1,0 +1,16 @@
+{
+  "fixture": "check-response-unauthorized-401",
+  "schema": "problem-details.json",
+  "httpStatus": 401,
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "HTTP 401 because the Home service credential is invalid or missing.",
+  "data": {
+    "type": "https://integrador9nocuatri.local/errors/unauthorized",
+    "title": "Unauthorized",
+    "status": 401,
+    "detail": "invalid service credential",
+    "correlationId": "00000000-0000-0000-0000-000000000016",
+    "code": "invalidCredential"
+  }
+}

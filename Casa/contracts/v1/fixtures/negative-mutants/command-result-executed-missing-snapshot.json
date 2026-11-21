@@ -1,0 +1,16 @@
+{
+  "fixture": "command-result-executed-missing-snapshot",
+  "schema": "command-result.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "executed status requires a complete snapshot object and reasonCode null.",
+  "data": {
+    "commandId": "cmd-mutant-001",
+    "status": "executed",
+    "type": "SetLight",
+    "reasonCode": null,
+    "reason": null,
+    "snapshot": null,
+    "stateRevision": 7
+  }
+}

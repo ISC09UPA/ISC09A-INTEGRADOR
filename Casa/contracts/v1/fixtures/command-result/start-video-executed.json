@@ -1,0 +1,18 @@
+{
+  "fixture": "start-video-executed",
+  "schema": "command-result.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "StartVideo executed has no light snapshot or state revision; it only confirms producer admission.",
+  "data": {
+    "commandId": "cmd-StartVideo-014",
+    "status": "executed",
+    "type": "StartVideo",
+    "reasonCode": null,
+    "reason": null,
+    "snapshot": null,
+    "stateRevision": null,
+    "eventId": "22222222-2222-2222-2222-222222222222",
+    "correlationId": "00000000-0000-0000-0000-000000000000"
+  }
+}

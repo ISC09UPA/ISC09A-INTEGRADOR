@@ -1,0 +1,23 @@
+{
+  "fixture": "start-video-executed-envelope",
+  "schema": "telemetry-envelope.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "StartVideo CommandResult wrapped in a v1 telemetry envelope.",
+  "data": {
+    "schemaVersion": 1,
+    "type": "CommandResult",
+    "eventId": "22222222-2222-2222-2222-222222222222",
+    "occurredAtUtc": "2026-10-31T18:00:05Z",
+    "correlationId": "00000000-0000-0000-0000-000000000000",
+    "payload": {
+      "commandId": "cmd-StartVideo-014",
+      "status": "executed",
+      "type": "StartVideo",
+      "reasonCode": null,
+      "reason": null,
+      "snapshot": null,
+      "stateRevision": null
+    }
+  }
+}

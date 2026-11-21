@@ -1,0 +1,16 @@
+{
+  "fixture": "video-session-connecting",
+  "schema": "video-session.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Accepted session before any real producer segment or playlist exists.",
+  "data": {
+    "id": "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+    "status": "connecting",
+    "expiresAtUtc": "2026-10-31T18:03:00Z",
+    "commandId": "cmd-StartVideo-014",
+    "streamUrl": null,
+    "streamType": null
+  },
+  "httpStatus": 202
+}

@@ -1,0 +1,30 @@
+{
+  "fixture": "home-command-resource-commandId-mismatch",
+  "schema": "home-command-resource.json",
+  "expectedValid": false,
+  "expectedShapeValid": true,
+  "description": "C10 invariant violation: result.commandId must equal resource.commandId. Shape valid, semantic invalid.",
+  "data": {
+    "commandId": "cmd-resource-003",
+    "houseId": "55555555-5555-5555-5555-555555555555",
+    "lightId": "sala",
+    "status": "executed",
+    "type": "SetLight",
+    "requestedAtUtc": "2026-10-31T18:00:00Z",
+    "correlationId": "00000000-0000-0000-0000-000000000022",
+    "result": {
+      "commandId": "cmd-result-003",
+      "status": "executed",
+      "type": "SetLight",
+      "reasonCode": null,
+      "reason": null,
+      "snapshot": {
+        "lightOn": true,
+        "lightingMode": "manual",
+        "source": "device",
+        "appliedAtUtc": "2026-10-31T18:00:05Z"
+      },
+      "stateRevision": 7
+    }
+  }
+}

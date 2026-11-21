@@ -1,0 +1,16 @@
+{
+  "fixture": "set-light-on",
+  "schema": "device-command.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "SetLight forces manual mode and reports both on value and resulting mode.",
+  "data": {
+    "commandId": "cmd-SetLight-on-001",
+    "deviceId": "raspberry-sim",
+    "type": "SetLight",
+    "commandSequence": 7,
+    "issuedAtUtc": "2026-10-31T18:00:00Z",
+    "expiresAtUtc": "2026-10-31T18:00:30Z",
+    "payload": { "on": true }
+  }
+}

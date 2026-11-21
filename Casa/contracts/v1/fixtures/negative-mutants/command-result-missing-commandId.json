@@ -1,0 +1,15 @@
+{
+  "fixture": "command-result-missing-commandId",
+  "schema": "command-result.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "commandId is required.",
+  "data": {
+    "status": "pending",
+    "type": "SetLight",
+    "reasonCode": null,
+    "reason": null,
+    "snapshot": null,
+    "stateRevision": null
+  }
+}

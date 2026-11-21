@@ -1,0 +1,17 @@
+{
+  "fixture": "202-pending",
+  "schema": "command-result.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Home API accepted the command and queued it. No snapshot yet. HTTP 202 means pending, never effect applied.",
+  "data": {
+    "commandId": "cmd-SetLight-on-003",
+    "status": "pending",
+    "type": "SetLight",
+    "reasonCode": null,
+    "reason": null,
+    "snapshot": null,
+    "stateRevision": null,
+    "correlationId": "00000000-0000-0000-0000-000000000002"
+  }
+}

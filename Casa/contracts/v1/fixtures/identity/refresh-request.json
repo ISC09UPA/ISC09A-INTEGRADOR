@@ -1,0 +1,10 @@
+{
+  "fixture": "refresh-request",
+  "schema": "identity-refresh-request.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Refresh request with opaque rotating token. Access token validity is not required.",
+  "data": {
+    "refreshToken": "rotating-refresh-token-hash-not-a-jwt"
+  }
+}

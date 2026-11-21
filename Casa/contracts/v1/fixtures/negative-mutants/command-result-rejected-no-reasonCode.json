@@ -1,0 +1,15 @@
+{
+  "fixture": "command-result-rejected-no-reasonCode",
+  "schema": "command-result.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "Rejected terminal state requires a non-null reasonCode.",
+  "data": {
+    "commandId": "cmd-no-reason-001",
+    "status": "rejected",
+    "type": "SetLight",
+    "reason": "missing reasonCode",
+    "snapshot": null,
+    "stateRevision": null
+  }
+}

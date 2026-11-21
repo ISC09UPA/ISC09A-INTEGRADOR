@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/video-segment-upload-result.json",
+  "title": "Video segment upload result v1",
+  "description": "Confirms that one bounded MPEG-TS segment was durably stored for the producer session.",
+  "type": "object",
+  "required": ["sequence", "status"],
+  "properties": {
+    "sequence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 119
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ready"]
+    }
+  },
+  "additionalProperties": false
+}

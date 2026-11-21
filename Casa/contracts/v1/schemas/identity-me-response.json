@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/identity-me-response.json",
+  "title": "Identity me response v1",
+  "type": "object",
+  "required": ["userId", "email", "houses"],
+  "properties": {
+    "userId": { "$ref": "common.json#/$defs/uuid" },
+    "email": { "type": "string", "format": "email" },
+    "houses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["houseId", "role"],
+        "properties": {
+          "houseId": { "$ref": "common.json#/$defs/uuid" },
+          "role": { "$ref": "common.json#/$defs/role" },
+          "name": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

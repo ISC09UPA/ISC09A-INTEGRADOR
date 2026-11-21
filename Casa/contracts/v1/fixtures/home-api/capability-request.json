@@ -1,0 +1,13 @@
+{
+  "fixture": "capability-request",
+  "schema": "capability-command-request.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Isolated contract fixture, not a real reading or command.",
+  "data": {
+    "type": "OpenDoor",
+    "payload": {},
+    "idempotencyKey": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    "expiresAtUtc": "2026-10-31T18:00:10Z"
+  }
+}

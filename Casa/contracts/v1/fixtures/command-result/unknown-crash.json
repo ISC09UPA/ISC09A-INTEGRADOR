@@ -1,0 +1,18 @@
+{
+  "fixture": "unknown-crash",
+  "schema": "command-result.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Crash after claim/physical effect. Recovery sets executing -> unknown with durable commandId+event. Never re-execute automatically.",
+  "data": {
+    "commandId": "cmd-crash-007",
+    "status": "unknown",
+    "type": "SetLight",
+    "reasonCode": "unknown",
+    "reason": "Fallo durante ejecucion",
+    "snapshot": null,
+    "stateRevision": null,
+    "eventId": "66666666-6666-6666-6666-666666666666",
+    "correlationId": "00000000-0000-0000-0000-000000000006"
+  }
+}

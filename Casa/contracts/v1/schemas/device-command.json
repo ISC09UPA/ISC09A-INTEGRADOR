@@ -1,0 +1,261 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/device-command.json",
+  "title": "Device command v1",
+  "description": "Home-to-device direct method. Sequence is monotonic per device. Physical execution requires a valid unexpired command and a confirmed device event; CaptureImage requires a future device driver and authorized capture workflow.",
+  "type": "object",
+  "required": [
+    "commandId",
+    "deviceId",
+    "type",
+    "commandSequence",
+    "issuedAtUtc",
+    "expiresAtUtc",
+    "payload"
+  ],
+  "properties": {
+    "commandId": {
+      "$ref": "common.json#/$defs/commandId"
+    },
+    "deviceId": {
+      "$ref": "common.json#/$defs/deviceId"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "SetLight",
+        "SetLightingMode",
+        "SetSecurityMode",
+        "OpenDoor",
+        "CaptureImage",
+        "StartVideo"
+      ]
+    },
+    "commandSequence": {
+      "$ref": "common.json#/$defs/commandSequence"
+    },
+    "attemptId": {
+      "anyOf": [
+        {
+          "$ref": "common.json#/$defs/uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "issuedAtUtc": {
+      "$ref": "common.json#/$defs/dateTimeUtc"
+    },
+    "expiresAtUtc": {
+      "$ref": "common.json#/$defs/dateTimeUtc"
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "SetLight"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": [
+              "on"
+            ],
+            "properties": {
+              "on": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "SetLightingMode"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": [
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "auto",
+                  "manual"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "SetSecurityMode"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": [
+              "mode"
+            ],
+            "properties": {
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "armed",
+                  "disarmed"
+                ]
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "OpenDoor"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "attemptId"
+        ],
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": [
+              "doorId",
+              "durationMs"
+            ],
+            "properties": {
+              "doorId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "durationMs": {
+                "type": "integer",
+                "minimum": 100,
+                "maximum": 3000
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "CaptureImage"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": [
+              "captureId",
+              "uploadUrl",
+              "uploadToken",
+              "uploadExpiresAtUtc"
+            ],
+            "properties": {
+              "captureId": {
+                "$ref": "common.json#/$defs/uuid"
+              },
+              "uploadUrl": {
+                "type": "string",
+                "format": "uri",
+                "pattern": "^https://",
+                "maxLength": 2048
+              },
+              "uploadToken": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{43}$"
+              },
+              "uploadExpiresAtUtc": {
+                "$ref": "common.json#/$defs/dateTimeUtc"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "StartVideo"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "type": "object",
+            "required": [
+              "sessionId",
+              "uploadUrl",
+              "uploadToken",
+              "uploadExpiresAtUtc"
+            ],
+            "properties": {
+              "sessionId": {
+                "$ref": "common.json#/$defs/uuid"
+              },
+              "uploadUrl": {
+                "type": "string",
+                "format": "uri",
+                "pattern": "^https://",
+                "maxLength": 2048
+              },
+              "uploadToken": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9_-]{43}$"
+              },
+              "uploadExpiresAtUtc": {
+                "$ref": "common.json#/$defs/dateTimeUtc"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  ]
+}

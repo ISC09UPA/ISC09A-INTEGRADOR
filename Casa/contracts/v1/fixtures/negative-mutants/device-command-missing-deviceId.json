@@ -1,0 +1,15 @@
+{
+  "fixture": "device-command-missing-deviceId",
+  "schema": "device-command.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "deviceId is required as additional destination check.",
+  "data": {
+    "commandId": "cmd-mutant-003",
+    "type": "SetLight",
+    "commandSequence": 13,
+    "issuedAtUtc": "2026-10-31T18:06:00Z",
+    "expiresAtUtc": "2026-10-31T18:06:30Z",
+    "payload": { "on": true }
+  }
+}

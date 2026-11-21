@@ -1,0 +1,16 @@
+{
+  "fixture": "command-response-conflict-409",
+  "schema": "problem-details.json",
+  "httpStatus": 409,
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Same idempotency key with different content returns 409 Conflict.",
+  "data": {
+    "type": "https://integrador9nocuatri.local/errors/conflict",
+    "title": "Conflict",
+    "status": 409,
+    "detail": "idempotency key reused with different content",
+    "correlationId": "00000000-0000-0000-0000-000000000015",
+    "code": "conflict"
+  }
+}

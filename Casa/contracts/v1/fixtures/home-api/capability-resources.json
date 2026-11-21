@@ -1,0 +1,26 @@
+{
+  "fixture": "capability-resources",
+  "schema": "capability-resources.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Isolated contract fixture, not a real reading or command.",
+  "data": [
+    {
+      "resourceId": "entry",
+      "kind": "door",
+      "deviceReportedAtUtc": "2026-10-31T18:00:00Z",
+      "pendingCommand": {
+        "commandId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        "houseId": "55555555-5555-5555-5555-555555555555",
+        "resourceId": "entry",
+        "status": "pending",
+        "type": "OpenDoor",
+        "requestedAtUtc": "2026-10-31T18:00:00Z",
+        "expiresAtUtc": "2026-10-31T18:00:10Z",
+        "correlationId": "00000000-0000-0000-0000-000000000002",
+        "result": null
+      }
+    }
+  ],
+  "httpStatus": 200
+}

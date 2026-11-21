@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/home-status.json",
+  "title": "Home status response v1",
+  "description": "Projection of current device state. Requested state and historical results are separate; this response never rolls back by an old ACK.",
+  "type": "object",
+  "required": ["houseId", "updatedAtUtc", "lights"],
+  "properties": {
+    "houseId": { "$ref": "common.json#/$defs/houseId" },
+    "updatedAtUtc": { "$ref": "common.json#/$defs/dateTimeUtc" },
+    "lights": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["lightId", "lightOn", "lightingMode", "stateRevision", "lastCommand"],
+        "properties": {
+          "lightId": { "$ref": "common.json#/$defs/lightId" },
+          "lightOn": { "type": "boolean" },
+          "lightingMode": { "type": "string", "enum": ["auto", "manual"] },
+          "stateRevision": { "type": "integer", "minimum": 0 },
+          "stateReportedAtUtc": { "anyOf": [{ "$ref": "common.json#/$defs/dateTimeUtc" }, { "type": "null" }], "description": "Time of the latest authenticated report confirming this light revision; null means unconfirmed." },
+          "lastCommand": {
+            "anyOf": [{ "$ref": "command-result.json" }, { "type": "null" }]
+          },
+          "lastAutoChangeAtUtc": { "$ref": "common.json#/$defs/dateTimeUtc" },
+          "pendingCommand": {
+            "anyOf": [{ "$ref": "home-command-resource.json" }, { "type": "null" }]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

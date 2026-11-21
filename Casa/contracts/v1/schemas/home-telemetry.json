@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/home-telemetry.json",
+  "title": "Real sensor readings v1",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "sensorId",
+      "name",
+      "value",
+      "unit",
+      "occurredAtUtc",
+      "receivedAtUtc"
+    ],
+    "properties": {
+      "sensorId": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 160
+      },
+      "name": {
+        "type": "string",
+        "minLength": 1
+      },
+      "value": {
+        "type": [
+          "number",
+          "boolean"
+        ]
+      },
+      "unit": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "occurredAtUtc": {
+        "$ref": "common.json#/$defs/dateTimeUtc"
+      },
+      "receivedAtUtc": {
+        "$ref": "common.json#/$defs/dateTimeUtc"
+      }
+    },
+    "additionalProperties": false
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/security-entry.json",
+  "title": "Security Entry",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "occurredAtUtc",
+    "receivedAtUtc"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "type": {
+      "type": "string"
+    },
+    "result": {
+      "type": "string"
+    },
+    "occurredAtUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "receivedAtUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "analysis": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

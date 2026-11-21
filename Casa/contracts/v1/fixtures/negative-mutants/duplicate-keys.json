@@ -1,0 +1,11 @@
+{
+  "fixture": "duplicate-keys",
+  "schema": "common.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "Duplicate JSON keys must be detected, not silently last-wins.",
+  "data": {
+    "fixture": "first",
+    "fixture": "second"
+  }
+}

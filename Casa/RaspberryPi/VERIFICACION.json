@@ -1,0 +1,36 @@
+{
+  "checks": [
+    "command SetLightingMode",
+    "automatic dark on",
+    "automatic bright off",
+    "command SetLight",
+    "manual on",
+    "manual persists against sensor",
+    "command SetSecurityMode",
+    "armed motion alarm",
+    "motion clears alarm",
+    "fingerprint alone never opens",
+    "command OpenDoor",
+    "one pulse starts",
+    "door closes automatically",
+    "identical replay no second pulse",
+    "expired door rejected",
+    "invalid sensor degraded",
+    "sensor recovery",
+    "service restart",
+    "manual state survives restart; door safe",
+    "replay after restart no opening",
+    "command SetSecurityMode",
+    "command SetLight",
+    "command SetLightingMode",
+    "events persisted in SQLite"
+  ],
+  "service": "active",
+  "event_types": [
+    "AccessRequested",
+    "CommandResult",
+    "MotionDetected",
+    "TelemetryReported"
+  ],
+  "utc": "2026-10-27T00:33:28.013982+00:00"
+}

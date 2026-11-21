@@ -67,8 +67,10 @@ class IoTTests(unittest.TestCase):
         self.assertEqual(result["appliedVersion"], 3)
         result = apply_configuration(self.store, {"$version": 2, "agentConfiguration": {"lightOnBelow": 20}}, self.settings)
         self.assertEqual(result["values"]["lightOnBelow"], 25)
+        # Legacy lightingMode from twin must be ignored; lighting_mode only
+        # changes through SetLightingMode commands.
         result = apply_configuration(self.store, {"$version": 4, "agentConfiguration": {"lightingMode": "manual"}}, self.settings)
-        self.assertEqual(self.store.get("lighting_mode"), "manual")
+        self.assertIsNone(self.store.get("lighting_mode"))
         self.assertEqual(result["values"]["lightOnBelow"], 25)
 
     def test_bad_desired_keeps_applied_configuration(self):
@@ -141,3 +143,25 @@ class IoTTests(unittest.TestCase):
         finally:
             release.set()
             transport.close()
+
+    def test_receive_method_does_not_mutate_payload(self):
+        """The SDK worker must forward the exact command body to the agent's
+        inbound queue; it must not inject delivery metadata into the wire JSON."""
+        received = []
+
+        def capture_inbound(body):
+            received.append(body)
+            return {"status": "pending"}
+
+        transport = AzureTransport(capture_inbound, Mock(), client=self.client,
+                                   response_factory=lambda req, code, body: (code, body))
+        original = {"type": "SetLight", "commandId": "cmd-callback", "payload": {"on": True}}
+        request = SimpleNamespace(name="SetLight", payload=original)
+        transport.receive_method(request)
+
+        self.assertEqual(len(received), 1)
+        self.assertEqual(received[0], original)
+        self.assertNotIn("correlationId", received[0])
+        code, response = self.client.send_method_response.call_args.args[0]
+        self.assertEqual(code, 202)
+        self.assertEqual(response["status"], "pending")

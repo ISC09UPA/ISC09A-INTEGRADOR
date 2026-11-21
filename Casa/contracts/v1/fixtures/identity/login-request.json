@@ -1,0 +1,11 @@
+{
+  "fixture": "login-request",
+  "schema": "identity-login-request.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "User login without public registration.",
+  "data": {
+    "email": "resident@example.com",
+    "password": "placeholder-do-not-commit"
+  }
+}

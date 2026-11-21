@@ -1,0 +1,19 @@
+{
+  "fixture": "motion-detected",
+  "schema": "telemetry-envelope.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Motion event includes room and effective security mode at detection time.",
+  "data": {
+    "schemaVersion": 1,
+    "type": "MotionDetected",
+    "eventId": "99999999-9999-9999-9999-999999999999",
+    "occurredAtUtc": "2026-10-31T18:11:00Z",
+    "correlationId": "00000000-0000-0000-0000-000000000010",
+    "payload": {
+      "roomId": "sala",
+      "securityModeApplied": "armed",
+      "configurationVersion": 7
+    }
+  }
+}

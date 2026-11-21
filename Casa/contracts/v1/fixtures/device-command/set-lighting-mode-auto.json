@@ -1,0 +1,16 @@
+{
+  "fixture": "set-lighting-mode-auto",
+  "schema": "device-command.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "SetLightingMode switches to auto without forcing light value.",
+  "data": {
+    "commandId": "cmd-SetLightingMode-auto-011",
+    "deviceId": "raspberry-sim",
+    "type": "SetLightingMode",
+    "commandSequence": 9,
+    "issuedAtUtc": "2026-10-31T18:02:00Z",
+    "expiresAtUtc": "2026-10-31T18:02:30Z",
+    "payload": { "mode": "auto" }
+  }
+}

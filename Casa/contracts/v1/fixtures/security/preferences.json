@@ -1,0 +1,13 @@
+{
+  "fixture": "security-preferences",
+  "schema": "security-preferences.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Isolated contract fixture; not production data.",
+  "data": {
+    "captures": true,
+    "analysis": false,
+    "updatedAtUtc": "2026-11-18T12:00:00Z"
+  },
+  "httpStatus": 200
+}

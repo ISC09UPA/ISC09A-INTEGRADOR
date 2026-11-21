@@ -1,0 +1,17 @@
+{
+  "fixture": "open-door",
+  "schema": "device-command.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "OpenDoor requires attemptId, doorId and bounded duration. Not in first flow but included for command contract completeness.",
+  "data": {
+    "commandId": "cmd-OpenDoor-013",
+    "deviceId": "raspberry-sim",
+    "type": "OpenDoor",
+    "commandSequence": 11,
+    "attemptId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "issuedAtUtc": "2026-10-31T18:04:00Z",
+    "expiresAtUtc": "2026-10-31T18:04:08Z",
+    "payload": { "doorId": "principal", "durationMs": 1500 }
+  }
+}

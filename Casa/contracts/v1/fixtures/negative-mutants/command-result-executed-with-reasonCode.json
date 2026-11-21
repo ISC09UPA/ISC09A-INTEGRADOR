@@ -1,0 +1,21 @@
+{
+  "fixture": "command-result-executed-with-reasonCode",
+  "schema": "command-result.json",
+  "expectedValid": false,
+  "expectedShapeValid": false,
+  "description": "executed status must have reasonCode null, not unknown.",
+  "data": {
+    "commandId": "cmd-mutant-reason",
+    "status": "executed",
+    "type": "SetLight",
+    "reasonCode": "unknown",
+    "reason": null,
+    "snapshot": {
+      "lightOn": true,
+      "lightingMode": "manual",
+      "source": "device",
+      "appliedAtUtc": "2026-10-31T18:00:05Z"
+    },
+    "stateRevision": 7
+  }
+}

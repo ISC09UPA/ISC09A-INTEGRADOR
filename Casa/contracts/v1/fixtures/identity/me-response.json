@@ -1,0 +1,18 @@
+{
+  "fixture": "me-response",
+  "schema": "identity-me-response.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "User context with authorized houses and roles. Resident can home:read and home:control:lights.",
+  "data": {
+    "userId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "email": "resident@example.com",
+    "houses": [
+      {
+        "houseId": "55555555-5555-5555-5555-555555555555",
+        "role": "resident",
+        "name": "Casa principal"
+      }
+    ]
+  }
+}
