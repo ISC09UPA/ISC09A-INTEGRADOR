@@ -1,0 +1,2 @@
+azure-iot-device>=2.14,<3
+pyserial>=3.5
