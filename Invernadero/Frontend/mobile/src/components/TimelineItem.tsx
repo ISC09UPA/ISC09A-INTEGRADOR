@@ -1,9 +1,8 @@
+import { useTema } from '@/hooks/useTema';
 import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import type { ComponentProps } from 'react';
 import { Text, View } from 'react-native';
-import { useColorScheme } from 'nativewind';
-import { colores } from '@/theme/tokens';
 import { EventoTimeline } from '../../types';
 import { relativo } from '../../utils/formato';
 
@@ -11,13 +10,12 @@ type NombreIcono = ComponentProps<typeof MaterialIcons>['name'];
 
 export function TimelineItem({
   evento,
-  isLast = false,
+  mostrarConector = true,
 }: {
   evento: EventoTimeline;
-  isLast?: boolean;
+  mostrarConector?: boolean;
 }) {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const tema = useTema();
 
   const ESTILOS: Record<
     EventoTimeline['tipo'],
@@ -53,8 +51,8 @@ export function TimelineItem({
 
   return (
     <View className="relative">
-      {/* Línea conectora: termina en el siguiente indicador */}
-      {!isLast && (
+      {/* La línea solo se muestra entre la primera y la última alerta del rango visible. */}
+      {mostrarConector && (
         <View
           className="absolute bg-surface-container-high"
           pointerEvents="none"

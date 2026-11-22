@@ -20,6 +20,3 @@ export interface Grabacion {
 
 /** Grabaciones más cortas que esto se consideran toques accidentales y se descartan. */
 export const DURACION_MINIMA_MS = 600;
-
-/** Tiempo que se muestra "Audio enviado correctamente" antes de pasar a "Procesando". */
-export const TIEMPO_ENVIADO_MS = 1800;

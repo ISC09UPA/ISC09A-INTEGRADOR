@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Animated, Text, View } from 'react-native';
 
 import { formatearDuracion } from '@/voz/formato';
-import { useTema } from './useTema';
+import { useTema } from '@/hooks/useTema';
 
 function Cronometro({ inicioMs }: { inicioMs: number | null }) {
   const tema = useTema();

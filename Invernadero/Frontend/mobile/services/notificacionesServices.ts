@@ -1,6 +1,6 @@
 
-import type { NotificacionApp, TipoNotificacion } from '../types';
 import { Platform } from 'react-native';
+import type { NotificacionApp, TipoNotificacion } from '../types';
 import { espera } from './bd';
 
 type ModuloNotificaciones = typeof import('expo-notifications');
@@ -33,12 +33,8 @@ export async function consultarPermisos(): Promise<EstadoPermisos> {
 
   try {
     const ajustes = await Notifications.getPermissionsAsync();
-
-    return ajustes.status === 'granted'
-      ? 'granted'
-      : ajustes.canAskAgain
-        ? 'denied'
-        : 'undetermined';
+    if (ajustes.status === 'granted') return 'granted';
+    return ajustes.canAskAgain ? 'undetermined' : 'denied';
   } catch {
     return 'undetermined';
   }
@@ -49,8 +45,7 @@ export async function solicitarPermisos(): Promise<EstadoPermisos> {
 
   try {
     const ajustes = await Notifications.requestPermissionsAsync();
-
-    return ajustes.status === 'granted' ? 'granted' : 'undetermined';
+    return ajustes.status === 'granted' ? 'granted' : 'denied';
   } catch {
     return 'undetermined';
   }

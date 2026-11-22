@@ -1,13 +1,11 @@
 
 import { MaterialIcons } from '@expo/vector-icons';
 import { Text, View } from 'react-native';
-import { useColorScheme } from 'nativewind';
-import { colores } from '@/theme/tokens';
+import { useTema } from '@/hooks/useTema';
 
 /** Banner superior: motor de reglas en modo autónomo y cuántas están activas. */
 export function BannerMotor({ activas, total }: { activas: number; total: number }) {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const tema = useTema();
 
   return (
     <View

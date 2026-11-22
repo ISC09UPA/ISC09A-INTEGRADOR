@@ -2,8 +2,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import type { ComponentProps, ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useColorScheme } from 'nativewind';
-import { colores } from '@/theme/tokens';
+import { useTema } from '@/hooks/useTema';
 
 interface Props {
   icono: ComponentProps<typeof MaterialIcons>['name'];
@@ -27,8 +26,7 @@ export function TarjetaMetrica({
   detalle,
   children,
 }: Props) {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const tema = useTema();
 
   return (
     <View

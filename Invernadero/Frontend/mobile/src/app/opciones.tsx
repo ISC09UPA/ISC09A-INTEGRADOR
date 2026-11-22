@@ -16,21 +16,23 @@ import {
 
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 import { useColorScheme } from 'nativewind';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colores } from '@/theme/tokens';
+import { ACERCA_DE, POLITICAS } from '@/constants/contenidoOpciones';
+import { useConfiguracion } from '@/context/ConfiguracionContext';
+import { useTema } from '@/hooks/useTema';
 
 import {
-  CONFIGURACION_INICIAL,
-  guardarConfiguracion,
-  obtenerConfiguracion,
+  CLAVE_TEMA,
   type ConfiguracionApp,
 } from '../../services/configuracionService';
 
 import {
-  ACERCA_DE,
-  POLITICAS,
-} from '@/constants/contenidoOpciones';
+  formatearFecha,
+  formatearHora,
+} from '../../utils/formatoFechaHora';
 
 type TemaApp = 'light' | 'dark' | 'system';
 
@@ -42,30 +44,200 @@ type ModalTipo =
   | 'politicas'
   | null;
 
-const CLAVE_TEMA = '@riegoSmart/tema';
+const TITULOS_MODAL: Record<Exclude<ModalTipo, null>, string> = {
+  tema: 'Tema de la aplicación',
+  fecha: 'Formato de fecha',
+  hora: 'Formato de hora',
+  acerca: 'Acerca de',
+  politicas: 'Políticas',
+};
+
+const OPCIONES_TEMA: {
+  valor: TemaApp;
+  texto: string;
+}[] = [
+  { valor: 'light', texto: 'Claro' },
+  { valor: 'dark', texto: 'Oscuro' },
+  { valor: 'system', texto: 'Seguir dispositivo' },
+];
+
+const OPCIONES_FECHA: {
+  valor: ConfiguracionApp['formatoFecha'];
+  texto: string;
+}[] = [
+  { valor: 'dd/MM/yyyy', texto: 'DD/MM/AAAA' },
+  { valor: 'MM/dd/yyyy', texto: 'MM/DD/AAAA' },
+  { valor: 'yyyy-MM-dd', texto: 'AAAA-MM-DD' },
+];
+
+const OPCIONES_HORA: {
+  valor: ConfiguracionApp['formatoHora'];
+  texto: string;
+}[] = [
+  { valor: '24', texto: '24 horas (14:30)' },
+  { valor: '12', texto: '12 horas (02:30 p. m.)' },
+];
+
+// Componentes auxiliares.
+function Seccion({
+  titulo,
+  descripcion,
+  icono,
+  onPress,
+}: {
+  titulo: string;
+  descripcion: string;
+  icono: keyof typeof MaterialIcons.glyphMap;
+  onPress: () => void;
+}) {
+  const tema = useTema();
+
+  return (
+    <Pressable onPress={onPress} style={s.opcion}>
+      <View
+        style={[
+          s.icono,
+          { backgroundColor: tema.secondaryContainer },
+        ]}
+      >
+        <MaterialIcons
+          name={icono}
+          size={22}
+          color={tema.onSecondaryContainer}
+        />
+      </View>
+
+      <View style={s.info}>
+        <Text style={[s.tituloOpcion, { color: tema.onSurface }]}>
+          {titulo}
+        </Text>
+
+        <Text
+          style={[
+            s.descripcion,
+            { color: tema.onSurfaceVariant },
+          ]}
+        >
+          {descripcion}
+        </Text>
+      </View>
+
+      <MaterialIcons
+        name="chevron-right"
+        size={24}
+        color={tema.onSurfaceVariant}
+      />
+    </Pressable>
+  );
+}
+
+function Interruptor({
+  titulo,
+  descripcion,
+  valor,
+  onChange,
+  deshabilitado = false,
+}: {
+  titulo: string;
+  descripcion: string;
+  valor: boolean;
+  onChange: (valor: boolean) => void;
+  deshabilitado?: boolean;
+}) {
+  const tema = useTema();
+
+  return (
+    <View
+      style={[
+        s.opcion,
+        { opacity: deshabilitado ? 0.5 : 1 },
+      ]}
+    >
+      <View style={s.info}>
+        <Text style={[s.tituloOpcion, { color: tema.onSurface }]}>
+          {titulo}
+        </Text>
+
+        <Text
+          style={[
+            s.descripcion,
+            { color: tema.onSurfaceVariant },
+          ]}
+        >
+          {descripcion}
+        </Text>
+      </View>
+
+      <Switch
+        value={valor}
+        onValueChange={onChange}
+        disabled={deshabilitado}
+        trackColor={{
+          false: tema.surfaceContainerHighest,
+          true: tema.primary,
+        }}
+      />
+    </View>
+  );
+}
+
+function Separador() {
+  const tema = useTema();
+
+  return (
+    <View
+      style={[
+        s.separador,
+        { backgroundColor: tema.surfaceContainerHigh },
+      ]}
+    />
+  );
+}
+
+function EncabezadoSeccion({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const tema = useTema();
+
+  return (
+    <Text style={[s.seccion, { color: tema.onSurfaceVariant }]}>
+      {children}
+    </Text>
+  );
+}
 
 export default function Opciones() {
-  const { colorScheme, setColorScheme } = useColorScheme();
+  const { setColorScheme } = useColorScheme();
 
-  const tema =
-    colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const tema = useTema();
+  const insets = useSafeAreaInsets();
 
-  const [config, setConfig] = useState<ConfiguracionApp>(
-    CONFIGURACION_INICIAL,
-  );
+  const {
+    config,
+    actualizar: actualizarConfiguracion,
+  } = useConfiguracion();
 
   const [temaSeleccionado, setTemaSeleccionado] =
     useState<TemaApp>('system');
 
   const [modal, setModal] = useState<ModalTipo>(null);
 
-  // Cargar preferencias guardadas
+  const [ahora] = useState(() => new Date());
+
+  function volver() {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)/inicio');
+    }
+  }
+
+  // Cargar el tema guardado.
   useEffect(() => {
     async function cargarPreferencias() {
       try {
-        const configuracion = await obtenerConfiguracion();
-        setConfig(configuracion);
-
         const temaGuardado = await AsyncStorage.getItem(CLAVE_TEMA);
 
         if (
@@ -74,7 +246,6 @@ export default function Opciones() {
           temaGuardado === 'system'
         ) {
           setTemaSeleccionado(temaGuardado);
-          setColorScheme(temaGuardado);
         }
       } catch {
         Alert.alert(
@@ -84,28 +255,20 @@ export default function Opciones() {
       }
     }
 
-    cargarPreferencias();
-  }, [setColorScheme]);
+    void cargarPreferencias();
+  }, []);
 
-  // Actualizar preferencias generales
+  // Actualizar preferencias compartidas.
   async function actualizar<K extends keyof ConfiguracionApp>(
     propiedad: K,
     valor: ConfiguracionApp[K],
   ) {
-    const anterior = config;
+    const guardado = await actualizarConfiguracion(
+      propiedad,
+      valor,
+    );
 
-    const nuevaConfiguracion = {
-      ...config,
-      [propiedad]: valor,
-    };
-
-    setConfig(nuevaConfiguracion);
-
-    try {
-      await guardarConfiguracion(nuevaConfiguracion);
-    } catch {
-      setConfig(anterior);
-
+    if (!guardado) {
       Alert.alert(
         'Error',
         'No se pudo guardar la configuración.',
@@ -113,7 +276,7 @@ export default function Opciones() {
     }
   }
 
-  // Cambiar tema
+  // Cambiar tema.
   async function cambiarTema(nuevoTema: TemaApp) {
     const anterior = temaSeleccionado;
 
@@ -133,7 +296,6 @@ export default function Opciones() {
     }
   }
 
-  // Abrir configuración del dispositivo
   function abrirConfiguracionDispositivo() {
     Linking.openSettings().catch(() => {
       Alert.alert(
@@ -143,153 +305,96 @@ export default function Opciones() {
     });
   }
 
-  // Fecha de ejemplo
-  const fechaActual = new Date();
+  const fechaEjemplo = formatearFecha(
+    ahora,
+    config.formatoFecha,
+  );
 
-  const dia = String(fechaActual.getDate()).padStart(2, '0');
-  const mes = String(fechaActual.getMonth() + 1).padStart(2, '0');
-  const anio = fechaActual.getFullYear();
+  const horaEjemplo = formatearHora(
+    ahora,
+    config.formatoHora,
+  );
 
-  const fechaEjemplo =
-    config.formatoFecha === 'MM/dd/yyyy'
-      ? `${mes}/${dia}/${anio}`
-      : config.formatoFecha === 'yyyy-MM-dd'
-        ? `${anio}-${mes}-${dia}`
-        : `${dia}/${mes}/${anio}`;
-
-  // Hora de ejemplo
-  const horaEjemplo = fechaActual.toLocaleTimeString('es-MX', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: config.formatoHora === '12',
-  });
-
-  // Componente de opción
-  function Seccion({
-    titulo,
-    descripcion,
-    icono,
-    onPress,
-  }: {
-    titulo: string;
-    descripcion: string;
-    icono: keyof typeof MaterialIcons.glyphMap;
-    onPress: () => void;
-  }) {
-    return (
-      <Pressable onPress={onPress} style={s.opcion}>
-        <View
-          style={[
-            s.icono,
-            { backgroundColor: tema.secondaryContainer },
-          ]}
-        >
-          <MaterialIcons
-            name={icono}
-            size={22}
-            color={tema.onSecondaryContainer}
-          />
-        </View>
-
-        <View style={s.info}>
-          <Text style={[s.tituloOpcion, { color: tema.onSurface }]}>
-            {titulo}
-          </Text>
-
-          <Text style={[s.descripcion, { color: tema.onSurfaceVariant }]}>
-            {descripcion}
-          </Text>
-        </View>
-
-        <MaterialIcons
-          name="chevron-right"
-          size={24}
-          color={tema.onSurfaceVariant}
-        />
-      </Pressable>
-    );
-  }
-
-  // Componente de interruptor
-  function Interruptor({
-    titulo,
-    descripcion,
-    valor,
-    onChange,
-    deshabilitado = false,
-  }: {
-    titulo: string;
-    descripcion: string;
-    valor: boolean;
-    onChange: (valor: boolean) => void;
-    deshabilitado?: boolean;
-  }) {
-    return (
-      <View
-        style={[
-          s.opcion,
-          { opacity: deshabilitado ? 0.5 : 1 },
-        ]}
-      >
-        <View style={s.info}>
-          <Text style={[s.tituloOpcion, { color: tema.onSurface }]}>
-            {titulo}
-          </Text>
-
-          <Text style={[s.descripcion, { color: tema.onSurfaceVariant }]}>
-            {descripcion}
-          </Text>
-        </View>
-
-        <Switch
-          value={valor}
-          onValueChange={onChange}
-          disabled={deshabilitado}
-          trackColor={{
-            false: tema.surfaceContainerHighest,
-            true: tema.primary,
-          }}
-        />
-      </View>
-    );
-  }
-
-  // Separador
-  function Separador() {
-    return (
-      <View
-        style={[
-          s.separador,
-          { backgroundColor: tema.surfaceContainerHigh },
-        ]}
-      />
-    );
-  }
-
-  // Encabezado de sección
-  function EncabezadoSeccion({
-    children,
-  }: {
-    children: ReactNode;
-  }) {
-    return (
-      <Text style={[s.seccion, { color: tema.onSurfaceVariant }]}>
-        {children}
-      </Text>
-    );
-  }
+  // Filas del modal de selección.
+  const seleccion =
+    modal === 'tema'
+      ? {
+          opciones: OPCIONES_TEMA as {
+            valor: string;
+            texto: string;
+          }[],
+          actual: temaSeleccionado as string,
+          elegir: (v: string) =>
+            void cambiarTema(v as TemaApp),
+        }
+      : modal === 'fecha'
+        ? {
+            opciones: OPCIONES_FECHA as {
+              valor: string;
+              texto: string;
+            }[],
+            actual: config.formatoFecha as string,
+            elegir: (v: string) =>
+              void actualizar(
+                'formatoFecha',
+                v as ConfiguracionApp['formatoFecha'],
+              ),
+          }
+        : modal === 'hora'
+          ? {
+              opciones: OPCIONES_HORA as {
+                valor: string;
+                texto: string;
+              }[],
+              actual: config.formatoHora as string,
+              elegir: (v: string) =>
+                void actualizar(
+                  'formatoHora',
+                  v as ConfiguracionApp['formatoHora'],
+                ),
+            }
+          : null;
 
   return (
-    <View style={[s.pantalla, { backgroundColor: tema.surface }]}>
+    <View
+      style={[
+        s.pantalla,
+        {
+          backgroundColor: tema.surface,
+          paddingTop: insets.top,
+        },
+      ]}
+    >
       <ScrollView
         contentContainerStyle={s.contenido}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[s.encabezado, { color: tema.onSurface }]}>
-          Configuración
-        </Text>
+        {/* ENCABEZADO */}
+        <View style={s.encabezadoSuperior}>
+          <Pressable
+            onPress={volver}
+            style={s.botonVolver}
+            accessibilityRole="button"
+            accessibilityLabel="Volver"
+          >
+            <MaterialIcons
+              name="arrow-back"
+              size={22}
+              color={tema.onSurface}
+            />
+          </Pressable>
 
-        <Text style={[s.subtitulo, { color: tema.onSurfaceVariant }]}>
+          <Text style={[s.encabezado, { color: tema.onSurface }]}>
+            Configuración
+          </Text>
+        </View>
+
+        <Text
+          style={[
+            s.subtitulo,
+            { color: tema.onSurfaceVariant },
+          ]}
+        >
           Personaliza el funcionamiento de la aplicación.
         </Text>
 
@@ -305,11 +410,9 @@ export default function Opciones() {
           <Seccion
             titulo="Tema de la aplicación"
             descripcion={
-              temaSeleccionado === 'light'
-                ? 'Claro'
-                : temaSeleccionado === 'dark'
-                  ? 'Oscuro'
-                  : 'Seguir dispositivo'
+              OPCIONES_TEMA.find(
+                (o) => o.valor === temaSeleccionado,
+              )?.texto ?? 'Seguir dispositivo'
             }
             icono="palette"
             onPress={() => setModal('tema')}
@@ -336,7 +439,11 @@ export default function Opciones() {
 
           <Seccion
             titulo="Formato de hora"
-            descripcion={`${config.formatoHora === '24' ? '24 horas' : '12 horas'} · ${horaEjemplo}`}
+            descripcion={`${
+              config.formatoHora === '24'
+                ? '24 horas'
+                : '12 horas'
+            } · ${horaEjemplo}`}
             icono="schedule"
             onPress={() => setModal('hora')}
           />
@@ -355,7 +462,9 @@ export default function Opciones() {
             titulo="Notificaciones"
             descripcion="Activar o desactivar las preferencias de avisos."
             valor={config.notificaciones}
-            onChange={(v) => actualizar('notificaciones', v)}
+            onChange={(v) =>
+              void actualizar('notificaciones', v)
+            }
           />
 
           <Separador />
@@ -364,7 +473,7 @@ export default function Opciones() {
             titulo="Sonido"
             descripcion="Reproducir sonido al recibir avisos."
             valor={config.sonido}
-            onChange={(v) => actualizar('sonido', v)}
+            onChange={(v) => void actualizar('sonido', v)}
             deshabilitado={!config.notificaciones}
           />
 
@@ -372,9 +481,9 @@ export default function Opciones() {
 
           <Interruptor
             titulo="Vibración"
-            descripcion="Vibrar al recibir notificaciones."
+            descripcion="Respuesta háptica al tocar botones y controles."
             valor={config.vibracion}
-            onChange={(v) => actualizar('vibracion', v)}
+            onChange={(v) => void actualizar('vibracion', v)}
             deshabilitado={!config.notificaciones}
           />
 
@@ -384,7 +493,9 @@ export default function Opciones() {
             titulo="Avisos dentro de la aplicación"
             descripcion="Mostrar alertas mientras utilizas la app."
             valor={config.avisosInternos}
-            onChange={(v) => actualizar('avisosInternos', v)}
+            onChange={(v) =>
+              void actualizar('avisosInternos', v)
+            }
             deshabilitado={!config.notificaciones}
           />
         </View>
@@ -424,7 +535,12 @@ export default function Opciones() {
           />
         </View>
 
-        <Text style={[s.version, { color: tema.onSurfaceVariant }]}>
+        <Text
+          style={[
+            s.version,
+            { color: tema.onSurfaceVariant },
+          ]}
+        >
           {ACERCA_DE.nombre} · Versión {ACERCA_DE.version}
         </Text>
       </ScrollView>
@@ -445,19 +561,20 @@ export default function Opciones() {
           >
             {/* TÍTULO */}
             <View style={s.encabezadoModal}>
-              <Text style={[s.tituloModal, { color: tema.onSurface }]}>
-                {modal === 'tema'
-                  ? 'Tema de la aplicación'
-                  : modal === 'fecha'
-                    ? 'Formato de fecha'
-                    : modal === 'hora'
-                      ? 'Formato de hora'
-                      : modal === 'acerca'
-                        ? 'Acerca de'
-                        : 'Políticas'}
+              <Text
+                style={[
+                  s.tituloModal,
+                  { color: tema.onSurface },
+                ]}
+              >
+                {modal ? TITULOS_MODAL[modal] : ''}
               </Text>
 
-              <Pressable onPress={() => setModal(null)}>
+              <Pressable
+                onPress={() => setModal(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Cerrar"
+              >
                 <MaterialIcons
                   name="close"
                   size={24}
@@ -466,154 +583,123 @@ export default function Opciones() {
               </Pressable>
             </View>
 
-            {/* TEMA */}
-            {modal === 'tema' && (
-              <>
-                {[
-                  { valor: 'light', texto: 'Claro' },
-                  { valor: 'dark', texto: 'Oscuro' },
-                  { valor: 'system', texto: 'Seguir dispositivo' },
-                ].map((opcion) => (
-                  <Pressable
-                    key={opcion.valor}
-                    style={s.filaModal}
-                    onPress={() => {
-                      cambiarTema(opcion.valor as TemaApp);
-                      setModal(null);
-                    }}
-                  >
-                    <Text style={[s.textoModal, { color: tema.onSurface }]}>
-                      {opcion.texto}
-                    </Text>
+            {/* TEMA / FECHA / HORA */}
+            {seleccion?.opciones.map((opcion) => (
+              <Pressable
+                key={opcion.valor}
+                style={s.filaModal}
+                onPress={() => {
+                  seleccion.elegir(opcion.valor);
+                  setModal(null);
+                }}
+              >
+                <Text
+                  style={[
+                    s.textoModal,
+                    { color: tema.onSurface },
+                  ]}
+                >
+                  {opcion.texto}
+                </Text>
 
-                    {temaSeleccionado === opcion.valor && (
-                      <MaterialIcons
-                        name="check"
-                        size={22}
-                        color={tema.primary}
-                      />
-                    )}
-                  </Pressable>
-                ))}
-              </>
-            )}
-
-            {/* FECHA */}
-            {modal === 'fecha' && (
-              <>
-                {[
-                  { valor: 'dd/MM/yyyy', texto: 'DD/MM/AAAA' },
-                  { valor: 'MM/dd/yyyy', texto: 'MM/DD/AAAA' },
-                  { valor: 'yyyy-MM-dd', texto: 'AAAA-MM-DD' },
-                ].map((opcion) => (
-                  <Pressable
-                    key={opcion.valor}
-                    style={s.filaModal}
-                    onPress={() => {
-                      actualizar(
-                        'formatoFecha',
-                        opcion.valor as ConfiguracionApp['formatoFecha'],
-                      );
-                      setModal(null);
-                    }}
-                  >
-                    <Text style={[s.textoModal, { color: tema.onSurface }]}>
-                      {opcion.texto}
-                    </Text>
-
-                    {config.formatoFecha === opcion.valor && (
-                      <MaterialIcons
-                        name="check"
-                        size={22}
-                        color={tema.primary}
-                      />
-                    )}
-                  </Pressable>
-                ))}
-              </>
-            )}
-
-            {/* HORA */}
-            {modal === 'hora' && (
-              <>
-                {[
-                  { valor: '24', texto: '24 horas (14:30)' },
-                  { valor: '12', texto: '12 horas (02:30 p. m.)' },
-                ].map((opcion) => (
-                  <Pressable
-                    key={opcion.valor}
-                    style={s.filaModal}
-                    onPress={() => {
-                      actualizar(
-                        'formatoHora',
-                        opcion.valor as ConfiguracionApp['formatoHora'],
-                      );
-                      setModal(null);
-                    }}
-                  >
-                    <Text style={[s.textoModal, { color: tema.onSurface }]}>
-                      {opcion.texto}
-                    </Text>
-
-                    {config.formatoHora === opcion.valor && (
-                      <MaterialIcons
-                        name="check"
-                        size={22}
-                        color={tema.primary}
-                      />
-                    )}
-                  </Pressable>
-                ))}
-              </>
-            )}
+                {seleccion.actual === opcion.valor && (
+                  <MaterialIcons
+                    name="check"
+                    size={22}
+                    color={tema.primary}
+                  />
+                )}
+              </Pressable>
+            ))}
 
             {/* ACERCA DE */}
             {modal === 'acerca' && (
               <ScrollView style={{ maxHeight: 350 }}>
                 <View style={s.textosInformativos}>
-                  <Text style={[s.nombreApp, { color: tema.primary }]}>
+                  <Text
+                    style={[
+                      s.nombreApp,
+                      { color: tema.primary },
+                    ]}
+                  >
                     {ACERCA_DE.nombre}
                   </Text>
 
-                  <Text style={[s.textoModal, { color: tema.onSurface }]}>
+                  <Text
+                    style={[
+                      s.textoModal,
+                      { color: tema.onSurface },
+                    ]}
+                  >
                     {ACERCA_DE.descripcion}
                   </Text>
 
-                  <Text style={[s.nombreApp, { color: tema.onSurface }]}>
+                  <Text
+                    style={[
+                      s.nombreApp,
+                      { color: tema.onSurface },
+                    ]}
+                  >
                     Objetivo
                   </Text>
 
-                  <Text style={[s.textoModal, { color: tema.onSurfaceVariant }]}>
+                  <Text
+                    style={[
+                      s.textoModal,
+                      { color: tema.onSurfaceVariant },
+                    ]}
+                  >
                     {ACERCA_DE.objetivo}
                   </Text>
 
-                  <Text style={[s.nombreApp, { color: tema.onSurface }]}>
+                  <Text
+                    style={[
+                      s.nombreApp,
+                      { color: tema.onSurface },
+                    ]}
+                  >
                     Desarrolladores
                   </Text>
 
-                  {ACERCA_DE.desarrolladores.map((persona, index) => (
+                  {ACERCA_DE.desarrolladores.map((persona) => (
                     <Text
-                      key={index}
-                      style={[s.textoModal, { color: tema.onSurfaceVariant }]}
+                      key={persona}
+                      style={[
+                        s.textoModal,
+                        { color: tema.onSurfaceVariant },
+                      ]}
                     >
                       • {persona}
                     </Text>
                   ))}
 
-                  <Text style={[s.nombreApp, { color: tema.onSurface }]}>
+                  <Text
+                    style={[
+                      s.nombreApp,
+                      { color: tema.onSurface },
+                    ]}
+                  >
                     Tecnologías
                   </Text>
 
-                  {ACERCA_DE.tecnologias.map((tecnologia, index) => (
+                  {ACERCA_DE.tecnologias.map((tecnologia) => (
                     <Text
-                      key={index}
-                      style={[s.textoModal, { color: tema.onSurfaceVariant }]}
+                      key={tecnologia}
+                      style={[
+                        s.textoModal,
+                        { color: tema.onSurfaceVariant },
+                      ]}
                     >
                       • {tecnologia}
                     </Text>
                   ))}
 
-                  <Text style={[s.textoModal, { color: tema.onSurfaceVariant }]}>
+                  <Text
+                    style={[
+                      s.textoModal,
+                      { color: tema.onSurfaceVariant },
+                    ]}
+                  >
                     Versión {ACERCA_DE.version}
                   </Text>
                 </View>
@@ -625,8 +711,16 @@ export default function Opciones() {
               <ScrollView style={{ maxHeight: 350 }}>
                 <View style={s.textosInformativos}>
                   {POLITICAS.map((politica) => (
-                    <View key={politica.id} style={{ gap: 6 }}>
-                      <Text style={[s.nombreApp, { color: tema.onSurface }]}>
+                    <View
+                      key={politica.id}
+                      style={{ gap: 6 }}
+                    >
+                      <Text
+                        style={[
+                          s.nombreApp,
+                          { color: tema.onSurface },
+                        ]}
+                      >
                         {politica.titulo}
                       </Text>
 
@@ -646,10 +740,18 @@ export default function Opciones() {
 
             {/* CERRAR */}
             <Pressable
-              style={[s.botonCerrar, { backgroundColor: tema.primary }]}
+              style={[
+                s.botonCerrar,
+                { backgroundColor: tema.primary },
+              ]}
               onPress={() => setModal(null)}
             >
-              <Text style={{ color: tema.onPrimary, fontWeight: '600' }}>
+              <Text
+                style={{
+                  color: tema.onPrimary,
+                  fontWeight: '600',
+                }}
+              >
                 Cerrar
               </Text>
             </Pressable>
@@ -668,6 +770,19 @@ const s = StyleSheet.create({
     padding: 16,
     paddingBottom: 36,
     gap: 12,
+  },
+  encabezadoSuperior: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  botonVolver: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+    backgroundColor: 'rgba(128,128,128,0.12)',
   },
   encabezado: {
     fontSize: 24,

@@ -1,28 +1,58 @@
-import { useColorScheme } from 'nativewind';
-import { MaterialIcons } from '@expo/vector-icons';
-import { FlatList, Pressable, Text, View } from 'react-native';
-import { router } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
-import { viverosService } from '../../services';
+
 import NurseryMap from '@/components/mapa/NurseryMap';
-import { colores } from '@/theme/tokens';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
+import { FlatList, Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { viverosService } from '../../services';
+import { ErrorConReintento } from '../components/ui/Estados';
+import { useTema } from '@/hooks/useTema';
 
-/** Pantalla vivero-mapa: componentemap aislado + lista de viveros cercanos. */
+/** Pantalla vivero-mapa: componente mapa aislado + lista de viveros cercanos. */
 export default function ViveroMapa() {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
-  const datos = useQuery({ queryKey: ['viveros'], queryFn: viverosService.listarViverosCercanos });
+  const tema = useTema();
+  const insets = useSafeAreaInsets();
 
+  const datos = useQuery({
+    queryKey: ['viveros'],
+    queryFn: viverosService.listarViverosCercanos,
+  });
+
+  // Error al consultar los viveros
+  if (datos.isError) {
+    return (
+      <View
+        className="flex-1 items-center justify-center bg-surface px-6"
+        style={{ paddingTop: insets.top }}
+      >
+        <ErrorConReintento
+          mensaje="No se pudieron cargar los viveros."
+          intentarDeNuevo={() => void datos.refetch()}
+        />
+      </View>
+    );
+  }
+
+  // Estado de carga
   if (datos.isLoading || !datos.data) {
     return (
-      <View className="flex-1 items-center justify-center bg-surface">
-        <Text className="text-body-md text-on-surface-variant">Buscando viveros cercanos…</Text>
+      <View
+        className="flex-1 items-center justify-center bg-surface"
+        style={{ paddingTop: insets.top }}
+      >
+        <Text className="text-body-md text-on-surface-variant">
+          Buscando viveros cercanos…
+        </Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-surface">
+    <View
+      className="flex-1 bg-surface"
+      style={{ paddingTop: insets.top }}
+    >
       {/* Encabezado */}
       <View className="h-16 flex-row items-center gap-2 px-gutter-mobile pt-2">
         <Pressable
@@ -31,47 +61,76 @@ export default function ViveroMapa() {
           accessibilityRole="button"
           accessibilityLabel="Cerrar"
         >
-          <MaterialIcons name="close" size={20} color={tema.onSurface} />
+          <MaterialIcons
+            name="close"
+            size={20}
+            color={tema.onSurface}
+          />
         </Pressable>
+
         <View className="flex-col">
-          <Text className="text-title-md text-on-surface" style={{ fontWeight: '600' }}>
+          <Text
+            className="text-title-md text-on-surface"
+            style={{ fontWeight: '600' }}
+          >
             Viveros cercanos
           </Text>
+
           <Text className="text-body-sm text-on-surface-variant">
             Donde conseguir tus plantas e insumos
           </Text>
         </View>
       </View>
 
-      {/* Componente de mapa aislado (cambia de proveedor aquí) */}
-      <View className="mx-gutter-mobile overflow-hidden rounded-2xl" style={{ height: 260 }}>
+      {/* Componente de mapa aislado */}
+      <View
+        className="mx-gutter-mobile overflow-hidden rounded-2xl"
+        style={{ height: 260 }}
+      >
         <NurseryMap
           usuario={datos.data.usuario}
           viveros={datos.data.viveros}
         />
       </View>
 
+      {/* Lista de viveros */}
       <FlatList
         className="flex-1 px-gutter-mobile pt-3"
-        contentContainerStyle={{ paddingBottom: 24, gap: 8 }}
+        contentContainerStyle={{
+          paddingBottom: 24,
+          gap: 8,
+        }}
         data={datos.data.viveros}
         keyExtractor={(v) => v.id}
         renderItem={({ item }) => (
           <View className="rounded-xl bg-surface-container-lowest p-3 shadow-sm">
             <View className="flex-row items-center justify-between">
-              <Text className="text-title-sm text-on-surface" style={{ fontWeight: '600' }}>
+              <Text
+                className="text-title-sm text-on-surface"
+                style={{ fontWeight: '600' }}
+              >
                 {item.nombre}
               </Text>
-              <Text className="text-label-md font-semibold text-primary">{item.distanciaKm} km</Text>
+
+              <Text className="text-label-md font-semibold text-primary">
+                {item.distanciaKm} km
+              </Text>
             </View>
+
             <Text className="mt-0.5 text-body-sm text-on-surface-variant">
               {item.especialidades.join(' · ')}
             </Text>
+
             <View className="mt-1 flex-row items-center justify-between">
               <Text className="text-label-sm text-on-surface-variant">
-                {item.abierto ? `Abierto · ${item.horario}` : `Cerrado · abre ${item.horario}`}
+                {item.abierto
+                  ? `Abierto · ${item.horario}`
+                  : `Cerrado · abre ${item.horario}`}
               </Text>
-              <Text className="text-label-md text-on-surface">≈ ${item.precioMedio} / planta</Text>
+
+              <Text className="text-label-md text-on-surface">
+                ≈ ${item.precioMedio} / planta
+              </Text>
             </View>
           </View>
         )}

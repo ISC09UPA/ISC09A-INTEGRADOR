@@ -1,26 +1,131 @@
+
 import { MaterialIcons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
-import { useColorScheme } from 'nativewind';
-import { colores } from '@/theme/tokens';
-import type { Categoria, Prioridad, Regla } from './datos';
+
+import {
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
+
+import type { Regla } from '../../../types';
+
+import { useConfiguracion } from '@/context/ConfiguracionContext';
+import { useTema } from '@/hooks/useTema';
+
+import {
+  formatearFecha,
+  formatearHora,
+} from '../../../utils/formatoFechaHora';
 
 type Icono = ComponentProps<typeof MaterialIcons>['name'];
 
 interface Props {
   regla: Regla;
   onToggle: (activa: boolean) => void;
-  /** Si no se pasan, el botón correspondiente no se muestra. */
   onEditar?: () => void;
   onEliminar?: () => void;
 }
 
-/** Tarjeta de regla SI/ENTONCES con switch y prioridad. */
-export function RuleCard({ regla, onToggle, onEditar, onEliminar }: Props) {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+const SENSORES: Record<string, string> = {
+  humedadSuelo: 'Humedad sustrato',
+  temperatura: 'Temperatura',
+  luz: 'Luz',
+  nivelDeposito: 'Nivel tanque',
+  horario: 'Horario',
+};
 
-  const CATEGORIA: Record<Categoria, { icono: Icono; fondo: string; color: string }> = {
+const ACTUADORES: Record<string, string> = {
+  bomba: 'Bomba GPIO 17',
+  ventilador: 'Ventilador GPIO 27',
+  leds: 'Luces LED GPIO 22',
+  valvulaLlenado: 'Válvula de llenado',
+};
+
+function textoCondicion(regla: Regla): string {
+  const {
+    sensor,
+    operador,
+    umbral,
+    duranteMin,
+  } = regla.si;
+
+  const simbolo: Record<string, string> = {
+    '<': '<',
+    '>': '>',
+    '<=': '≤',
+    '>=': '≥',
+    entre: 'entre',
+  };
+
+  const unidad =
+    sensor === 'temperatura'
+      ? ' °C'
+      : sensor === 'humedadSuelo' ||
+          sensor === 'nivelDeposito'
+        ? '%'
+        : sensor === 'luz'
+          ? ' lx'
+          : '';
+
+  const duracion = duranteMin
+    ? ` durante ${duranteMin} min`
+    : '';
+
+  return `${
+    SENSORES[sensor] ?? sensor
+  } ${simbolo[operador] ?? operador} ${umbral}${unidad}${duracion}`;
+}
+
+function textoAccion(regla: Regla): string {
+  const {
+    actuador,
+    accion,
+    volumenMl,
+    hastaValor,
+  } = regla.entonces;
+
+  const nombre = ACTUADORES[actuador] ?? actuador;
+
+  switch (accion) {
+    case 'regar_volumen':
+      return `Activar ${nombre} (${
+        volumenMl ?? 180
+      } mL${hastaValor ? ` hasta ${hastaValor}%` : ''})`;
+
+    case 'encender':
+      return `Encender ${nombre}`;
+
+    case 'apagar':
+      return `Apagar ${nombre}`;
+
+    case 'bloquear':
+      return `Bloquear ${nombre} y generar alerta`;
+
+    default:
+      return `Ejecutar acción en ${nombre}`;
+  }
+}
+
+export function RuleCard({
+  regla,
+  onToggle,
+  onEditar,
+  onEliminar,
+}: Props) {
+  const tema = useTema();
+  const { config } = useConfiguracion();
+
+  const CATEGORIA: Record<
+    string,
+    {
+      icono: Icono;
+      fondo: string;
+      color: string;
+    }
+  > = {
     riego: {
       icono: 'water-drop',
       fondo: tema.primaryContainer,
@@ -43,7 +148,14 @@ export function RuleCard({ regla, onToggle, onEditar, onEliminar }: Props) {
     },
   };
 
-  const PRIORIDAD: Record<Prioridad, { texto: string; fondo: string; color: string }> = {
+  const PRIORIDAD: Record<
+    string,
+    {
+      texto: string;
+      fondo: string;
+      color: string;
+    }
+  > = {
     alta: {
       texto: 'Prioridad Alta',
       fondo: tema.errorContainer,
@@ -64,29 +176,70 @@ export function RuleCard({ regla, onToggle, onEditar, onEliminar }: Props) {
   const cat = CATEGORIA[regla.categoria];
   const pri = PRIORIDAD[regla.prioridad];
 
+  const bloqueada =
+    regla.bloqueadaPorSeguridad === true;
+
   return (
-    <View style={[s.tarjeta, { backgroundColor: tema.surfaceContainerLowest }]}>
+    <View
+      style={[
+        s.tarjeta,
+        {
+          backgroundColor: tema.surfaceContainerLowest,
+        },
+      ]}
+    >
       <View style={s.encabezado}>
         <View style={s.contenidoEncabezado}>
-          <View style={[s.icono, { backgroundColor: cat.fondo }]}>
-            <MaterialIcons name={cat.icono} size={20} color={cat.color} />
+          <View
+            style={[
+              s.icono,
+              {
+                backgroundColor: cat.fondo,
+              },
+            ]}
+          >
+            <MaterialIcons
+              name={cat.icono}
+              size={20}
+              color={cat.color}
+            />
           </View>
 
           <View style={s.informacion}>
             <Text
-              style={[s.nombre, { color: tema.onSurface }]}
+              style={[
+                s.nombre,
+                {
+                  color: tema.onSurface,
+                },
+              ]}
               numberOfLines={2}
             >
               {regla.nombre}
             </Text>
 
             <View style={s.detalles}>
-              <Text style={[s.badge, { backgroundColor: pri.fondo, color: pri.color }]}>
+              <Text
+                style={[
+                  s.badge,
+                  {
+                    backgroundColor: pri.fondo,
+                    color: pri.color,
+                  },
+                ]}
+              >
                 {pri.texto}
               </Text>
 
-              {regla.bloqueada && (
-                <Text style={[s.sub, { color: tema.onSurfaceVariant }]}>
+              {bloqueada && (
+                <Text
+                  style={[
+                    s.sub,
+                    {
+                      color: tema.onSurfaceVariant,
+                    },
+                  ]}
+                >
                   🔒 Seguridad
                 </Text>
               )}
@@ -98,7 +251,7 @@ export function RuleCard({ regla, onToggle, onEditar, onEliminar }: Props) {
           style={s.interruptor}
           value={regla.activa}
           onValueChange={onToggle}
-          disabled={regla.bloqueada}
+          disabled={bloqueada}
           trackColor={{
             false: tema.surfaceContainerHighest,
             true: tema.primary,
@@ -106,37 +259,92 @@ export function RuleCard({ regla, onToggle, onEditar, onEliminar }: Props) {
         />
       </View>
 
-      <View style={[s.condicion, { backgroundColor: tema.surfaceContainerLow }]}>
+      <View
+        style={[
+          s.condicion,
+          {
+            backgroundColor: tema.surfaceContainerLow,
+          },
+        ]}
+      >
         <View style={s.fila}>
           <Text
             style={[
               s.etiqueta,
-              { color: regla.categoria === 'seguridad' ? tema.error : tema.secondary },
+              {
+                color:
+                  regla.categoria === 'seguridad'
+                    ? tema.error
+                    : tema.secondary,
+              },
             ]}
           >
             SI
           </Text>
-          <Text style={[s.texto, { color: tema.onSurface }]}>
-            {regla.si}
+
+          <Text
+            style={[
+              s.texto,
+              {
+                color: tema.onSurface,
+              },
+            ]}
+          >
+            {textoCondicion(regla)}
           </Text>
         </View>
 
         <View style={s.fila}>
-          <Text style={[s.etiqueta, { color: tema.primary }]}>
+          <Text
+            style={[
+              s.etiqueta,
+              {
+                color: tema.primary,
+              },
+            ]}
+          >
             ENTONCES
           </Text>
-          <Text style={[s.texto, { color: tema.onSurface, fontWeight: '500' }]}>
-            {regla.entonces}
+
+          <Text
+            style={[
+              s.texto,
+              {
+                color: tema.onSurface,
+                fontWeight: '500',
+              },
+            ]}
+          >
+            {textoAccion(regla)}
           </Text>
         </View>
       </View>
 
       <View style={s.fila}>
-        <MaterialIcons name="schedule" size={16} color={cat.color} />
-        <Text style={[s.sub, { color: tema.onSurfaceVariant, flexShrink: 1 }]}>
-          {regla.ultimoDisparo
-            ? `Último disparo: ${regla.ultimoDisparo}`
-            : 'Sin disparos recientes'}
+        <MaterialIcons
+          name="schedule"
+          size={16}
+          color={cat.color}
+        />
+
+        <Text
+          style={[
+            s.sub,
+            {
+              color: tema.onSurfaceVariant,
+              flexShrink: 1,
+            },
+          ]}
+        >
+          {regla.ultimaEjecucion
+            ? `Última ejecución: ${formatearFecha(
+                regla.ultimaEjecucion,
+                config.formatoFecha,
+              )} ${formatearHora(
+                regla.ultimaEjecucion,
+                config.formatoHora,
+              )}`
+            : 'Sin ejecuciones recientes'}
         </Text>
       </View>
 
@@ -147,21 +355,60 @@ export function RuleCard({ regla, onToggle, onEditar, onEliminar }: Props) {
               onPress={onEditar}
               accessibilityRole="button"
               accessibilityLabel={`Editar regla ${regla.nombre}`}
-              style={[s.boton, { backgroundColor: tema.surfaceContainer }]}
+              style={[
+                s.boton,
+                {
+                  backgroundColor: tema.surfaceContainer,
+                },
+              ]}
             >
-              <MaterialIcons name="edit" size={16} color={tema.onSurface} />
-              <Text style={[s.botonTexto, { color: tema.onSurface }]}>Editar</Text>
+              <MaterialIcons
+                name="edit"
+                size={16}
+                color={tema.onSurface}
+              />
+
+              <Text
+                style={[
+                  s.botonTexto,
+                  {
+                    color: tema.onSurface,
+                  },
+                ]}
+              >
+                Editar
+              </Text>
             </Pressable>
           )}
+
           {onEliminar && (
             <Pressable
               onPress={onEliminar}
               accessibilityRole="button"
               accessibilityLabel={`Eliminar regla ${regla.nombre}`}
-              style={[s.boton, { backgroundColor: tema.errorContainer }]}
+              style={[
+                s.boton,
+                {
+                  backgroundColor: tema.errorContainer,
+                },
+              ]}
             >
-              <MaterialIcons name="delete-outline" size={16} color={tema.onErrorContainer} />
-              <Text style={[s.botonTexto, { color: tema.onErrorContainer }]}>Eliminar</Text>
+              <MaterialIcons
+                name="delete-outline"
+                size={16}
+                color={tema.onErrorContainer}
+              />
+
+              <Text
+                style={[
+                  s.botonTexto,
+                  {
+                    color: tema.onErrorContainer,
+                  },
+                ]}
+              >
+                Eliminar
+              </Text>
             </Pressable>
           )}
         </View>

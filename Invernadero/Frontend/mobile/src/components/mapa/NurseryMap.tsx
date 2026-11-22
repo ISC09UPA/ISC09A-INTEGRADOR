@@ -1,10 +1,9 @@
 
 import { Platform, Text, View } from 'react-native';
 import { type ComponentType, type PropsWithChildren } from 'react';
-import { useColorScheme } from 'nativewind';
-import { colores } from '@/theme/tokens';
 import type { Vivero } from '../../../types';
 import type { PuntoMapa } from '../../../services/viverosService';
+import { useTema } from '@/hooks/useTema';
 
 // El mapa vive aislado para poder cambiar de proveedor
 // (Google Maps, Mapbox, Apple Maps…) editando solo este archivo.
@@ -27,8 +26,7 @@ type MapViewProps = PropsWithChildren<{
 
 /** Vista demo para web (Expo Go web no soporta react-native-maps). */
 function MapaDemo({ viveros }: Props) {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const tema = useTema();
 
   return (
     <View

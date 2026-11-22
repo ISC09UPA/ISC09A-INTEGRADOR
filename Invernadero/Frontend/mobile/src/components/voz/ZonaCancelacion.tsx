@@ -3,7 +3,7 @@ import { Animated, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
 import { TAM_BOTON, ZONA_DY, ZONA_RADIO } from './constantes';
-import { useTema } from './useTema';
+import { useTema } from '@/hooks/useTema';
 
 interface Props {
   /** Aparece cuando el usuario empieza a arrastrar hacia arriba. */

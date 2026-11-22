@@ -1,10 +1,10 @@
-import { espera } from './bd';
 import { simulador } from '@/mocks/simulador';
-import { eventoACsv } from '../utils/csv';
 import { EventoTimeline, TipoEventoTimeline } from '../types';
+import { eventoACsv } from '../utils/csv';
 import { backendApiEnabled } from './backendApi';
-import { obtenerRiegosBackend } from './telemetriaService';
+import { espera } from './bd';
 import { mapearRiegoTimeline } from './telemetriaMapping';
+import { obtenerRiegosBackend } from './telemetriaService';
 
 const TAMAÑO_PAGINA = 10;
 

@@ -1,16 +1,19 @@
+
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "RiegoSmart IA",
+    "slug": "riego-smart-ia",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.riegosmartia.app"
     },
     "android": {
+      "package": "com.riegosmartia.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -26,11 +29,10 @@
     "plugins": [
       "expo-router",
       [
-        "expo-camera",
+        "expo-image-picker",
         {
           "cameraPermission": "Permite que la aplicación use la cámara para tomar fotos de plantas.",
-          "microphonePermission": false,
-          "recordAudioAndroid": false
+          "photosPermission": "Permite elegir fotos de plantas."
         }
       ],
       [
@@ -48,7 +50,10 @@
         }
       ],
       "expo-sharing",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-status-bar",
+      "expo-web-browser",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,

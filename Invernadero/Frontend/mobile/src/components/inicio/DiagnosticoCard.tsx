@@ -1,8 +1,7 @@
 
 import { MaterialIcons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
-import { useColorScheme } from 'nativewind';
-import { colores } from '@/theme/tokens';
+import { useTema } from '@/hooks/useTema';
 
 /** Diagnóstico IA de la planta seleccionada. */
 export function DiagnosticoCard({
@@ -12,8 +11,7 @@ export function DiagnosticoCard({
   vigorPct: number;
   descripcion: string;
 }) {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const tema = useTema();
 
   return (
     <View style={[s.tarjeta, { backgroundColor: tema.surfaceContainerLowest }]}>

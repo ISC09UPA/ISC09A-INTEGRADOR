@@ -2,7 +2,7 @@ import type { ComponentProps } from 'react';
 import { Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
-import { useTema } from './useTema';
+import { useTema } from '@/hooks/useTema';
 
 const PASOS: { icono: ComponentProps<typeof MaterialIcons>['name']; texto: string }[] = [
   { icono: 'touch-app', texto: 'Mantén presionado el botón del micrófono' },

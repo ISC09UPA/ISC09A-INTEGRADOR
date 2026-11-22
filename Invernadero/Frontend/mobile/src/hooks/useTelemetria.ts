@@ -1,7 +1,7 @@
+import { telemetriaService } from '@/services';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import type { EstadoDispositivo } from '../../types';
-import { telemetriaService, plantasService } from '@/services';
 
 export function useSimuladorInvalidador(): void {
   const qc = useQueryClient();
@@ -14,45 +14,10 @@ export function useSimuladorInvalidador(): void {
   }), [qc]);
 }
 
-export function useLecturas() {
-  return useQuery({
-    queryKey: ['lecturas'],
-    queryFn: telemetriaService.lecturaActual,
-  });
-}
-
 export function useDispositivo() {
   return useQuery({
     queryKey: ['dispositivo'],
     queryFn: telemetriaService.estadoDispositivo,
-  });
-}
-
-export function usePlantas() {
-  return useQuery({
-    queryKey: ['plantas'],
-    queryFn: plantasService.listarPlantas,
-  });
-}
-
-export function usePlanta(id: string) {
-  return useQuery({
-    queryKey: ['planta', id],
-    queryFn: () => plantasService.obtenerPlanta(id),
-  });
-}
-
-export function useHistorialPlanta(id: string) {
-  return useQuery({
-    queryKey: ['historial', id],
-    queryFn: () => telemetriaService.historialPorPlanta(id),
-  });
-}
-
-export function usePrediccion(plantaId: string) {
-  return useQuery({
-    queryKey: ['prediccion', plantaId],
-    queryFn: () => telemetriaService.prediccion(plantaId),
   });
 }
 

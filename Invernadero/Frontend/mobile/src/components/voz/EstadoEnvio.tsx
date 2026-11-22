@@ -1,13 +1,13 @@
-import { ActivityIndicator, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { ActivityIndicator, Text, View } from 'react-native';
 
 import { Boton } from '@/components/ui/Botones';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
-import type { Grabacion } from '@/voz/tipos';
 import { formatearDuracion } from '@/voz/formato';
+import type { Grabacion } from '@/voz/tipos';
 import { Transcripcion } from './Transcripcion';
-import { useTema } from './useTema';
+import { useTema } from '@/hooks/useTema';
 
 interface Props {
   fase: 'sent' | 'processing';
@@ -71,6 +71,9 @@ export function EstadoEnvio({
         </Card>
 
         <Transcripcion texto={grabacion?.transcripcion ?? ''} simulada={transcripcionSimulada} />
+
+        {/* Salida del estado "enviado": sin este botón el usuario quedaba atrapado. */}
+        <Boton variante="secundario" texto="Nueva grabación" onPress={onNueva} accessibilityRole="button" />
       </View>
     );
   }

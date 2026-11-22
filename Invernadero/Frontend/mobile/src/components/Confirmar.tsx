@@ -1,7 +1,6 @@
 
 import { Modal, Pressable, Text, View } from 'react-native';
-import { useColorScheme } from 'nativewind';
-import { colores } from '@/theme/tokens';
+import { useTema } from '@/hooks/useTema';
 
 interface Props {
   visible: boolean;
@@ -24,8 +23,7 @@ export function Confirmar({
   onCancelar,
   onConfirmar,
 }: Props) {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const tema = useTema();
 
   return (
     <Modal
