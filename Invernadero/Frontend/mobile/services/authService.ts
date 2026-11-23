@@ -10,6 +10,9 @@ import { nuevoIdUsuario } from './ids';
 // La UI solo habla con estas funciones: cuando exista la API real, solo se cambia este archivo.
 
 const CLAVE_SESION = 'riegosmart.sesion';
+/** Contraseña de las cuentas demo y de las creadas por un admin desde la pantalla de usuarios. */
+const CLAVE_DEMO = 'demo123';
+const EMAIL_REGEXP = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Contraseña de las cuentas demo y de las creadas por un admin desde la pantalla de usuarios. */
 const EMAIL_REGEXP = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

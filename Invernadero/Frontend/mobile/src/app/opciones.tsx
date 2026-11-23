@@ -399,6 +399,36 @@ export default function Opciones() {
           Personaliza el funcionamiento de la aplicación.
         </Text>
 
+        {/* CUENTA */}
+        <EncabezadoSeccion>CUENTA</EncabezadoSeccion>
+
+        <View
+          style={[
+            s.grupo,
+            { backgroundColor: tema.surfaceContainerLowest },
+          ]}
+        >
+          <Seccion
+            titulo="Mi perfil"
+            descripcion="Datos de tu cuenta y cierre de sesión."
+            icono="person-outline"
+            onPress={() => router.push('/perfil')}
+          />
+
+          {esAdmin && (
+            <>
+              <Separador />
+
+              <Seccion
+                titulo="Gestión de usuarios"
+                descripcion="Solo administradores: crear usuarios y cambiar roles."
+                icono="admin-panel-settings"
+                onPress={() => router.push('/admin/usuarios')}
+              />
+            </>
+          )}
+        </View>
+
         {/* APARIENCIA */}
         <EncabezadoSeccion>APARIENCIA</EncabezadoSeccion>
 

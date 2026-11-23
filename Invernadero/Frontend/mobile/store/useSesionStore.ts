@@ -12,6 +12,7 @@ interface EstadoSesion {
   /** Modo del dispositivo simulado: alterna desde Perfil. */
   inicializar: () => Promise<void>;
   iniciarSesion: (email: string, contrasena: string) => Promise<Usuario>;
+  registrar: (nombre: string, email: string, contrasena: string) => Promise<Usuario>;
   cerrarSesion: () => Promise<void>;
   fijarUsuario: (usuario: Usuario) => void;
 }
@@ -27,6 +28,12 @@ export const useSesion = create<EstadoSesion>((set) => ({
 
   iniciarSesion: async (email, contrasena) => {
     const usuario = await authService.iniciarSesion(email, contrasena);
+    set({ usuario });
+    return usuario;
+  },
+
+  registrar: async (nombre, email, contrasena) => {
+    const usuario = await authService.registrar(nombre, email, contrasena);
     set({ usuario });
     return usuario;
   },
