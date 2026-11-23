@@ -4,7 +4,7 @@ import { useSesion } from '../../../store/useSesionStore';
 import { colores } from '@/theme/tokens';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ExpoHaptics from 'expo-haptics';
-import { Redirect } from 'expo-router';
+import { Link, Redirect } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
 
@@ -98,6 +98,14 @@ export default function Login() {
           )}
 
           <Boton texto="Iniciar sesión" onPress={() => void entrar()} cargando={cargando} className="mt-2" />
+
+          <Link href="/(auth)/registro" asChild>
+            <Pressable className="min-h-[44px] items-center justify-center" accessibilityRole="button">
+              <Text className="text-label-lg text-primary" style={{ fontWeight: '600' }}>
+                ¿No tienes cuenta? Regístrate
+              </Text>
+            </Pressable>
+          </Link>
         </View>
 
         <View className="mt-6 gap-3">

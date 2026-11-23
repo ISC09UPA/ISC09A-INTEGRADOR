@@ -17,8 +17,10 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColorScheme } from 'nativewind';
+import { router } from 'expo-router';
 
 import { colores } from '@/theme/tokens';
+import { useSesion } from '../../store/useSesionStore';
 
 import {
   CONFIGURACION_INICIAL,
@@ -46,6 +48,7 @@ const CLAVE_TEMA = '@riegoSmart/tema';
 
 export default function Opciones() {
   const { colorScheme, setColorScheme } = useColorScheme();
+  const esAdmin = useSesion((e) => e.usuario?.rol === 'admin');
 
   const tema =
     colorScheme === 'dark' ? colores.oscuro : colores.claro;
@@ -292,6 +295,36 @@ export default function Opciones() {
         <Text style={[s.subtitulo, { color: tema.onSurfaceVariant }]}>
           Personaliza el funcionamiento de la aplicación.
         </Text>
+
+        {/* CUENTA */}
+        <EncabezadoSeccion>CUENTA</EncabezadoSeccion>
+
+        <View
+          style={[
+            s.grupo,
+            { backgroundColor: tema.surfaceContainerLowest },
+          ]}
+        >
+          <Seccion
+            titulo="Mi perfil"
+            descripcion="Datos de tu cuenta y cierre de sesión."
+            icono="person-outline"
+            onPress={() => router.push('/perfil')}
+          />
+
+          {esAdmin && (
+            <>
+              <Separador />
+
+              <Seccion
+                titulo="Gestión de usuarios"
+                descripcion="Solo administradores: crear usuarios y cambiar roles."
+                icono="admin-panel-settings"
+                onPress={() => router.push('/admin/usuarios')}
+              />
+            </>
+          )}
+        </View>
 
         {/* APARIENCIA */}
         <EncabezadoSeccion>APARIENCIA</EncabezadoSeccion>
