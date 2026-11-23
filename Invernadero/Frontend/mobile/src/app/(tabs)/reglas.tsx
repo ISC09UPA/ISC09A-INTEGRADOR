@@ -32,9 +32,11 @@ import { FiltrosReglas } from '@/components/reglas/FiltrosReglas';
 import { ReglaFormModal } from '@/components/reglas/ReglaFormModal';
 import { RuleCard } from '@/components/reglas/RuleCard';
 import { useTema } from '@/hooks/useTema';
+import { useSesion } from '../../../store/useSesionStore';
 
 export default function ReglasScreen() {
   const tema = useTema();
+  const esAdmin = useSesion((s) => s.usuario?.rol === 'admin');
 
   // Reglas cargadas desde el servicio.
   const [reglas, setReglas] = useState<Regla[]>([]);
@@ -235,6 +237,7 @@ export default function ReglasScreen() {
               </Text>
             </View>
 
+          {esAdmin && (
             <Pressable
               onPress={() => setFormulario('nueva')}
               accessibilityRole="button"
@@ -265,21 +268,23 @@ export default function ReglasScreen() {
                 Nueva regla
               </Text>
             </Pressable>
+          )}
           </View>
         }
         renderItem={({ item }) => (
           <RuleCard
             regla={item}
+            soloLectura={!esAdmin}
             onToggle={(activa: boolean) =>
               alternar(item.id, activa)
             }
             onEditar={
-              puedeEditar(item)
+              esAdmin && puedeEditar(item)
                 ? () => setFormulario(item)
                 : undefined
             }
             onEliminar={
-              puedeEliminar(item)
+              esAdmin && puedeEliminar(item)
                 ? () => eliminar(item)
                 : undefined
             }
