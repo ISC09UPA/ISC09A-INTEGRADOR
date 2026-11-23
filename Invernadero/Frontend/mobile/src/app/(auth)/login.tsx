@@ -1,6 +1,7 @@
 import { Boton } from '@/components/ui/Botones';
+import { useTema } from '@/hooks/useTema';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Redirect } from 'expo-router';
+import { Link, Redirect } from 'expo-router';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -12,7 +13,6 @@ import {
 } from 'react-native';
 import { useSesion } from '../../../store/useSesionStore';
 import { hapticoError, hapticoExito } from '../../../utils/haptico';
-import { useTema } from '@/hooks/useTema';
 
 const EMAIL_REGEXP = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -149,6 +149,13 @@ export default function Login() {
             cargando={cargando}
             className="mt-2"
           />
+          <Link href="/(auth)/registro" asChild>
+            <Pressable className="min-h-[44px] items-center justify-center" accessibilityRole="button">
+              <Text className="text-label-lg text-primary" style={{ fontWeight: '600' }}>
+                ¿No tienes cuenta? Regístrate
+              </Text>
+            </Pressable>
+          </Link>
         </View>
 
         {__DEV__ && (
