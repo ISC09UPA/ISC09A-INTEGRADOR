@@ -1,3 +1,4 @@
+
 import { Boton } from '@/components/ui/Botones';
 import { useTema } from '@/hooks/useTema';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -149,9 +150,16 @@ export default function Login() {
             cargando={cargando}
             className="mt-2"
           />
+
           <Link href="/(auth)/registro" asChild>
-            <Pressable className="min-h-[44px] items-center justify-center" accessibilityRole="button">
-              <Text className="text-label-lg text-primary" style={{ fontWeight: '600' }}>
+            <Pressable
+              className="min-h-[44px] items-center justify-center"
+              accessibilityRole="button"
+            >
+              <Text
+                className="text-label-lg text-primary"
+                style={{ fontWeight: '600' }}
+              >
                 ¿No tienes cuenta? Regístrate
               </Text>
             </Pressable>
@@ -167,7 +175,7 @@ export default function Login() {
             <View className="flex-row gap-2">
               <Pressable
                 onPress={() => rellenarDemo('admin@demo.com')}
-                className="flex-1 items-center justify-center rounded-xl bg-surface-container-low py-2.5 min-h-[44px]"
+                className="min-h-[44px] flex-1 items-center justify-center rounded-xl bg-surface-container-low py-2.5"
                 accessibilityRole="button"
               >
                 <Text
@@ -183,7 +191,7 @@ export default function Login() {
 
               <Pressable
                 onPress={() => rellenarDemo('operador@demo.com')}
-                className="flex-1 items-center justify-center rounded-xl bg-surface-container-low py-2.5 min-h-[44px]"
+                className="min-h-[44px] flex-1 items-center justify-center rounded-xl bg-surface-container-low py-2.5"
                 accessibilityRole="button"
               >
                 <Text

@@ -71,7 +71,7 @@ export default function ReglasScreen() {
 
   // Cargar las reglas al abrir la pantalla.
   useEffect(() => {
-    cargarReglas();
+    void cargarReglas();
   }, [cargarReglas]);
 
   // Crear o actualizar una regla.
@@ -109,9 +109,7 @@ export default function ReglasScreen() {
 
       setReglas((actuales) =>
         actuales.map((regla) =>
-          regla.id === id
-            ? { ...regla, activa }
-            : regla,
+          regla.id === id ? { ...regla, activa } : regla,
         ),
       );
     } catch (error) {
@@ -193,7 +191,7 @@ export default function ReglasScreen() {
             refreshing={actualizando}
             onRefresh={() => {
               setActualizando(true);
-              cargarReglas();
+              void cargarReglas();
             }}
             tintColor={tema.primary}
           />
@@ -240,6 +238,7 @@ export default function ReglasScreen() {
             <Pressable
               onPress={() => setFormulario('nueva')}
               accessibilityRole="button"
+              accessibilityLabel="Crear nueva regla"
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
@@ -311,8 +310,7 @@ export default function ReglasScreen() {
         }
       />
 
-      {/* Formulario para crear o editar reglas. */}
-      {formulario !== null && (
+      {formulario && (
         <ReglaFormModal
           regla={
             formulario === 'nueva'
