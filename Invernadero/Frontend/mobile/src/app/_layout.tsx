@@ -15,6 +15,7 @@ import { AppState, Platform, View } from 'react-native';
 
 import { ConfiguracionProvider } from '@/context/ConfiguracionContext';
 import { colores } from '@/theme/tokens';
+import { useSesion } from '../../store/useSesionStore';
 
 import { CLAVE_TEMA } from '../../services/configuracionService';
 import { useSesion } from '../../store/useSesionStore';
