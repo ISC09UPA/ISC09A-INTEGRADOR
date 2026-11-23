@@ -12,7 +12,6 @@ import { nuevoIdUsuario } from './ids';
 const CLAVE_SESION = 'riegosmart.sesion';
 
 /** Contraseña de las cuentas demo y de las creadas por un admin desde la pantalla de usuarios. */
-const CLAVE_DEMO = 'demo123';
 const EMAIL_REGEXP = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export interface SesionGuardada {

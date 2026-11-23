@@ -24,6 +24,7 @@ type Icono = ComponentProps<typeof MaterialIcons>['name'];
 
 interface Props {
   regla: Regla;
+  soloLectura: boolean;
   onToggle: (activa: boolean) => void;
   onEditar?: () => void;
   onEliminar?: () => void;
@@ -111,6 +112,7 @@ function textoAccion(regla: Regla): string {
 
 export function RuleCard({
   regla,
+  soloLectura,
   onToggle,
   onEditar,
   onEliminar,
