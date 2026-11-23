@@ -1,8 +1,7 @@
 
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useColorScheme } from 'nativewind';
-import { colores } from '@/theme/tokens';
 import type { Planta } from './datos';
+import { useTema } from '@/hooks/useTema';
 
 interface Props {
   plantas: Planta[];
@@ -12,8 +11,7 @@ interface Props {
 
 /** "Mis Cultivos": chips horizontales para elegir la planta activa. */
 export function CarruselCultivos({ plantas, seleccionada, onSelect }: Props) {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const tema = useTema();
 
   return (
     <View>

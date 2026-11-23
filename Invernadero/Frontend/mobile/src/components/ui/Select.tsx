@@ -1,8 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { Modal, Pressable, Text, View } from 'react-native';
 import { useState } from 'react';
-import { useColorScheme } from 'nativewind';
-import { colores } from '@/theme/tokens';
+import { useTema } from '@/hooks/useTema';
 
 export interface Opcion<T extends string> {
   valor: T;
@@ -23,9 +22,7 @@ export function Select<T extends string>({
   prefijo,
 }: Props<T>) {
   const [abierto, setAbierto] = useState(false);
-  const { colorScheme } = useColorScheme();
-
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const tema = useTema();
   const activa = opciones.find((o) => o.valor === valor) ?? opciones[0];
 
   return (

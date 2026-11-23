@@ -1,134 +1,346 @@
+
 import { MaterialIcons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  Text,
+  View,
+} from 'react-native';
+
+import type { Regla } from '../../../types';
+
+import {
+  alternarRegla,
+  eliminarRegla,
+  guardarRegla,
+  listarReglas,
+} from '../../../services/reglasService';
+
+import {
+  construirRegla,
+  type Categoria,
+  type DatosRegla,
+} from '@/components/reglas/datos';
+
+import { Confirmar } from '@/components/Confirmar';
 import { BannerMotor } from '@/components/reglas/BannerMotor';
 import { FiltrosReglas } from '@/components/reglas/FiltrosReglas';
 import { ReglaFormModal } from '@/components/reglas/ReglaFormModal';
 import { RuleCard } from '@/components/reglas/RuleCard';
-import { Confirmar } from '@/components/Confirmar';
-import { REGLAS, construirRegla, type Categoria, type DatosRegla, type Regla } from '@/components/reglas/datos';
-import { colores } from '@/theme/tokens';
-import { useColorScheme } from 'nativewind';
+import { useTema } from '@/hooks/useTema';
 import { useSesion } from '../../../store/useSesionStore';
 
-export default function Reglas() {
-  const [reglas, setReglas] = useState(REGLAS);
+export default function ReglasScreen() {
+  const tema = useTema();
+  const esAdmin = useSesion((s) => s.usuario?.rol === 'admin');
+
+  // Reglas cargadas desde el servicio.
+  const [reglas, setReglas] = useState<Regla[]>([]);
+
+  // Filtro seleccionado.
   const [filtro, setFiltro] = useState<Categoria | 'todas'>('todas');
-  // Formulario: cerrado, "nueva" o la regla que se edita.
+
+  // Estado del formulario: nueva regla o regla existente.
   const [formulario, setFormulario] = useState<'nueva' | Regla | null>(null);
-  const [aEliminar, setAEliminar] = useState<Regla | null>(null);
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
-  // Solo el admin crea, edita, elimina y activa/pausa reglas; el operador solo las ve.
-  const esAdmin = useSesion((e) => e.usuario?.rol === 'admin');
-  const visibles = reglas.filter((r) => filtro === 'todas' || r.categoria === filtro);
-  const activas = reglas.filter((r) => r.activa).length;
 
-  function alternar(id: string, activa: boolean) {
-    setReglas((rs) => rs.map((r) => (r.id === id ? { ...r, activa } : r)));
-  }
+  // Regla pendiente de confirmación para eliminar.
+  const [reglaAEliminar, setReglaAEliminar] = useState<Regla | null>(null);
 
-  function guardar(datos: DatosRegla) {
-    const base = formulario !== 'nueva' ? formulario ?? undefined : undefined;
-    const regla = construirRegla(datos, base);
-    setReglas((rs) =>
-      base ? rs.map((r) => (r.id === regla.id ? regla : r)) : [...rs, regla],
-    );
-    setFormulario(null);
-  }
+  // Estados de carga.
+  const [cargando, setCargando] = useState(true);
+  const [actualizando, setActualizando] = useState(false);
 
-  function eliminar() {
-    if (aEliminar) setReglas((rs) => rs.filter((r) => r.id !== aEliminar.id));
-    setAEliminar(null);
-  }
+  // Cargar reglas desde el servicio.
+  const cargarReglas = useCallback(async () => {
+    try {
+      const resultado = await listarReglas();
+      setReglas(resultado);
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Error al cargar reglas:', error);
+      }
+
+      Alert.alert('Error', 'No se pudieron cargar las reglas.');
+    } finally {
+      setCargando(false);
+      setActualizando(false);
+    }
+  }, []);
+
+  // Cargar las reglas al abrir la pantalla.
+  useEffect(() => {
+    void cargarReglas();
+  }, [cargarReglas]);
+
+  // Crear o actualizar una regla.
+  const guardar = async (datos: DatosRegla) => {
+    try {
+      const base =
+        formulario !== null && formulario !== 'nueva'
+          ? formulario
+          : undefined;
+
+      const regla = construirRegla(datos, base);
+
+      await guardarRegla(regla);
+      await cargarReglas();
+
+      setFormulario(null);
+
+      Alert.alert(
+        'Regla guardada',
+        'La regla se guardó correctamente.',
+      );
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Error al guardar regla:', error);
+      }
+
+      Alert.alert('Error', 'No se pudo guardar la regla.');
+    }
+  };
+
+  // Activar o desactivar una regla.
+  const alternar = async (id: string, activa: boolean) => {
+    try {
+      await alternarRegla(id, activa);
+
+      setReglas((actuales) =>
+        actuales.map((regla) =>
+          regla.id === id ? { ...regla, activa } : regla,
+        ),
+      );
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Error al cambiar regla:', error);
+      }
+
+      Alert.alert('Error', 'No se pudo actualizar la regla.');
+
+      await cargarReglas();
+    }
+  };
+
+  // Mostrar confirmación antes de eliminar.
+  const eliminar = (regla: Regla) => {
+    setReglaAEliminar(regla);
+  };
+
+  // Eliminar la regla después de confirmar.
+  const confirmarEliminacion = async () => {
+    if (!reglaAEliminar) return;
+
+    const regla = reglaAEliminar;
+    setReglaAEliminar(null);
+
+    try {
+      await eliminarRegla(regla.id);
+
+      setReglas((actuales) =>
+        actuales.filter((item) => item.id !== regla.id),
+      );
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Error al eliminar regla:', error);
+      }
+
+      Alert.alert('Error', 'No se pudo eliminar la regla.');
+    }
+  };
+
+  // Filtrar reglas por categoría.
+  const reglasFiltradas = reglas.filter(
+    (regla) =>
+      filtro === 'todas' || regla.categoria === filtro,
+  );
+
+  // Contar reglas activas.
+  const activas = reglas.filter((regla) => regla.activa).length;
+
+  // Solo permitir editar reglas compatibles con el formulario.
+  const puedeEditar = (regla: Regla) =>
+    !regla.bloqueadaPorSeguridad &&
+    regla.si.sensor !== 'horario' &&
+    regla.si.operador !== 'entre' &&
+    (regla.entonces.actuador === 'bomba' ||
+      regla.entonces.actuador === 'ventilador') &&
+    regla.entonces.accion !== 'bloquear';
+
+  // No permitir eliminar reglas bloqueadas por seguridad.
+  const puedeEliminar = (regla: Regla) =>
+    !regla.bloqueadaPorSeguridad;
 
   return (
-    <View style={[s.pantalla, { backgroundColor: tema.surface }]}>
-      <ScrollView contentContainerStyle={s.contenido} showsVerticalScrollIndicator={false}>
-        <BannerMotor activas={activas} total={reglas.length} />
-        <FiltrosReglas seleccionado={filtro} onSelect={setFiltro} />
-
-        {visibles.length === 0 ? (
-          <Text style={[s.vacio, { color: tema.onSurfaceVariant }]}>
-            Sin reglas en esta categoría.
-          </Text>
-        ) : (
-          visibles.map((r) => (
-            <RuleCard
-              key={r.id}
-              regla={r}
-              onToggle={(a) => alternar(r.id, a)}
-              soloLectura={!esAdmin}
-              onEditar={esAdmin && !r.bloqueada && r.condicion ? () => setFormulario(r) : undefined}
-              onEliminar={esAdmin && !r.bloqueada ? () => setAEliminar(r) : undefined}
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: tema.background,
+      }}
+    >
+      <FlatList
+        data={reglasFiltradas}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{
+          padding: 16,
+          paddingBottom: 32,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={actualizando}
+            onRefresh={() => {
+              setActualizando(true);
+              void cargarReglas();
+            }}
+            tintColor={tema.primary}
+          />
+        }
+        ListHeaderComponent={
+          <View style={{ gap: 16, marginBottom: 16 }}>
+            <BannerMotor
+              activas={activas}
+              total={reglas.length}
             />
-          ))
-        )}
 
-        {esAdmin ? (
-          <Pressable
-            onPress={() => setFormulario('nueva')}
-            accessibilityRole="button"
-            accessibilityLabel="Crear nueva regla"
-            style={[s.nueva, { borderColor: tema.outline }]}
-          >
-            <MaterialIcons name="add-circle-outline" size={20} color={tema.primary} />
-            <Text style={[s.nuevaTexto, { color: tema.primary }]}>Crear nueva regla SI / ENTONCES</Text>
-          </Pressable>
-        ) : (
-          <Text style={[s.vacio, { color: tema.onSurfaceVariant }]}>
-            🔒 Solo lectura: pide a un administrador que edite las reglas.
-          </Text>
+            <FiltrosReglas
+              seleccionado={filtro}
+              onSelect={setFiltro}
+            />
+
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <Text
+                style={{
+                  color: tema.onSurface,
+                  fontSize: 18,
+                  fontWeight: '700',
+                }}
+              >
+                Reglas automatizadas
+              </Text>
+
+              <Text
+                style={{
+                  color: tema.onSurfaceVariant,
+                  fontSize: 13,
+                }}
+              >
+                {reglasFiltradas.length} reglas
+              </Text>
+            </View>
+
+          {esAdmin && (
+            <Pressable
+              onPress={() => setFormulario('nueva')}
+              accessibilityRole="button"
+              accessibilityLabel="Crear nueva regla"
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                padding: 14,
+                borderRadius: 12,
+                backgroundColor: tema.primary,
+              }}
+            >
+              <MaterialIcons
+                name="add"
+                size={20}
+                color={tema.onPrimary}
+              />
+
+              <Text
+                style={{
+                  color: tema.onPrimary,
+                  fontWeight: '600',
+                  fontSize: 14,
+                }}
+              >
+                Nueva regla
+              </Text>
+            </Pressable>
+          )}
+          </View>
+        }
+        renderItem={({ item }) => (
+          <RuleCard
+            regla={item}
+            soloLectura={!esAdmin}
+            onToggle={(activa: boolean) =>
+              alternar(item.id, activa)
+            }
+            onEditar={
+              esAdmin && puedeEditar(item)
+                ? () => setFormulario(item)
+                : undefined
+            }
+            onEliminar={
+              esAdmin && puedeEliminar(item)
+                ? () => eliminar(item)
+                : undefined
+            }
+          />
         )}
-      </ScrollView>
+        ItemSeparatorComponent={() => (
+          <View style={{ height: 12 }} />
+        )}
+        ListEmptyComponent={
+          cargando ? (
+            <ActivityIndicator
+              size="large"
+              color={tema.primary}
+              style={{ marginTop: 32 }}
+            />
+          ) : (
+            <Text
+              style={{
+                color: tema.onSurfaceVariant,
+                textAlign: 'center',
+                marginTop: 32,
+                fontSize: 14,
+              }}
+            >
+              No hay reglas para mostrar.
+            </Text>
+          )
+        }
+      />
 
       {formulario && (
         <ReglaFormModal
-          regla={formulario === 'nueva' ? undefined : formulario}
+          regla={
+            formulario === 'nueva'
+              ? undefined
+              : formulario
+          }
           onClose={() => setFormulario(null)}
           onGuardar={guardar}
         />
       )}
 
+      {/* Confirmación para eliminar reglas. */}
       <Confirmar
-        visible={aEliminar !== null}
+        visible={reglaAEliminar !== null}
         titulo="Eliminar regla"
-        descripcion={`¿Eliminar "${aEliminar?.nombre}"? Esta acción no se puede deshacer.`}
+        descripcion={
+          reglaAEliminar
+            ? `¿Estás seguro de que deseas eliminar "${reglaAEliminar.nombre}"? Esta acción no se puede deshacer.`
+            : ''
+        }
         textoConfirmar="Eliminar"
         peligroso
-        onCancelar={() => setAEliminar(null)}
-        onConfirmar={eliminar}
+        onCancelar={() => setReglaAEliminar(null)}
+        onConfirmar={() => void confirmarEliminacion()}
       />
     </View>
   );
 }
-
-const s = StyleSheet.create({
-  pantalla: {
-    flex: 1,
-  },
-  contenido: {
-    padding: 16,
-    paddingBottom: 32,
-    gap: 12,
-  },
-  vacio: {
-    textAlign: 'center',
-    paddingVertical: 24,
-  },
-  nueva: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderRadius: 12,
-    paddingVertical: 12,
-  },
-  nuevaTexto: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-});

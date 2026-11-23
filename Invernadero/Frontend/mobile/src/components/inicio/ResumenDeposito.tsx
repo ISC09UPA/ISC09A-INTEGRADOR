@@ -1,8 +1,7 @@
 
 import { MaterialIcons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
-import { useColorScheme } from 'nativewind';
-import { colores } from '@/theme/tokens';
+import { useTema } from '@/hooks/useTema';
 
 interface Props {
   nivelDeposito: number;
@@ -14,8 +13,7 @@ export function ResumenDeposito({
   nivelDeposito,
   ultimoRiegoMl,
 }: Props) {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const tema = useTema();
 
   return (
     <View style={s.fila}>

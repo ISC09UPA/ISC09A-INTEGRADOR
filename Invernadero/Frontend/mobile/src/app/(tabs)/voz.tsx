@@ -6,7 +6,7 @@ import { EstadoEspera } from '@/components/voz/EstadoEspera';
 import { IndicadorGrabacion, OndasAudio } from '@/components/voz/IndicadorGrabacion';
 import { RevisionGrabacion } from '@/components/voz/RevisionGrabacion';
 import { Transcripcion } from '@/components/voz/Transcripcion';
-import { useTema } from '@/components/voz/useTema';
+import { useTema } from '@/hooks/useTema';
 import { useVoz } from '@/voz/VozProvider';
 
 /**

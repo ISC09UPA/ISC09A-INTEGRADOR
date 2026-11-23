@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, PanResponder, StyleSheet, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, PanResponder, StyleSheet, View } from 'react-native';
 
-import { hapticoAviso, hapticoError, hapticoToque } from '../../../utils/haptico';
 import { useVoz } from '@/voz/VozProvider';
+import { hapticoAviso, hapticoError, hapticoToque } from '../../../utils/haptico';
 import {
   RADIO_ACTIVACION,
   TAM_BOTON,
@@ -12,7 +12,7 @@ import {
   UMBRAL_OCULTAR,
   ZONA_DY,
 } from './constantes';
-import { useTema } from './useTema';
+import { useTema } from '@/hooks/useTema';
 import { ZonaCancelacion } from './ZonaCancelacion';
 
 /**
@@ -26,14 +26,15 @@ import { ZonaCancelacion } from './ZonaCancelacion';
  */
 export function BotonMicrofono() {
   const tema = useTema();
-  const {
-    estado,
-    gesto,
-    iniciarGrabacion,
-    finalizarGrabacion,
-    cancelarGrabacion,
-    actualizarGesto,
-  } = useVoz();
+  const voz = useVoz();
+  const { estado, gesto } = voz;
+
+  // Siempre apunta a las acciones más recientes del proveedor. Así el PanResponder
+  // se crea una sola vez (no se reemplaza a mitad de un gesto) y nunca usa acciones viejas.
+  const accionesRef = useRef(voz);
+  useEffect(() => {
+    accionesRef.current = voz;
+  }, [voz]);
 
   // Estado del gesto en curso (solo se toca desde los manejadores del gesto).
   const gestoActivoRef = useRef(false);
@@ -44,11 +45,8 @@ export function BotonMicrofono() {
   const [escala] = useState(() => new Animated.Value(1));
   const grabando = estado === 'recording';
 
-  const [panHandlers, setPanHandlers] = useState<
-    ReturnType<typeof PanResponder.create>['panHandlers'] | null
-  >(null);
-
-  useEffect(() => {
+  // Se crea una sola vez; los manejadores solo leen refs, nunca estado de render.
+  const [responder] = useState(() => {
     /** Calcula el estado de la zona de cancelación a partir del desplazamiento. */
     const evaluar = (dx: number, dy: number) => {
       const distanciaZona = Math.hypot(dx, dy + ZONA_DY);
@@ -61,7 +59,7 @@ export function BotonMicrofono() {
     const limpiarGesto = () => {
       visibleRef.current = false;
       activaRef.current = false;
-      actualizarGesto(false, false);
+      accionesRef.current.actualizarGesto(false, false);
     };
 
     const terminar = (desplazamiento?: { dx: number; dy: number }) => {
@@ -79,14 +77,14 @@ export function BotonMicrofono() {
 
       if (cancelar) {
         hapticoError();
-        void cancelarGrabacion();
+        void accionesRef.current.cancelarGrabacion();
       } else {
         hapticoToque();
-        void finalizarGrabacion();
+        void accionesRef.current.finalizarGrabacion();
       }
     };
 
-    const responder = PanResponder.create({
+    return PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       // Nadie (ScrollView, navegación, etc.) puede quitarle el gesto al botón.
@@ -95,7 +93,7 @@ export function BotonMicrofono() {
 
       onPanResponderGrant: () => {
         hapticoToque();
-        gestoActivoRef.current = iniciarGrabacion();
+        gestoActivoRef.current = accionesRef.current.iniciarGrabacion();
         // Navega de inmediato a Voz; el botón sigue montado y el gesto continúa.
         router.navigate('/voz');
       },
@@ -106,7 +104,7 @@ export function BotonMicrofono() {
         if (activa && !activaRef.current) hapticoAviso();
         visibleRef.current = visible;
         activaRef.current = activa;
-        actualizarGesto(visible, activa);
+        accionesRef.current.actualizarGesto(visible, activa);
       },
 
       onPanResponderRelease: (_evento, g) => terminar({ dx: g.dx, dy: g.dy }),
@@ -115,8 +113,7 @@ export function BotonMicrofono() {
       // grabación en lugar de perderla, nunca se cancela por accidente.
       onPanResponderTerminate: () => terminar(),
     });
-    setPanHandlers(responder.panHandlers);
-  }, [actualizarGesto, cancelarGrabacion, finalizarGrabacion, iniciarGrabacion]);
+  });
 
   // Pulso suave mientras se graba.
   useEffect(() => {
@@ -151,7 +148,7 @@ export function BotonMicrofono() {
   return (
     <View style={styles.contenedor}>
       <View
-        {...panHandlers}
+        {...responder.panHandlers}
         style={styles.area}
         accessible
         accessibilityRole="button"

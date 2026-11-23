@@ -1,7 +1,6 @@
 
 import { ActivityIndicator, Pressable, Text } from 'react-native';
-import { useColorScheme } from 'nativewind';
-import { colores } from '@/theme/tokens';
+import { useTema } from '@/hooks/useTema';
 
 interface PropsBoton extends React.ComponentProps<typeof Pressable> {
   variante?: 'primario' | 'secundario' | 'peligroso';
@@ -19,8 +18,7 @@ export function Boton({
   className = '',
   ...resto
 }: PropsBoton) {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const tema = useTema();
 
   const activo = !deshabilitado && !cargando;
 
@@ -72,8 +70,7 @@ export function BotonPill({
   deshabilitado?: boolean;
   tono?: 'primario' | 'secundario';
 }) {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const tema = useTema();
 
   const fondo = tono === 'primario' ? tema.primary : tema.secondary;
   const colorTexto = tono === 'primario' ? tema.onPrimary : tema.onSecondary;

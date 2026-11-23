@@ -1,8 +1,7 @@
 
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useColorScheme } from 'nativewind';
-import { colores } from '@/theme/tokens';
+import { useTema } from '@/hooks/useTema';
 
 interface Props {
   titulo: string;
@@ -13,8 +12,7 @@ interface Props {
 
 /** Fila de actuador: título + estado a la izquierda, control a la derecha. */
 export function FilaAccion({ titulo, subtitulo, children }: Props) {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const tema = useTema();
 
   return (
     <View style={[s.fila, { backgroundColor: tema.surfaceContainerLow }]}>

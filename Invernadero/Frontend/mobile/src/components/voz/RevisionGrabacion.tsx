@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card';
 import type { Grabacion } from '@/voz/tipos';
 import { formatearDuracion } from '@/voz/formato';
 import { Transcripcion } from './Transcripcion';
-import { useTema } from './useTema';
+import { useTema } from '@/hooks/useTema';
 
 interface Props {
   grabacion: Grabacion;

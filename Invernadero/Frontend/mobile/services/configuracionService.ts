@@ -44,3 +44,5 @@ export async function guardarConfiguracion(
     JSON.stringify(configuracion),
   );
 }
+
+export const CLAVE_TEMA = '@riegoSmart/tema';

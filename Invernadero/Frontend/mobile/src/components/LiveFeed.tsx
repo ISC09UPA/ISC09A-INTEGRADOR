@@ -1,10 +1,9 @@
 
-import { Image } from 'expo-image';
-import { Text, View } from 'react-native';
-import { useEffect, useState } from 'react';
-import { useColorScheme } from 'nativewind';
-import { colores } from '@/theme/tokens';
 import { IMG_VISTA_VIVA, PLANTAS_SEMILLA } from '@/mocks/datos';
+import { Image } from 'expo-image';
+import { useEffect, useState } from 'react';
+import { Text, View } from 'react-native';
+import { useTema } from '@/hooks/useTema';
 
 const IMAGENES_ROTACION = [
   IMG_VISTA_VIVA,
@@ -14,8 +13,7 @@ const IMAGENES_ROTACION = [
 
 export function LiveFeed({ online }: { online: boolean }) {
   const [marco, setMarco] = useState(0);
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const tema = useTema();
 
   useEffect(() => {
     if (!online) return;
@@ -41,17 +39,11 @@ export function LiveFeed({ online }: { online: boolean }) {
             contentFit="cover"
           />
 
-          {/* HUD de la cámara */}
+          {/* Etiqueta de cámara de demostración */}
           <View className="absolute left-3 top-3 flex-row items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1">
             <View className="h-1.5 w-1.5 rounded-full bg-red-500" />
             <Text className="text-label-sm text-white">
-              CAM-02 RPi · En vivo
-            </Text>
-          </View>
-
-          <View className="absolute bottom-3 right-3 rounded-full bg-black/50 px-2.5 py-1">
-            <Text className="text-label-sm text-white">
-              12.4 k lx · 27 °C
+              CAM-02 · Demo
             </Text>
           </View>
 

@@ -1,25 +1,30 @@
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { TipoNotificacion } from '../../../types';
-import { colores } from '@/theme/tokens';
-import { notificacionesService } from '@/services';
 import { Confirmar } from '@/components/Confirmar';
 import { Vacio } from '@/components/ui/Estados';
+import { notificacionesService } from '@/services';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { router } from 'expo-router';
+import { useEffect, useMemo, useState, type ComponentProps } from 'react';
+import { AppState, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSesion } from '../../../store/useSesionStore';
-import { hapticoExito, hapticoToque } from '../../../utils/haptico';
+import type { TipoNotificacion } from '../../../types';
 import { relativo } from '../../../utils/formato';
-import { useColorScheme } from 'nativewind';
+import { hapticoExito, hapticoToque } from '../../../utils/haptico';
+import { useTema } from '@/hooks/useTema';
+
+type NombreIcono = ComponentProps<typeof MaterialIcons>['name'];
+
+// Notificaciones de ejemplo que trae el servicio: no llevan la etiqueta "(demo)".
+const IDS_SEMILLA = new Set(['n-seed-1', 'n-seed-2', 'n-seed-3']);
 
 export default function Notificaciones() {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const tema = useTema();
+  const insets = useSafeAreaInsets();
 
   const ICONO_TIPO: Record<
     TipoNotificacion,
-    { icono: string; fondo: string; color: string }
+    { icono: NombreIcono; fondo: string; color: string }
   > = {
     deposito_vacio: {
       icono: 'warning',
@@ -58,8 +63,22 @@ export default function Notificaciones() {
     queryFn: notificacionesService.listarNotificaciones,
   });
 
+  // null = todavía consultando el permiso (evita mostrar "pendiente" por un instante).
   const [permiso, setPermiso] = useState<notificacionesService.EstadoPermisos | null>(null);
   const [probarVisible, setProbarVisible] = useState(false);
+
+  // Consulta el permiso al abrir y cada vez que se vuelve a la app
+  // (p. ej. tras activarlo desde los ajustes del sistema).
+  useEffect(() => {
+    const actualizar = () => {
+      void notificacionesService.consultarPermisos().then(setPermiso);
+    };
+    actualizar();
+    const suscripcion = AppState.addEventListener('change', (estado) => {
+      if (estado === 'active') actualizar();
+    });
+    return () => suscripcion.remove();
+  }, []);
 
   const noLeidas = useMemo(
     () => (lista.data ?? []).filter((n) => !n.leida).length,
@@ -79,16 +98,24 @@ export default function Notificaciones() {
     });
   }
 
-  const estatus: notificacionesService.EstadoPermisos =
-    permiso ?? 'undetermined';
+  function volver() {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)/inicio');
+  }
+
+  const concedido = permiso === 'granted';
+  const denegado = permiso === 'denied';
 
   return (
     <View className="flex-1 bg-surface">
-      {/* Encabezado */}
-      <View className="h-16 flex-row items-center justify-between px-gutter-mobile">
+      {/* Encabezado (respeta el área segura: esta pantalla no usa el header de las pestañas) */}
+      <View
+        className="flex-row items-center justify-between px-gutter-mobile"
+        style={{ paddingTop: insets.top, height: 64 + insets.top }}
+      >
         <View className="flex-row items-center gap-2">
           <Pressable
-            onPress={() => router.back()}
+            onPress={volver}
             accessibilityRole="button"
             accessibilityLabel="Volver"
             className="h-10 w-10 items-center justify-center rounded-full bg-surface-container-low"
@@ -113,9 +140,11 @@ export default function Notificaciones() {
           </View>
         </View>
 
-        <Text className="text-[13px] font-semibold text-on-primary">
-          {iniciales}
-        </Text>
+        <View className="h-10 w-10 items-center justify-center rounded-full bg-primary">
+          <Text className="text-[13px] font-semibold text-on-primary">
+            {iniciales}
+          </Text>
+        </View>
       </View>
 
       <ScrollView
@@ -123,70 +152,68 @@ export default function Notificaciones() {
         showsVerticalScrollIndicator={false}
       >
         {/* Estado de permisos */}
-        <View className="px-gutter-mobile pb-2">
-          <View
-            className={`rounded-xl p-3 ${
-              estatus === 'granted'
-                ? 'bg-primary-container'
-                : 'bg-surface-container-lowest shadow-sm'
-            }`}
-          >
-            <View className="flex-row items-center gap-2">
-              <MaterialIcons
-                name={
-                  estatus === 'granted'
-                    ? 'notifications-active'
-                    : 'notifications-off'
-                }
-                size={22}
-                color={
-                  estatus === 'granted'
-                    ? tema.onPrimaryContainer
-                    : tema.onSurfaceVariant
-                }
-              />
+        {permiso !== null && (
+          <View className="px-gutter-mobile pb-2">
+            <View
+              className={`rounded-xl p-3 ${
+                concedido
+                  ? 'bg-primary-container'
+                  : 'bg-surface-container-lowest shadow-sm'
+              }`}
+            >
+              <View className="flex-row items-center gap-2">
+                <MaterialIcons
+                  name={concedido ? 'notifications-active' : 'notifications-off'}
+                  size={22}
+                  color={concedido ? tema.onPrimaryContainer : tema.onSurfaceVariant}
+                />
 
-              <View className="flex-1">
-                <Text
-                  className={`text-title-sm font-semibold ${
-                    estatus === 'granted'
-                      ? 'text-on-primary-container'
-                      : 'text-on-surface'
-                  }`}
-                >
-                  {estatus === 'granted'
-                    ? 'Permisos concedidos'
-                    : 'Permisos pendientes'}
-                </Text>
-
-                <Text
-                  className={`text-body-sm ${
-                    estatus === 'granted'
-                      ? 'text-on-primary-container'
-                      : 'text-on-surface-variant'
-                  }`}
-                >
-                  {estatus === 'granted'
-                    ? 'Recibirás avisos demo: depósito vacío, estrés hídrico, enfermedad, riego y desconexión.'
-                    : 'Activa los permisos para recibir las notificaciones locales de demostración en este dispositivo.'}
-                </Text>
-              </View>
-
-              {estatus !== 'granted' && (
-                <Pressable
-                  onPress={pedirPermiso}
-                  className="min-h-[44px] justify-center rounded-xl bg-primary px-3 py-2.5"
-                  accessibilityRole="button"
-                  accessibilityLabel="Activar permisos de notificación"
-                >
-                  <Text className="text-label-md font-semibold text-on-primary">
-                    Activar
+                <View className="flex-1">
+                  <Text
+                    className={`text-title-sm font-semibold ${
+                      concedido ? 'text-on-primary-container' : 'text-on-surface'
+                    }`}
+                  >
+                    {concedido
+                      ? 'Permisos concedidos'
+                      : denegado
+                        ? 'Permisos desactivados'
+                        : 'Permisos pendientes'}
                   </Text>
-                </Pressable>
-              )}
+
+                  <Text
+                    className={`text-body-sm ${
+                      concedido ? 'text-on-primary-container' : 'text-on-surface-variant'
+                    }`}
+                  >
+                    {concedido
+                      ? 'Recibirás avisos demo: depósito vacío, estrés hídrico, enfermedad, riego y desconexión.'
+                      : denegado
+                        ? 'Los permisos están bloqueados. Actívalos desde los ajustes del sistema.'
+                        : 'Activa los permisos para recibir las notificaciones locales de demostración en este dispositivo.'}
+                  </Text>
+                </View>
+
+                {!concedido && (
+                  <Pressable
+                    onPress={denegado ? () => void Linking.openSettings() : pedirPermiso}
+                    className="min-h-[44px] justify-center rounded-xl bg-primary px-3 py-2.5"
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      denegado
+                        ? 'Abrir ajustes para activar las notificaciones'
+                        : 'Activar permisos de notificación'
+                    }
+                  >
+                    <Text className="text-label-md font-semibold text-on-primary">
+                      {denegado ? 'Ajustes' : 'Activar'}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
             </View>
           </View>
-        </View>
+        )}
 
         {/* Acciones demo */}
         <View className="flex-row gap-2 px-gutter-mobile pb-2">
@@ -237,11 +264,7 @@ export default function Notificaciones() {
           ) : (
             lista.data?.map((n) => {
               const meta = ICONO_TIPO[n.tipo];
-              const semilla = [
-                'n-seed-1',
-                'n-seed-2',
-                'n-seed-3',
-              ].includes(n.id);
+              const semilla = IDS_SEMILLA.has(n.id);
 
               return (
                 <Pressable
@@ -264,7 +287,7 @@ export default function Notificaciones() {
                     style={{ backgroundColor: meta.fondo }}
                   >
                     <MaterialIcons
-                      name={meta.icono as never}
+                      name={meta.icono}
                       size={18}
                       color={meta.color}
                     />

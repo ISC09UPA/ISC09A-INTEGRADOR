@@ -1,12 +1,17 @@
-import { MaterialIcons } from '@expo/vector-icons';
-import { ActivityIndicator, Pressable, Text, View, type DimensionValue } from 'react-native';
-import { useColorScheme } from 'nativewind';
-import { colores } from '@/theme/tokens';
 
-function useTema() {
-  const { colorScheme } = useColorScheme();
-  return colorScheme === 'dark' ? colores.oscuro : colores.claro;
-}
+import { useConfiguracion } from '@/context/ConfiguracionContext';
+import { useTema } from '@/hooks/useTema';
+
+import { MaterialIcons } from '@expo/vector-icons';
+
+import {
+  Pressable,
+  Text,
+  View,
+  type DimensionValue,
+} from 'react-native';
+
+import { formatearHora } from '../../../utils/formatoFechaHora';
 
 export function Skeleton({
   ancho = '100%',
@@ -47,11 +52,15 @@ export function Vacio({
   return (
     <View
       className="items-center justify-center gap-2 rounded-xl p-6 shadow-sm"
-      style={{ backgroundColor: tema.surfaceContainerLowest }}
+      style={{
+        backgroundColor: tema.surfaceContainerLowest,
+      }}
     >
       <View
         className="h-12 w-12 items-center justify-center rounded-full"
-        style={{ backgroundColor: tema.surfaceContainerHigh }}
+        style={{
+          backgroundColor: tema.surfaceContainerHigh,
+        }}
       >
         <MaterialIcons
           name="filter-list-off"
@@ -62,14 +71,19 @@ export function Vacio({
 
       <Text
         className="text-title-sm"
-        style={{ fontWeight: '600', color: tema.onSurface }}
+        style={{
+          fontWeight: '600',
+          color: tema.onSurface,
+        }}
       >
         {titulo}
       </Text>
 
       <Text
         className="max-w-[240px] text-center text-body-sm"
-        style={{ color: tema.onSurfaceVariant }}
+        style={{
+          color: tema.onSurfaceVariant,
+        }}
       >
         {descripcion}
       </Text>
@@ -81,7 +95,10 @@ export function Vacio({
         >
           <Text
             className="text-title-sm"
-            style={{ fontWeight: '600', color: tema.primary }}
+            style={{
+              fontWeight: '600',
+              color: tema.primary,
+            }}
           >
             {accionTexto}
           </Text>
@@ -103,7 +120,9 @@ export function ErrorConReintento({
   return (
     <View
       className="items-center gap-3 rounded-xl p-5"
-      style={{ backgroundColor: tema.errorContainer }}
+      style={{
+        backgroundColor: tema.errorContainer,
+      }}
     >
       <MaterialIcons
         name="error-outline"
@@ -113,7 +132,9 @@ export function ErrorConReintento({
 
       <Text
         className="text-body-md text-center"
-        style={{ color: tema.onErrorContainer }}
+        style={{
+          color: tema.onErrorContainer,
+        }}
       >
         {mensaje}
       </Text>
@@ -122,11 +143,16 @@ export function ErrorConReintento({
         onPress={intentarDeNuevo}
         accessibilityRole="button"
         className="rounded-xl px-4 py-2 min-h-[44px] justify-center"
-        style={{ backgroundColor: tema.error }}
+        style={{
+          backgroundColor: tema.error,
+        }}
       >
         <Text
           className="text-label-lg"
-          style={{ fontWeight: '600', color: tema.onError }}
+          style={{
+            fontWeight: '600',
+            color: tema.onError,
+          }}
         >
           Reintentar
         </Text>
@@ -135,18 +161,25 @@ export function ErrorConReintento({
   );
 }
 
-export function BannerOffline({ ultimaSync }: { ultimaSync: string }) {
+export function BannerOffline({
+  ultimaSync,
+}: {
+  ultimaSync: string;
+}) {
   const tema = useTema();
+  const { config } = useConfiguracion();
 
-  const hora = new Date(ultimaSync).toLocaleTimeString('es-MX', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const hora = formatearHora(
+    ultimaSync,
+    config.formatoHora,
+  );
 
   return (
     <View
       className="flex-row items-center gap-2 rounded-xl px-3 py-2.5"
-      style={{ backgroundColor: tema.tertiaryContainer }}
+      style={{
+        backgroundColor: tema.tertiaryContainer,
+      }}
     >
       <MaterialIcons
         name="cloud-off"
@@ -157,16 +190,22 @@ export function BannerOffline({ ultimaSync }: { ultimaSync: string }) {
       <View className="flex-1">
         <Text
           className="text-label-md"
-          style={{ fontWeight: '600', color: tema.onTertiaryContainer }}
+          style={{
+            fontWeight: '600',
+            color: tema.onTertiaryContainer,
+          }}
         >
           Sin conexión con la RPi · Mostrando últimos datos ({hora} h)
         </Text>
 
         <Text
           className="text-[11px]"
-          style={{ color: tema.onTertiaryContainer }}
+          style={{
+            color: tema.onTertiaryContainer,
+          }}
         >
-          Los controles manuales están deshabilitados hasta que la Raspberry Pi vuelva a estar en línea.
+          Los controles manuales están deshabilitados hasta que la
+          Raspberry Pi vuelva a estar en línea.
         </Text>
       </View>
     </View>

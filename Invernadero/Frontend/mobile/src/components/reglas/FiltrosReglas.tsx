@@ -1,7 +1,6 @@
-import { colores } from '@/theme/tokens';
-import { useColorScheme } from 'nativewind';
 import { Pressable, Text, View } from 'react-native';
 import { FILTROS, type Categoria } from './datos';
+import { useTema } from '@/hooks/useTema';
 
 interface Props {
   seleccionado: Categoria | 'todas';
@@ -10,8 +9,7 @@ interface Props {
 
 /** Chips fijos para filtrar reglas por categoría. */
 export function FiltrosReglas({ seleccionado, onSelect }: Props) {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const tema = useTema();
 
   return (
     <View

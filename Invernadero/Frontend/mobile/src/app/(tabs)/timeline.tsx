@@ -1,22 +1,19 @@
-import { useColorScheme } from 'nativewind';
-import { MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
-import { Alert, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
-import { useEffect, useState } from 'react';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Confirmar } from '@/components/Confirmar';
+import { TimelineItem } from '@/components/TimelineItem';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
-import { Vacio, ErrorConReintento } from '@/components/ui/Estados';
+import { ErrorConReintento, Vacio } from '@/components/ui/Estados';
 import { Select, type Opcion } from '@/components/ui/Select';
-import { TimelineItem } from '@/components/TimelineItem';
-import { useDispositivo } from '@/hooks/useTelemetria';
-import { colores } from '@/theme/tokens';
-import { timelineService } from '../../../services';
+import { useTema } from '@/hooks/useTema';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import { useState } from 'react';
+import { Alert, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
+import { timelineService } from '../../../services';
 import { backendApiEnabled } from '../../../services/backendApi';
 import { hapticoToque } from '../../../utils/haptico';
-import { Confirmar } from '@/components/Confirmar';
 
 type FiltroTipo = 'todo' | 'riego' | 'alerta' | 'clima' | 'ia';
 type FiltroPlanta = string; // 'todas' | id
@@ -36,77 +33,56 @@ const OPCIONES_RANGO: Opcion<FiltroRango>[] = [
   { valor: 'mes', etiqueta: 'Este mes' },
 ];
 
+const OPCIONES_PLANTA: Opcion<FiltroPlanta>[] = [
+  { valor: 'todas', etiqueta: '🌱 Todas las plantas' },
+  { valor: 'albahaca-1', etiqueta: '🌿 Albahaca #1' },
+  { valor: 'tomate-1', etiqueta: '🍅 Tomate Cherry' },
+  { valor: 'menta-1', etiqueta: '🍃 Menta Piperita' },
+];
+
+const DIAS_RANGO: Record<FiltroRango, number> = { hoy: 1, semana: 7, mes: 30 };
+const MS_DIA = 86_400_000;
+
 export default function Timeline() {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
-  const dispositivo = useDispositivo();
-  const insets = useSafeAreaInsets();
+  const tema = useTema();
   const qc = useQueryClient();
 
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('todo');
   const [filtroPlanta, setFiltroPlanta] = useState<FiltroPlanta>('todas');
   const [filtroRango, setFiltroRango] = useState<FiltroRango>('semana');
   const [confirmarLimpieza, setConfirmarLimpieza] = useState(false);
-  // Los cortes de fecha se capturan en un efecto (Date.now() es impuro en render).
-  const [ahoraMs, setAhoraMs] = useState(0);
-  const [hoyStr, setHoyStr] = useState('');
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setAhoraMs(Date.now());
-      setHoyStr(new Date().toDateString());
-    }, 0);
-    return () => clearTimeout(t);
-  }, []);
+  // Referencia de "ahora" para el rango y los KPIs. Se inicializa de forma perezosa
+  // (sin parpadeo) y se actualiza al refrescar.
+  const [ahoraMs, setAhoraMs] = useState(() => Date.now());
+  const hoyStr = new Date(ahoraMs).toDateString();
 
   const eventos = useInfiniteQuery({
-    queryKey: ['eventos', filtroTipo, filtroPlanta, filtroRango],
+    queryKey: ['eventos', filtroTipo, filtroPlanta],
     queryFn: ({ pageParam }) =>
       timelineService.listarEventos({ tipo: filtroTipo, plantaId: filtroPlanta, pagina: pageParam }),
     initialPageParam: 0,
     getNextPageParam: (ultima) => ultima.siguientePagina ?? undefined,
   });
-  const online = dispositivo.data?.online ?? false;
-  const estadoApi = eventos.isError
-    ? 'API desconectada'
-    : eventos.isSuccess
-      ? 'API conectada'
-      : 'Conectando con API…';
-  const encabezado = backendApiEnabled ? (
-    <View
-      className="flex-row items-center px-gutter-mobile"
-      style={{ paddingTop: insets.top, height: 64 + insets.top }}
-    >
-      <View className="h-10 w-10 items-center justify-center rounded-xl bg-primary-container">
-        <MaterialIcons name="eco" size={22} color={tema.primary} />
-      </View>
-      <View className="ml-2">
-        <Text className="text-title-sm text-on-surface" style={{ fontWeight: '600' }}>
-          RiegoSmart IA
-        </Text>
-        <Text className="text-label-sm text-on-surface-variant" style={{ fontWeight: '500' }}>
-          {estadoApi}
-        </Text>
-      </View>
-    </View>
-  ) : (
-    null
-  );
 
   const todas = eventos.data?.pages.flatMap((p) => p.eventos) ?? [];
   const total = eventos.data?.pages[0]?.totalFiltrado ?? 0;
 
-  // KPIs del día (basados en eventos del mock).
+  // El rango se aplica en la pantalla, sobre los eventos ya cargados.
+  const desdeMs = ahoraMs - DIAS_RANGO[filtroRango] * MS_DIA;
+  const visibles = todas.filter((e) => Date.parse(e.fecha) >= desdeMs);
+
+  // La línea conectora solo abarca desde la primera hasta la última alerta visible.
+  const primeraAlerta = visibles.findIndex((e) => e.tipo === 'alerta');
+  const ultimaAlerta = visibles.reduce(
+    (ultima, evento, indice) => (evento.tipo === 'alerta' ? indice : ultima),
+    -1,
+  );
+
+  // KPIs del día (sobre los eventos cargados).
   const eventosHoy = todas.filter((e) => new Date(e.fecha).toDateString() === hoyStr);
   const riegosHoy = eventosHoy.filter((e) => e.tipo === 'riego');
   const mlHoy = riegosHoy.reduce((a, e) => a + (e.volumenMl ?? 0), 0);
   const alertasHoy = eventosHoy.filter((e) => e.tipo === 'alerta').length;
-
-  const opcionesPlanta: Opcion<FiltroPlanta>[] = [
-    { valor: 'todas', etiqueta: '🌱 Todas las plantas' },
-    { valor: 'albahaca-1', etiqueta: '🌿 Albahaca #1' },
-    { valor: 'tomate-1', etiqueta: '🍅 Tomate Cherry' },
-    { valor: 'menta-1', etiqueta: '🍃 Menta Piperita' },
-  ];
 
   function restablecerFiltros() {
     setFiltroTipo('todo');
@@ -115,16 +91,17 @@ export default function Timeline() {
     void eventos.refetch();
   }
 
-  function filtrarPorRango(semillas: typeof todas, ahora: number): typeof todas {
-    const ms = filtroRango === 'hoy' ? 24 * 3600e3 : filtroRango === 'semana' ? 7 * 24 * 3600e3 : 30 * 24 * 3600e3;
-    return semillas.filter((e) => ahora - new Date(e.fecha).getTime() <= ms);
+  function refrescar() {
+    setAhoraMs(Date.now());
+    void eventos.refetch();
   }
 
   async function compartirCsv() {
     try {
       const csv = await timelineService.exportarCsv();
       const archivo = new FileSystem.File(FileSystem.Paths.cache, 'riegosmart-timeline.csv');
-      archivo.write(csv);
+      archivo.create({ overwrite: true });
+      await archivo.write(csv);
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(archivo.uri, { mimeType: 'text/csv', dialogTitle: 'Exportar historial' });
       }
@@ -139,7 +116,6 @@ export default function Timeline() {
   if (eventos.isError) {
     return (
       <View className="flex-1 bg-surface">
-        {encabezado}
         <View className="p-4">
           <ErrorConReintento mensaje="No se pudieron cargar los eventos." intentarDeNuevo={() => void eventos.refetch()} />
         </View>
@@ -149,19 +125,11 @@ export default function Timeline() {
 
   return (
     <View className="relative flex-1 bg-surface">
-      {encabezado}
-
-      {/* Contenedor debajo del header: la línea conectora se posiciona respecto a él */}
       <View className="relative flex-1">
-        {/* Línea vertical conectora del timeline */}
-        <View
-          className="absolute bg-surface-container-high"
-          style={{ left: 27, top: 24, bottom: 0, width: 2 }}
-        />
         <FlatList
-          data={ahoraMs > 0 ? filtrarPorRango(todas, ahoraMs) : []}
+          data={visibles}
           keyExtractor={(e) => e.id}
-          onRefresh={() => void eventos.refetch()}
+          onRefresh={refrescar}
           refreshing={eventos.isRefetching}
           onEndReached={() => {
             if (eventos.hasNextPage && !eventos.isFetchingNextPage) void eventos.fetchNextPage();
@@ -169,9 +137,9 @@ export default function Timeline() {
           onEndReachedThreshold={0.4}
           ListHeaderComponent={
             <View className="px-4 pb-1 pt-2">
-              {/* Título de pantalla */}
-              <View className="flex-row items-center justify-between pt-2">
-                <View className="flex-col">
+              {/* Título y botón de compartir */}
+              <View className="flex-row items-center gap-3 pt-2">
+                <View className="min-w-0 flex-1">
                   <Text className="text-headline-lg-mobile text-on-surface" style={{ fontWeight: '700' }}>
                     Timeline
                   </Text>
@@ -184,11 +152,12 @@ export default function Timeline() {
                     hapticoToque();
                     void compartirCsv();
                   }}
-                  className="h-10 w-10 items-center justify-center rounded-full bg-surface-container-high active:scale-95"
+                  className="h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container-high active:scale-95"
+                  style={{ marginRight: 4 }}
                   accessibilityRole="button"
                   accessibilityLabel="Exportar historial a CSV"
                 >
-                  <MaterialCommunityIcons name={"share" as never} size={20} color={tema.onSurface} />
+                  <MaterialIcons name="share" size={20} color={tema.onSurface} />
                 </Pressable>
               </View>
 
@@ -226,7 +195,7 @@ export default function Timeline() {
 
               {/* Filtros */}
               <View className="mt-3 flex-row gap-2">
-                <Select valor={filtroPlanta} opciones={opcionesPlanta} onChange={(v) => { setFiltroPlanta(v); }} />
+                <Select valor={filtroPlanta} opciones={OPCIONES_PLANTA} onChange={setFiltroPlanta} />
                 <Select valor={filtroRango} opciones={OPCIONES_RANGO} onChange={setFiltroRango} />
               </View>
 
@@ -272,7 +241,12 @@ export default function Timeline() {
               <View />
             )
           }
-          renderItem={({ item }) => <TimelineItem evento={item} />}
+          renderItem={({ item, index }) => (
+            <TimelineItem
+              evento={item}
+              mostrarConector={primeraAlerta !== -1 && index >= primeraAlerta && index < ultimaAlerta}
+            />
+          )}
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
           contentContainerStyle={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 16 }}
         />
@@ -286,7 +260,7 @@ export default function Timeline() {
               hapticoToque();
               setConfirmarLimpieza(true);
             }}
-            className="flex-row items-center gap-1 rounded-lg px-2 py-1.5 min-h-[44px]"
+            className="min-h-[44px] flex-row items-center gap-1 rounded-lg px-2 py-1.5"
             accessibilityRole="button"
           >
             <MaterialIcons name="delete-sweep" size={16} color={tema.onSurfaceVariant} />
@@ -298,7 +272,7 @@ export default function Timeline() {
             hapticoToque();
             void compartirCsv();
           }}
-          className="flex-row items-center gap-1 rounded-lg px-2 py-1.5 min-h-[44px]"
+          className="min-h-[44px] flex-row items-center gap-1 rounded-lg px-2 py-1.5"
           accessibilityRole="button"
         >
           <MaterialIcons name="file-download" size={16} color={tema.primary} />

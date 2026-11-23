@@ -1,6 +1,5 @@
 import { View, type ViewProps } from 'react-native';
-import { useColorScheme } from 'nativewind';
-import { colores } from '@/theme/tokens';
+import { useTema } from '@/hooks/useTema';
 
 interface Props extends ViewProps {
   elevada?: boolean;
@@ -16,8 +15,7 @@ export function Card({
   style,
   ...resto
 }: Props) {
-  const { colorScheme } = useColorScheme();
-  const tema = colorScheme === 'dark' ? colores.oscuro : colores.claro;
+  const tema = useTema();
 
   const fondo =
     tono === 'blanco'
