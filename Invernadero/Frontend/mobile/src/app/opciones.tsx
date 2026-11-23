@@ -23,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ACERCA_DE, POLITICAS } from '@/constants/contenidoOpciones';
 import { useConfiguracion } from '@/context/ConfiguracionContext';
 import { useTema } from '@/hooks/useTema';
+import { useSesion } from '../../store/useSesionStore';
 
 import {
   CLAVE_TEMA,
@@ -210,7 +211,7 @@ function EncabezadoSeccion({
 
 export default function Opciones() {
   const { setColorScheme } = useColorScheme();
-
+  const esAdmin = useSesion((e) => e.usuario?.rol === 'admin');
   const tema = useTema();
   const insets = useSafeAreaInsets();
 

@@ -251,7 +251,7 @@ export function RuleCard({
           style={s.interruptor}
           value={regla.activa}
           onValueChange={onToggle}
-          disabled={bloqueada}
+          disabled={bloqueada || soloLectura}
           trackColor={{
             false: tema.surfaceContainerHighest,
             true: tema.primary,

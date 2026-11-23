@@ -1,157 +1,366 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import { Tabs, router, usePathname } from 'expo-router';
-import type { ComponentProps } from 'react';
-import { Pressable, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Pressable,
+  RefreshControl,
+  Text,
+  View,
+} from 'react-native';
 
-import { StatusPill } from '@/components/ui/StatusPill';
-import { BotonMicrofono } from '@/components/voz/BotonMicrofono';
-import { useDispositivo } from '@/hooks/useTelemetria';
+import type { Regla } from '../../../types';
+
+import {
+  alternarRegla,
+  eliminarRegla,
+  guardarRegla,
+  listarReglas,
+} from '../../../services/reglasService';
+
+import {
+  construirRegla,
+  type Categoria,
+  type DatosRegla,
+} from '@/components/reglas/datos';
+
+import { Confirmar } from '@/components/Confirmar';
+import { BannerMotor } from '@/components/reglas/BannerMotor';
+import { FiltrosReglas } from '@/components/reglas/FiltrosReglas';
+import { ReglaFormModal } from '@/components/reglas/ReglaFormModal';
+import { RuleCard } from '@/components/reglas/RuleCard';
 import { useTema } from '@/hooks/useTema';
-import { VozProvider } from '@/voz/VozProvider';
+import { useSesion } from '../../../store/useSesionStore';
 
-type NombreIcono = ComponentProps<typeof MaterialIcons>['name'];
-
-function Icono({ nombre, color }: { nombre: NombreIcono; color: string }) {
-  return <MaterialIcons name={nombre} size={24} color={color} />;
-}
-
-const TITULOS: Record<string, string> = {
-  inicio: 'Inicio',
-  timeline: 'Timeline',
-  voz: 'Voz',
-  camara: 'Cámara',
-  reglas: 'Reglas',
-};
-
-function HeaderPersonalizado() {
-  const insets = useSafeAreaInsets();
-  const pathname = usePathname();
-  const dispositivo = useDispositivo();
+export default function ReglasScreen() {
   const tema = useTema();
 
-  const online = dispositivo.data?.online ?? false;
-  const pantalla = pathname.split('/').filter(Boolean).pop() ?? 'inicio';
-  const tituloPantalla = TITULOS[pantalla] ?? 'RiegoSmart IA';
+  // Solo el admin crea, edita, elimina y activa/pausa reglas; el operador solo las ve.
+  const esAdmin = useSesion((e) => e.usuario?.rol === 'admin');
+
+  // Reglas cargadas desde el servicio.
+  const [reglas, setReglas] = useState<Regla[]>([]);
+
+  // Filtro seleccionado.
+  const [filtro, setFiltro] = useState<Categoria | 'todas'>('todas');
+
+  // Estado del formulario: nueva regla o regla existente.
+  const [formulario, setFormulario] = useState<'nueva' | Regla | null>(null);
+
+  // Regla pendiente de confirmación para eliminar.
+  const [reglaAEliminar, setReglaAEliminar] = useState<Regla | null>(null);
+
+  // Estados de carga.
+  const [cargando, setCargando] = useState(true);
+  const [actualizando, setActualizando] = useState(false);
+
+  // Cargar reglas desde el servicio.
+  const cargarReglas = useCallback(async () => {
+    try {
+      const resultado = await listarReglas();
+      setReglas(resultado);
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Error al cargar reglas:', error);
+      }
+
+      Alert.alert('Error', 'No se pudieron cargar las reglas.');
+    } finally {
+      setCargando(false);
+      setActualizando(false);
+    }
+  }, []);
+
+  // Cargar las reglas al abrir la pantalla.
+  useEffect(() => {
+    cargarReglas();
+  }, [cargarReglas]);
+
+  // Crear o actualizar una regla.
+  const guardar = async (datos: DatosRegla) => {
+    if (!esAdmin) return;
+
+    try {
+      const base =
+        formulario !== null && formulario !== 'nueva'
+          ? formulario
+          : undefined;
+
+      const regla = construirRegla(datos, base);
+
+      await guardarRegla(regla);
+      await cargarReglas();
+
+      setFormulario(null);
+
+      Alert.alert(
+        'Regla guardada',
+        'La regla se guardó correctamente.',
+      );
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Error al guardar regla:', error);
+      }
+
+      Alert.alert('Error', 'No se pudo guardar la regla.');
+    }
+  };
+
+  // Activar o desactivar una regla.
+  const alternar = async (id: string, activa: boolean) => {
+    if (!esAdmin) return;
+
+    try {
+      await alternarRegla(id, activa);
+
+      setReglas((actuales) =>
+        actuales.map((regla) =>
+          regla.id === id
+            ? { ...regla, activa }
+            : regla,
+        ),
+      );
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Error al cambiar regla:', error);
+      }
+
+      Alert.alert('Error', 'No se pudo actualizar la regla.');
+
+      await cargarReglas();
+    }
+  };
+
+  // Mostrar confirmación antes de eliminar.
+  const eliminar = (regla: Regla) => {
+    if (!esAdmin) return;
+
+    setReglaAEliminar(regla);
+  };
+
+  // Eliminar la regla después de confirmar.
+  const confirmarEliminacion = async () => {
+    if (!esAdmin || !reglaAEliminar) return;
+
+    const regla = reglaAEliminar;
+    setReglaAEliminar(null);
+
+    try {
+      await eliminarRegla(regla.id);
+
+      setReglas((actuales) =>
+        actuales.filter((item) => item.id !== regla.id),
+      );
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Error al eliminar regla:', error);
+      }
+
+      Alert.alert('Error', 'No se pudo eliminar la regla.');
+    }
+  };
+
+  // Filtrar reglas por categoría.
+  const reglasFiltradas = reglas.filter(
+    (regla) =>
+      filtro === 'todas' || regla.categoria === filtro,
+  );
+
+  // Contar reglas activas.
+  const activas = reglas.filter((regla) => regla.activa).length;
+
+  // Solo permitir editar reglas compatibles con el formulario.
+  const puedeEditar = (regla: Regla) =>
+    !regla.bloqueadaPorSeguridad &&
+    regla.si.sensor !== 'horario' &&
+    regla.si.operador !== 'entre' &&
+    (regla.entonces.actuador === 'bomba' ||
+      regla.entonces.actuador === 'ventilador') &&
+    regla.entonces.accion !== 'bloquear';
+
+  // No permitir eliminar reglas bloqueadas por seguridad.
+  const puedeEliminar = (regla: Regla) =>
+    !regla.bloqueadaPorSeguridad;
 
   return (
     <View
-      className="flex-row items-center justify-between px-gutter-mobile"
       style={{
-        paddingTop: insets.top,
-        height: 64 + insets.top,
-        backgroundColor: tema.surface,
+        flex: 1,
+        backgroundColor: tema.background,
       }}
     >
-      <View className="flex-row items-center gap-space-xs">
-        <Pressable
-          onPress={() => router.push('/opciones')}
-          accessibilityRole="button"
-          accessibilityLabel="Abrir opciones"
-          className="h-10 w-10 items-center justify-center rounded-xl"
-          style={{ backgroundColor: tema.primaryContainer }}
-        >
-          <MaterialIcons name="settings" size={22} color={tema.primary} />
-        </Pressable>
-
-        <View className="flex flex-col">
-          <Text
-            className="text-title-sm"
-            style={{ fontWeight: '600', color: tema.onSurface }}
-          >
-            RiegoSmart IA
-          </Text>
-
-          <Text
-            className="text-label-sm"
-            style={{ fontWeight: '500', color: tema.onSurfaceVariant }}
-          >
-            {tituloPantalla}
-          </Text>
-        </View>
-      </View>
-
-      <View className="flex-row items-center gap-space-sm">
-        <StatusPill online={online} />
-      </View>
-    </View>
-  );
-}
-
-export default function LayoutPestanas() {
-  const tema = useTema();
-  const insets = useSafeAreaInsets();
-
-  return (
-    <VozProvider>
-      <Tabs
-        screenOptions={{
-          header: () => <HeaderPersonalizado />,
-          headerShown: true,
-
-          tabBarActiveTintColor: tema.primary,
-          tabBarInactiveTintColor: tema.onSurfaceVariant,
-          tabBarLabelStyle: {
-            fontSize: 11,
-            fontWeight: '500',
-          },
-          tabBarStyle: {
-            height: 64 + insets.bottom,
-            paddingBottom: Math.max(insets.bottom, 8),
-            paddingTop: 6,
-            backgroundColor: tema.surface,
-          },
-          sceneStyle: {
-            backgroundColor: tema.surface,
-          },
+      <FlatList
+        data={reglasFiltradas}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{
+          padding: 16,
+          paddingBottom: 32,
         }}
-      >
-        <Tabs.Screen
-          name="inicio"
-          options={{
-            title: 'Inicio',
-            tabBarIcon: ({ color }) => <Icono nombre="home" color={String(color)} />,
-          }}
-        />
+        refreshControl={
+          <RefreshControl
+            refreshing={actualizando}
+            onRefresh={() => {
+              setActualizando(true);
+              cargarReglas();
+            }}
+            tintColor={tema.primary}
+          />
+        }
+        ListHeaderComponent={
+          <View style={{ gap: 16, marginBottom: 16 }}>
+            <BannerMotor
+              activas={activas}
+              total={reglas.length}
+            />
 
-        <Tabs.Screen
-          name="timeline"
-          options={{
-            title: 'Timeline',
-            tabBarIcon: ({ color }) => <Icono nombre="timeline" color={String(color)} />,
-          }}
-        />
+            <FiltrosReglas
+              seleccionado={filtro}
+              onSelect={setFiltro}
+            />
 
-        {/* Voz: el botón de micrófono global ocupa el centro de la barra. */}
-        <Tabs.Screen
-          name="voz"
-          options={{
-            title: 'Voz',
-            tabBarButton: () => <BotonMicrofono />,
-          }}
-        />
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <Text
+                style={{
+                  color: tema.onSurface,
+                  fontSize: 18,
+                  fontWeight: '700',
+                }}
+              >
+                Reglas automatizadas
+              </Text>
 
-        <Tabs.Screen
-          name="camara"
-          options={{
-            title: 'Cámara',
-            tabBarIcon: ({ color }) => <Icono nombre="photo-camera" color={String(color)} />,
-          }}
-        />
+              <Text
+                style={{
+                  color: tema.onSurfaceVariant,
+                  fontSize: 13,
+                }}
+              >
+                {reglasFiltradas.length} reglas
+              </Text>
+            </View>
 
-        <Tabs.Screen
-          name="reglas"
-          options={{
-            title: 'Reglas',
-            tabBarIcon: ({ color }) => <Icono nombre="smart-toy" color={String(color)} />,
-          }}
-        />
+            {esAdmin ? (
+              <Pressable
+                onPress={() => setFormulario('nueva')}
+                accessibilityRole="button"
+                accessibilityLabel="Crear nueva regla"
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  padding: 14,
+                  borderRadius: 12,
+                  backgroundColor: tema.primary,
+                }}
+              >
+                <MaterialIcons
+                  name="add"
+                  size={20}
+                  color={tema.onPrimary}
+                />
 
-        <Tabs.Screen
-          name="notificaciones"
-          options={{ href: null, headerShown: false }}
+                <Text
+                  style={{
+                    color: tema.onPrimary,
+                    fontWeight: '600',
+                    fontSize: 14,
+                  }}
+                >
+                  Nueva regla
+                </Text>
+              </Pressable>
+            ) : (
+              <Text
+                style={{
+                  color: tema.onSurfaceVariant,
+                  textAlign: 'center',
+                  fontSize: 13,
+                }}
+              >
+                🔒 Solo lectura: pide a un administrador que edite las reglas.
+              </Text>
+            )}
+          </View>
+        }
+        renderItem={({ item }) => (
+          <RuleCard
+            regla={item}
+            soloLectura={!esAdmin}
+            onToggle={(activa: boolean) =>
+              alternar(item.id, activa)
+            }
+            onEditar={
+              esAdmin && puedeEditar(item)
+                ? () => setFormulario(item)
+                : undefined
+            }
+            onEliminar={
+              esAdmin && puedeEliminar(item)
+                ? () => eliminar(item)
+                : undefined
+            }
+          />
+        )}
+        ItemSeparatorComponent={() => (
+          <View style={{ height: 12 }} />
+        )}
+        ListEmptyComponent={
+          cargando ? (
+            <ActivityIndicator
+              size="large"
+              color={tema.primary}
+              style={{ marginTop: 32 }}
+            />
+          ) : (
+            <Text
+              style={{
+                color: tema.onSurfaceVariant,
+                textAlign: 'center',
+                marginTop: 32,
+                fontSize: 14,
+              }}
+            >
+              No hay reglas para mostrar.
+            </Text>
+          )
+        }
+      />
+
+      {/* Formulario para crear o editar reglas (solo admin). */}
+      {esAdmin && formulario !== null && (
+        <ReglaFormModal
+          regla={
+            formulario === 'nueva'
+              ? undefined
+              : formulario
+          }
+          onClose={() => setFormulario(null)}
+          onGuardar={guardar}
         />
-      </Tabs>
-    </VozProvider>
+      )}
+
+      {/* Confirmación para eliminar reglas. */}
+      <Confirmar
+        visible={reglaAEliminar !== null}
+        titulo="Eliminar regla"
+        descripcion={
+          reglaAEliminar
+            ? `¿Estás seguro de que deseas eliminar "${reglaAEliminar.nombre}"? Esta acción no se puede deshacer.`
+            : ''
+        }
+        textoConfirmar="Eliminar"
+        peligroso
+        onCancelar={() => setReglaAEliminar(null)}
+        onConfirmar={() => void confirmarEliminacion()}
+      />
+    </View>
   );
 }
