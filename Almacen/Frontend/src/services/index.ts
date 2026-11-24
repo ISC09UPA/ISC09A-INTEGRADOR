@@ -10,6 +10,7 @@ import { ProductosService } from './productos.service';
 import { ReportesService } from './reportes.service';
 import { ClientesService, ProveedoresService } from './terceros.service';
 import { UsuariosService } from './usuarios.service';
+import { VentaInteligenteService } from './venta-inteligente.service';
 
 // Una instancia de cada service, todas sobre el mismo HttpClient (y por lo tanto el mismo token).
 export const cuentaService = new CuentaService(httpClient);
@@ -25,3 +26,4 @@ export const finanzasService = new FinanzasService(httpClient);
 export const reportesService = new ReportesService(httpClient);
 export const usuariosService = new UsuariosService(httpClient);
 export const archivosService = new ArchivosService(httpClient);
+export const ventaInteligenteService = new VentaInteligenteService(httpClient);
