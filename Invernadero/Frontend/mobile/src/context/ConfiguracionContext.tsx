@@ -1,18 +1,19 @@
 
 import {
-    createContext,
-    useCallback,
-    useContext,
-    useEffect,
-    useState,
-    type ReactNode,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
 } from 'react';
 
 import {
-    CONFIGURACION_INICIAL,
-    guardarConfiguracion,
-    obtenerConfiguracion,
-    type ConfiguracionApp,
+  CONFIGURACION_INICIAL,
+  guardarConfiguracion,
+  obtenerConfiguracion,
+  type ConfiguracionApp,
 } from '../../services/configuracionService';
 
 import { fijarHaptico } from '../../utils/haptico';
@@ -37,19 +38,27 @@ export function ConfiguracionProvider({
   const [config, setConfig] =
     useState<ConfiguracionApp>(CONFIGURACION_INICIAL);
 
+  const configRef = useRef(config);
+
   const [cargada, setCargada] = useState(false);
 
   useEffect(() => {
     let activo = true;
 
     async function cargar() {
-      const preferencias = await obtenerConfiguracion();
+      try {
+        const preferencias = await obtenerConfiguracion();
 
-      if (!activo) return;
+        if (!activo) return;
 
-      setConfig(preferencias);
-      fijarHaptico(preferencias.vibracion);
-      setCargada(true);
+        configRef.current = preferencias;
+        setConfig(preferencias);
+        fijarHaptico(preferencias.vibracion);
+      } catch {
+        // Se conservan los valores iniciales.
+      } finally {
+        if (activo) setCargada(true);
+      }
     }
 
     void cargar();
@@ -64,7 +73,7 @@ export function ConfiguracionProvider({
       propiedad: K,
       valor: ConfiguracionApp[K],
     ): Promise<boolean> => {
-      const anterior = config;
+      const anterior = configRef.current;
 
       const nuevaConfiguracion = {
         ...anterior,
@@ -72,6 +81,7 @@ export function ConfiguracionProvider({
       };
 
       setConfig(nuevaConfiguracion);
+      configRef.current = nuevaConfiguracion;
 
       if (propiedad === 'vibracion') {
         fijarHaptico(nuevaConfiguracion.vibracion);
@@ -82,6 +92,7 @@ export function ConfiguracionProvider({
         return true;
       } catch {
         setConfig(anterior);
+        configRef.current = anterior;
 
         if (propiedad === 'vibracion') {
           fijarHaptico(anterior.vibracion);
@@ -90,7 +101,7 @@ export function ConfiguracionProvider({
         return false;
       }
     },
-    [config],
+    [],
   );
 
   return (

@@ -12,7 +12,6 @@ import { nuevoIdUsuario } from './ids';
 const CLAVE_SESION = 'riegosmart.sesion';
 /** Contraseña de las cuentas demo y de las creadas por un admin desde la pantalla de usuarios. */
 const CLAVE_DEMO = 'demo123';
-
 /** Contraseña de las cuentas demo y de las creadas por un admin desde la pantalla de usuarios. */
 const EMAIL_REGEXP = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -79,9 +78,15 @@ export async function iniciarSesion(
   }
 
   // No permite iniciar sesión si la cuenta no tiene contraseña registrada.
+  const esCuentaDemo =
+    usuario.id === 'u-admin' || usuario.id === 'u-operador';
+
+  const claveGuardada =
+    bd.claves[usuario.id] ?? (esCuentaDemo ? CLAVE_DEMO : undefined);
+
   if (
-    bd.claves[usuario.id] === undefined ||
-    contrasena !== bd.claves[usuario.id]
+    claveGuardada === undefined ||
+    contrasena !== claveGuardada
   ) {
     throw new Error('Contraseña incorrecta.');
   }
