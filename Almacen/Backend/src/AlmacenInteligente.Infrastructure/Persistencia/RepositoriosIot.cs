@@ -143,3 +143,78 @@ internal sealed class CandadoVentaInteligente(AlmacenDbContext db) : ICandadoVen
         return escaneos;
     }
 }
+
+/// <summary>
+/// Solicitudes de inicio de sesión con el embebido (iot_solicitudes_inicio_sesion). Las decisiones son sentencias SQL
+/// atómicas con las mismas condiciones de <see cref="SolicitudInicioSesionIot"/>; crear usa un candado de transacción
+/// para que dos apps no queden ambas con una solicitud pendiente.
+/// </summary>
+internal sealed class SolicitudesInicioSesionIot(AlmacenDbContext db) : ISolicitudesInicioSesionIot
+{
+    /// <summary>Llave del candado consultivo de PostgreSQL que serializa la creación de solicitudes.</summary>
+    private const long CandadoCrear = 0x10715E5104;
+
+    private const string Pendiente = nameof(EstadoSolicitudInicioSesion.Pendiente);
+    private const string Expirada = nameof(EstadoSolicitudInicioSesion.Expirada);
+    private const string Completada = nameof(EstadoSolicitudInicioSesion.Completada);
+    private const string Negada = nameof(EstadoSolicitudInicioSesion.Negada);
+    private const string Consumida = nameof(EstadoSolicitudInicioSesion.Consumida);
+    private const string Cancelada = nameof(EstadoSolicitudInicioSesion.Cancelada);
+
+    public async Task<bool> IntentarCrearAsync(SolicitudInicioSesionIot solicitud, CancellationToken ct = default)
+    {
+        var ahora = solicitud.Creada.ToUniversalTime();
+        var viejas = ahora.AddDays(-1);
+        await using var transaccion = await db.Database.BeginTransactionAsync(ct);
+        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock({CandadoCrear})", ct);
+        // Limpieza: las pendientes vencidas se marcan y lo de hace más de un día se borra (no es bitácora).
+        await db.Database.ExecuteSqlAsync(
+            $"UPDATE iot_solicitudes_inicio_sesion SET estado = {Expirada} WHERE estado = {Pendiente} AND expira < {ahora}", ct);
+        await db.Database.ExecuteSqlAsync($"DELETE FROM iot_solicitudes_inicio_sesion WHERE creada < {viejas}", ct);
+
+        if (await db.SolicitudesInicioSesionIot.AnyAsync(s => s.Estado == EstadoSolicitudInicioSesion.Pendiente, ct))
+            return false;
+
+        db.SolicitudesInicioSesionIot.Add(solicitud);
+        await db.SaveChangesAsync(ct);
+        await transaccion.CommitAsync(ct);
+        return true;
+    }
+
+    public Task<SolicitudInicioSesionIot?> ObtenerAsync(Guid id, CancellationToken ct = default) =>
+        db.SolicitudesInicioSesionIot.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct);
+
+    public async Task ResolverConAccesoAsync(bool permitido, Guid? usuarioId, string motivo, DateTimeOffset fechaAcceso, CancellationToken ct = default)
+    {
+        var momento = fechaAcceso.ToUniversalTime();
+        if (permitido && usuarioId is { } usuario)
+            await db.Database.ExecuteSqlAsync($"""
+                UPDATE iot_solicitudes_inicio_sesion
+                SET estado = {Completada}, usuario_id = {usuario}, motivo = NULL, resuelta_en = {momento}
+                WHERE estado = {Pendiente} AND creada <= {momento} AND expira >= {momento}
+                """, ct);
+        else
+        {
+            var texto = string.IsNullOrWhiteSpace(motivo) ? "Acceso negado" : motivo.Length > 300 ? motivo[..300] : motivo;
+            await db.Database.ExecuteSqlAsync($"""
+                UPDATE iot_solicitudes_inicio_sesion
+                SET estado = {Negada}, motivo = {texto}, resuelta_en = {momento}
+                WHERE estado = {Pendiente} AND creada <= {momento} AND expira >= {momento}
+                """, ct);
+        }
+    }
+
+    public async Task<Guid?> ConsumirAsync(Guid id, CancellationToken ct = default)
+    {
+        var filas = await db.Database.SqlQuery<Guid?>($"""
+            UPDATE iot_solicitudes_inicio_sesion SET estado = {Consumida}
+            WHERE id = {id} AND estado = {Completada}
+            RETURNING usuario_id AS "Value"
+            """).ToListAsync(ct);
+        return filas.Count == 1 ? filas[0] : null;
+    }
+
+    public Task CancelarAsync(Guid id, CancellationToken ct = default) =>
+        db.Database.ExecuteSqlAsync(
+            $"UPDATE iot_solicitudes_inicio_sesion SET estado = {Cancelada} WHERE id = {id} AND estado = {Pendiente}", ct);
+}

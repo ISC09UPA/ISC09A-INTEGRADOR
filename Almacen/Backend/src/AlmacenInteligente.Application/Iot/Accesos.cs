@@ -24,7 +24,7 @@ internal sealed class AccesosManejador(IAccesosIotRepositorio accesos) : IManeja
 /// </summary>
 public sealed class ServicioAccesoIot(
     IGestorUsuarios usuarios, IReconocimientoFacial reconocimiento, IAccesosIotRepositorio accesos,
-    IUnidadDeTrabajo unidad, IReloj reloj, OpcionesIot opciones)
+    ISolicitudesInicioSesionIot iniciosSesion, IUnidadDeTrabajo unidad, IReloj reloj, OpcionesIot opciones)
 {
     public async Task<RespuestaAccesoIot> EvaluarAsync(string? nfcRecibido, byte[] imagen, CancellationToken ct = default)
     {
@@ -73,8 +73,11 @@ public sealed class ServicioAccesoIot(
 
     private async Task<RespuestaAccesoIot> RegistrarAsync(string? nfc, UsuarioDto? usuario, DecisionAcceso decision, CancellationToken ct)
     {
-        accesos.Agregar(new AccesoIot(reloj.Ahora, nfc, usuario?.Id, decision.Permitido, decision.Confianza, decision.Motivo));
+        var ahora = reloj.Ahora;
+        accesos.Agregar(new AccesoIot(ahora, nfc, usuario?.Id, decision.Permitido, decision.Confianza, decision.Motivo));
         await unidad.GuardarAsync(ct);
+        // Si la app móvil está esperando un inicio de sesión con el embebido, este acceso lo resuelve.
+        await iniciosSesion.ResolverConAccesoAsync(decision.Permitido, usuario?.Id, decision.Motivo, ahora, ct);
         return new RespuestaAccesoIot(decision.Permitido, usuario?.Id, usuario?.Nombre, Math.Round(decision.Confianza, 4), decision.Motivo);
     }
 }
