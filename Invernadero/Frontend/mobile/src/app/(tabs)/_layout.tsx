@@ -134,7 +134,7 @@ export default function LayoutPestanas() {
         <Tabs.Screen
           name="camara"
           options={{
-            title: 'C├ímara',
+            title: 'Cámara',
             tabBarIcon: ({ color }) => <Icono nombre="photo-camera" color={String(color)} />,
           }}
         />
@@ -155,3 +155,4 @@ export default function LayoutPestanas() {
     </VozProvider>
   );
 }
+
