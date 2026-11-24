@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using AlmacenInteligente.Api;
 using AlmacenInteligente.Application;
 using AlmacenInteligente.Application.Abstracciones;
@@ -41,6 +42,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
     };
 });
 builder.Services.AddAuthorization();
+// Crear solicitudes de inicio de sesión con el embebido es anónimo: máximo 10 por minuto por IP para que no se abuse.
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    o.AddPolicy(EndpointsIot.LimiteInicioSesionIot, ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "desconocida",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+});
 // La app Expo en navegador (expo start --web) llama desde otro origen. El token viaja en Authorization, sin cookies,
 // así que basta con permitir cualquier origen; Content-Disposition expuesto para el nombre de los PDF.
 builder.Services.AddCors(o => o.AddDefaultPolicy(p =>
@@ -87,6 +96,7 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapGet("/salud", () => Results.Ok(new { estado = "ok" })).WithName("Salud").WithTags("Sistema").AllowAnonymous();
 app.MapCuenta();

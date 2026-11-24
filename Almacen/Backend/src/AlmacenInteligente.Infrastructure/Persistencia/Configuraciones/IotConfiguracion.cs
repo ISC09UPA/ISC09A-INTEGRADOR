@@ -52,3 +52,18 @@ internal sealed class EscaneoIotConfiguracion : IEntityTypeConfiguration<Escaneo
         b.HasOne<Producto>().WithMany().HasForeignKey(e => e.ProductoId).OnDelete(DeleteBehavior.Cascade);
     }
 }
+
+internal sealed class SolicitudInicioSesionIotConfiguracion : IEntityTypeConfiguration<SolicitudInicioSesionIot>
+{
+    public void Configure(EntityTypeBuilder<SolicitudInicioSesionIot> b)
+    {
+        b.ToTable("iot_solicitudes_inicio_sesion");
+        b.HasKey(s => s.Id);
+        b.Property(s => s.Id).ValueGeneratedNever();
+        b.Property(s => s.Estado).HasConversion<string>().HasMaxLength(20);
+        b.Property(s => s.Motivo).HasMaxLength(300);
+        // El worker busca la pendiente al registrar cada acceso.
+        b.HasIndex(s => s.Creada).HasFilter("estado = 'Pendiente'");
+        // Sin FK al usuario: igual que la bitácora de accesos; las filas viejas se borran al crear nuevas.
+    }
+}

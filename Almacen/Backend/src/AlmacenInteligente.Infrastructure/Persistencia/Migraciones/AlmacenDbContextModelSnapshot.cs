@@ -544,6 +544,49 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         });
                 });
 
+            modelBuilder.Entity("AlmacenInteligente.Domain.Iot.SolicitudInicioSesionIot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("Creada")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creada");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("estado");
+
+                    b.Property<DateTimeOffset>("Expira")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expira");
+
+                    b.Property<string>("Motivo")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("motivo");
+
+                    b.Property<DateTimeOffset?>("ResueltaEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("resuelta_en");
+
+                    b.Property<Guid?>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_iot_solicitudes_inicio_sesion");
+
+                    b.HasIndex("Creada")
+                        .HasDatabaseName("ix_iot_solicitudes_inicio_sesion_creada")
+                        .HasFilter("estado = 'Pendiente'");
+
+                    b.ToTable("iot_solicitudes_inicio_sesion", (string)null);
+                });
+
             modelBuilder.Entity("AlmacenInteligente.Domain.Productos.Producto", b =>
                 {
                     b.Property<Guid>("Id")
