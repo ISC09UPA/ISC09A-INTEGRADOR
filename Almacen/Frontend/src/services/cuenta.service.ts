@@ -2,21 +2,36 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 import { HttpClient } from '@/api/http-client';
+import type { EstadoInicioSesionIotDto, SolicitudInicioSesionIotDto } from '@/dtos/inicio-sesion-iot.dto';
 import type { TokenApiDto } from '@/dtos/token-api.dto';
 import { SesionMapper } from '@/mappers/sesion.mapper';
-import type { Credenciales } from '@/models/credenciales.model';
+import type { EstadoInicioSesionIot, SolicitudInicioSesionIot } from '@/models/inicio-sesion-iot.model';
 import type { Sesion } from '@/models/sesion.model';
 
 const CLAVE = 'almacen.sesion';
 
-/** Inicio de sesión y sesión guardada. Se guarda el DTO tal cual y se vuelve a mapear al abrir la app. */
+/**
+ * Inicio de sesión con el lector del almacén (tarjeta NFC + rostro) y sesión guardada.
+ * La app ya no pide correo ni contraseña: crea una solicitud, la persona usa el lector y la app sondea hasta recibir el token.
+ * Se guarda el DTO del token tal cual y se vuelve a mapear al abrir la app.
+ */
 export class CuentaService {
   constructor(private readonly http: HttpClient) {}
 
-  async ingresar(credenciales: Credenciales): Promise<Sesion> {
-    const dto = await this.http.post<TokenApiDto>('/api/cuenta/token', SesionMapper.credenciales(credenciales));
-    await this.guardar(JSON.stringify(dto));
-    return SesionMapper.aModel(dto);
+  /** Pide el lector por 60 s. Falla con 409 si otra persona está iniciando sesión. */
+  async iniciarConLector(): Promise<SolicitudInicioSesionIot> {
+    return SesionMapper.solicitudIot(await this.http.post<SolicitudInicioSesionIotDto>('/api/iot/login'));
+  }
+
+  /** Sondea la solicitud; al completarse guarda el token (la API lo entrega una sola vez). */
+  async consultarLector(id: string): Promise<EstadoInicioSesionIot> {
+    const dto = await this.http.get<EstadoInicioSesionIotDto>(`/api/iot/login/${id}`);
+    if (dto.estado === 'completada' && dto.token) await this.guardar(JSON.stringify(dto.token satisfies TokenApiDto));
+    return SesionMapper.estadoIot(dto);
+  }
+
+  cancelarLector(id: string) {
+    return this.http.delete(`/api/iot/login/${id}`);
   }
 
   /** La sesión guardada si todavía le queda al menos un minuto; si venció, la borra. */
