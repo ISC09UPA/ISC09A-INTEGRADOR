@@ -1,7 +1,7 @@
-
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import type { Planta } from './datos';
 import { useTema } from '@/hooks/useTema';
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { urlImagenSegura } from '../../../utils/formato';
+import type { Planta } from './datos';
 
 interface Props {
   plantas: Planta[];
@@ -29,6 +29,7 @@ export function CarruselCultivos({ plantas, seleccionada, onSelect }: Props) {
       >
         {plantas.map((p) => {
           const sel = p.id === seleccionada;
+          const imagen = urlImagenSegura(p.imagenUrl);
 
           return (
             <Pressable
@@ -43,7 +44,9 @@ export function CarruselCultivos({ plantas, seleccionada, onSelect }: Props) {
                 },
               ]}
             >
-              <Image source={{ uri: p.imagenUrl }} style={s.img} />
+              {imagen && (
+                <Image source={{ uri: imagen }} style={s.img} />
+              )}
 
               <View>
                 <Text

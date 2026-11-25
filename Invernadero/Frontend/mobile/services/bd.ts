@@ -51,6 +51,87 @@ function estadoSemilla(): EstadoBd {
   };
 }
 
+// Validación de los datos recuperados del almacenamiento.
+const ROLES: string[] = ['admin', 'operador'];
+
+function esObjeto(valor: unknown): valor is Record<string, unknown> {
+  return typeof valor === 'object' && valor !== null && !Array.isArray(valor);
+}
+
+function conId(valor: unknown): boolean {
+  return esObjeto(valor) && typeof valor.id === 'string';
+}
+
+function usuarioValido(valor: unknown): valor is Usuario {
+  return (
+    esObjeto(valor) &&
+    typeof valor.id === 'string' &&
+    typeof valor.nombre === 'string' &&
+    typeof valor.email === 'string' &&
+    ROLES.includes(valor.rol as string)
+  );
+}
+
+/** Mezcla lo guardado con las semillas, descartando datos con formato incorrecto. */
+function fusionarGuardado(base: EstadoBd, bruto: string): EstadoBd {
+  let guardado: unknown;
+
+  try {
+    guardado = JSON.parse(bruto);
+  } catch {
+    return base;
+  }
+
+  if (!esObjeto(guardado)) return base;
+
+  const resultado: EstadoBd = { ...base };
+
+  if (Array.isArray(guardado.plantas)) {
+    resultado.plantas = guardado.plantas.filter(conId) as Planta[];
+  }
+
+  if (Array.isArray(guardado.reglas)) {
+    resultado.reglas = guardado.reglas.filter(conId) as Regla[];
+  }
+
+  if (Array.isArray(guardado.escaneos)) {
+    resultado.escaneos = guardado.escaneos.filter(conId) as EscaneoPlanta[];
+  }
+
+  if (Array.isArray(guardado.viveros)) {
+    resultado.viveros = guardado.viveros.filter(conId) as Vivero[];
+  }
+
+  if (Array.isArray(guardado.usuarios)) {
+    const validos = guardado.usuarios.filter(usuarioValido);
+
+    if (validos.length > 0) {
+      resultado.usuarios = validos;
+    }
+  }
+
+  if (esObjeto(guardado.umbrales)) {
+    const numericos = Object.entries(guardado.umbrales).filter(
+      (par): par is [string, number] => typeof par[1] === 'number',
+    );
+
+    resultado.umbrales = {
+      ...base.umbrales,
+      ...Object.fromEntries(numericos),
+    };
+  }
+
+  if (esObjeto(guardado.claves)) {
+    const textos = Object.entries(guardado.claves).filter(
+      (par): par is [string, string] => typeof par[1] === 'string',
+    );
+
+    resultado.claves = Object.fromEntries(textos);
+  }
+
+  return resultado;
+}
+
 async function cargar(): Promise<EstadoBd> {
   if (estado) return estado;
 
@@ -60,9 +141,7 @@ async function cargar(): Promise<EstadoBd> {
     try {
       const bruto = await AsyncStorage.getItem(CLAVE);
 
-      estado = bruto
-        ? ({ ...base, ...JSON.parse(bruto) } as EstadoBd)
-        : base;
+      estado = bruto ? fusionarGuardado(base, bruto) : base;
     } catch (error) {
       if (__DEV__) {
         console.error('Error al cargar la base de datos local:', error);

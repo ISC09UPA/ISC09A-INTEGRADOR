@@ -40,3 +40,25 @@ export function etiquetaEstadoSalud(estado: string): { texto: string; color: 'pr
       return { texto: 'Hoja enferma / plaga', color: 'error' };
   }
 }
+
+
+// Dominios desde los que se permite cargar imágenes remotas.
+const HOSTS_IMAGEN = new Set<string>(['lh3.googleusercontent.com']); // temporal: desaparecerá con los mocks
+
+const urlApi = (process.env.EXPO_PUBLIC_TELEMETRIA_API_URL ?? '').trim();
+const hostApi = /^https:\/\/([^/:?#]+)/i.exec(urlApi)?.[1]?.toLowerCase();
+
+if (hostApi) HOSTS_IMAGEN.add(hostApi);
+
+/** Devuelve la URL solo si es local o HTTPS de un dominio permitido; si no, undefined. */
+export function urlImagenSegura(
+  url: string | undefined | null,
+): string | undefined {
+  if (!url) return undefined;
+  if (/^file:\/\//i.test(url)) return url;
+
+  const coincidencia = /^https:\/\/([^/:?#@\s]+)(?::\d+)?(?:[/?#]|$)/i.exec(url);
+  const host = coincidencia?.[1]?.toLowerCase();
+
+  return host && HOSTS_IMAGEN.has(host) ? url : undefined;
+}

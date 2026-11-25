@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import type { ComponentProps } from 'react';
 import { Text, View } from 'react-native';
 import { EventoTimeline } from '../../types';
-import { relativo } from '../../utils/formato';
+import { relativo, urlImagenSegura } from '../../utils/formato';
 
 type NombreIcono = ComponentProps<typeof MaterialIcons>['name'];
 
@@ -16,6 +16,7 @@ export function TimelineItem({
   mostrarConector?: boolean;
 }) {
   const tema = useTema();
+  const imagen = urlImagenSegura(evento.imagenUrl);
 
   const ESTILOS: Record<
     EventoTimeline['tipo'],
@@ -130,10 +131,10 @@ export function TimelineItem({
             {evento.descripcion}
           </Text>
 
-          {evento.imagenUrl && (
+          {imagen && (
             <View className="mt-2 h-24 overflow-hidden rounded-lg">
               <Image
-                source={{ uri: evento.imagenUrl }}
+                source={{ uri: imagen }}
                 style={{ width: '100%', height: '100%' }}
               />
 

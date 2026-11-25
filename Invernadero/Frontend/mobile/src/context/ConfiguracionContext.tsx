@@ -54,7 +54,14 @@ export function ConfiguracionProvider({
         configRef.current = preferencias;
         setConfig(preferencias);
         fijarHaptico(preferencias.vibracion);
-      } catch {
+      } catch (error) {
+        if (__DEV__) {
+          console.error(
+            'Error al cargar la configuración:',
+            error,
+          );
+        }
+
         // Se conservan los valores iniciales.
       } finally {
         if (activo) setCargada(true);

@@ -1,6 +1,7 @@
+
 import { simulador } from '@/mocks/simulador';
 import { EventoTimeline, TipoEventoTimeline } from '../types';
-import { eventoACsv } from '../utils/csv';
+import { eventoACsv, riegosACsv } from '../utils/csv';
 import { backendApiEnabled } from './backendApi';
 import { espera } from './bd';
 import { mapearRiegoTimeline } from './telemetriaMapping';
@@ -23,14 +24,21 @@ export async function listarEventos(filtros: FiltrosTimeline = {}): Promise<{
   if (backendApiEnabled) {
     const riegos = await obtenerRiegosBackend();
     const todos: EventoTimeline[] = riegos.map(mapearRiegoTimeline);
+
     const filtrados = todos.filter((evento) => {
-      const cumpleTipo = !filtros.tipo || filtros.tipo === 'todo' || filtros.tipo === 'riego';
+      const cumpleTipo =
+        !filtros.tipo ||
+        filtros.tipo === 'todo' ||
+        filtros.tipo === 'riego';
+
       const cumplePlanta =
         !filtros.plantaId ||
         filtros.plantaId === 'todas' ||
         evento.plantaId === filtros.plantaId;
+
       return cumpleTipo && cumplePlanta;
     });
+
     const pagina = filtros.pagina ?? 0;
     const inicio = pagina * TAMAÑO_PAGINA;
     const eventos = filtrados.slice(inicio, inicio + TAMAÑO_PAGINA);
@@ -45,17 +53,28 @@ export async function listarEventos(filtros: FiltrosTimeline = {}): Promise<{
   }
 
   await espera(filtros.pagina ? 350 : 250);
-  const todos = simulador.todosLosEventos().sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+  const todos = simulador
+    .todosLosEventos()
+    .sort((a, b) => b.fecha.localeCompare(a.fecha));
+
   const filtrados = todos.filter((e) => {
-    const cumpleTipo = !filtros.tipo || filtros.tipo === 'todo' || e.tipo === filtros.tipo;
+    const cumpleTipo =
+      !filtros.tipo || filtros.tipo === 'todo' || e.tipo === filtros.tipo;
+
     const cumplePlanta =
-      !filtros.plantaId || filtros.plantaId === 'todas' || e.plantaId === filtros.plantaId;
+      !filtros.plantaId ||
+      filtros.plantaId === 'todas' ||
+      e.plantaId === filtros.plantaId;
+
     return cumpleTipo && cumplePlanta;
   });
+
   const pagina = filtros.pagina ?? 0;
   const inicio = pagina * TAMAÑO_PAGINA;
   const eventos = filtrados.slice(inicio, inicio + TAMAÑO_PAGINA);
   const hayMas = filtrados.length > inicio + eventos.length;
+
   return {
     eventos,
     totalFiltrado: filtrados.length,
@@ -67,27 +86,23 @@ export async function listarEventos(filtros: FiltrosTimeline = {}): Promise<{
 export async function exportarCsv(): Promise<string> {
   if (backendApiEnabled) {
     const riegos = await obtenerRiegosBackend();
-    const encabezado = 'inicio,zona,origen,duracionSeg,volumenMl,humedadDetectada';
-    const filas = riegos.map((riego) =>
-      [
-        riego.inicio,
-        riego.plantaId,
-        riego.origen,
-        riego.duracionSeg,
-        riego.volumenMl,
-        riego.humedadAntes ?? '',
-      ]
-        .map((valor) => {
-          const texto = String(valor);
-          return /[",\r\n]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto;
-        })
-        .join(','),
-    );
 
-    return [encabezado, ...filas].join('\r\n');
+    return riegosACsv(
+      riegos.map((r) => ({
+        inicio: r.inicio,
+        zona: r.plantaId,
+        origen: r.origen,
+        duracionSeg: r.duracionSeg,
+        volumenMl: r.volumenMl,
+        humedadDetectada: r.humedadAntes,
+      })),
+    );
   }
 
-  const todos = simulador.todosLosEventos().sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const todos = simulador
+    .todosLosEventos()
+    .sort((a, b) => b.fecha.localeCompare(a.fecha));
+
   return eventoACsv(todos);
 }
 
