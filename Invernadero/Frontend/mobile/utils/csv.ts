@@ -1,14 +1,35 @@
-import { EventoTimeline } from "../types";
 
+import type { EventoTimeline } from '../types';
 
-function escapar(valor: string | number | undefined): string {
-  const texto = valor === undefined || valor === null ? '' : String(valor);
-  if (/[",\n]/.test(texto)) return `"${texto.replace(/"/g, '""')}"`;
-  return texto;
+// Neutraliza valores que podrían ejecutarse como fórmulas en Excel o Sheets.
+const PREFIJO_FORMULA = /^[=+\-@\t\r]/;
+
+type ValorCsv = string | number | boolean | null | undefined;
+
+/** Escapa un valor CSV y neutraliza la inyección de fórmulas. */
+export function escapar(valor: ValorCsv): string {
+  if (valor === undefined || valor === null) return '';
+
+  let texto = String(valor);
+
+  // Solo se neutralizan textos, no valores numéricos negativos.
+  if (typeof valor === 'string' && PREFIJO_FORMULA.test(texto)) {
+    texto = `'${texto}`;
+  }
+
+  return /[",\r\n]/.test(texto)
+    ? `"${texto.replace(/"/g, '""')}"`
+    : texto;
 }
 
+export function filaCsv(valores: ValorCsv[]): string {
+  return valores.map(escapar).join(',');
+}
+
+const SALTO = '\r\n';
+
 export function eventoACsv(eventos: EventoTimeline[]): string {
-  const encabezado = [
+  const encabezado = filaCsv([
     'id',
     'tipo',
     'titulo',
@@ -20,35 +41,60 @@ export function eventoACsv(eventos: EventoTimeline[]): string {
     'humedadDespues',
     'nivelDepositoPct',
     'certezaPct',
-  ].join(',');
+  ]);
 
   const filas = eventos.map((e) =>
-    [
-      escapar(e.id),
-      escapar(e.tipo),
-      escapar(e.titulo),
-      escapar(e.descripcion),
-      escapar(e.fecha),
-      escapar(e.plantaNombre),
-      escapar(e.volumenMl),
-      escapar(e.humedadAntes),
-      escapar(e.humedadDespues),
-      escapar(e.nivelDepositoPct),
-      escapar(e.certezaVigorPct),
-    ].join(','),
+    filaCsv([
+      e.id,
+      e.tipo,
+      e.titulo,
+      e.descripcion,
+      e.fecha,
+      e.plantaNombre,
+      e.volumenMl,
+      e.humedadAntes,
+      e.humedadDespues,
+      e.nivelDepositoPct,
+      e.certezaVigorPct,
+    ]),
   );
 
-  return ['RiegoSmart IA - Historial de eventos', encabezado, ...filas].join('\n');
+  return [
+    'RiegoSmart IA - Historial de eventos',
+    encabezado,
+    ...filas,
+  ].join(SALTO);
 }
 
 export interface FilaRiego {
   inicio: string;
+  zona: string;
   origen: string;
   duracionSeg: number;
   volumenMl: number;
+  humedadDetectada?: number;
 }
 
 export function riegosACsv(riegos: FilaRiego[]): string {
-  const encabezado = 'inicio,origen,duracionSeg,volumenMl';
-  return [encabezado, ...riegos.map((r) => [r.inicio, r.origen, r.duracionSeg, r.volumenMl].join(','))].join('\n');
+  const encabezado = filaCsv([
+    'inicio',
+    'zona',
+    'origen',
+    'duracionSeg',
+    'volumenMl',
+    'humedadDetectada',
+  ]);
+
+  const filas = riegos.map((r) =>
+    filaCsv([
+      r.inicio,
+      r.zona,
+      r.origen,
+      r.duracionSeg,
+      r.volumenMl,
+      r.humedadDetectada,
+    ]),
+  );
+
+  return [encabezado, ...filas].join(SALTO);
 }

@@ -28,7 +28,7 @@ import {
 } from 'react-native';
 import { useSesion } from '../../../store/useSesionStore';
 import type { EscaneoPlanta, EstadoSaludEscaneo } from '../../../types';
-import { relativo } from '../../../utils/formato';
+import { relativo, urlImagenSegura } from '../../../utils/formato';
 import { hapticoExito, hapticoToque } from '../../../utils/haptico';
 
 type Modo = 'vivo' | 'identificar';
@@ -49,6 +49,7 @@ export default function Camara() {
   const { usuario } = useSesion();
 
   const online = dispositivo.data?.online ?? false;
+  const esAdmin = usuario?.rol === 'admin';
 
   const tema = useTema();
 
@@ -57,6 +58,13 @@ export default function Camara() {
   const [escaneoEnCurso, setEscaneoEnCurso] = useState(false);
   const [resultado, setResultado] = useState<EscaneoPlanta | null>(null);
   const [modalAsignar, setModalAsignar] = useState(false);
+
+  const imagenResultado =
+    urlImagenSegura(resultado?.imagenUrl) ??
+    urlImagenSegura(IMAGEN_PREDETERMINADA);
+  const imagenIdentificada = resultado
+    ? urlImagenSegura(resultado.imagenUrl)
+    : undefined;
 
   const escaneos = useQuery({
     queryKey: ['escaneos'],
@@ -239,7 +247,7 @@ export default function Camara() {
                         .then(() => hapticoExito())
                         .catch(() => undefined)
                     }
-                    deshabilitado={!online || regar.isPending}
+                    deshabilitado={!online || !esAdmin || regar.isPending}
                     className="flex-1"
                   />
 
@@ -268,10 +276,17 @@ export default function Camara() {
                           }),
                         )
                         .then(() => hapticoExito())
-                        .catch(() => undefined)
+                        .catch((error) =>
+                          Alert.alert(
+                            'No se pudo controlar el ventilador',
+                            error instanceof Error
+                              ? error.message
+                              : 'Ocurrió un error inesperado.',
+                          ),
+                        )
                         .finally(() => setVentilando(false));
                     }}
-                    deshabilitado={!online || ventilando}
+                    deshabilitado={!online || !esAdmin || ventilando}
                     variante="secundario"
                     className="flex-1"
                   />
@@ -287,6 +302,12 @@ export default function Camara() {
                   <Text className="text-[11px] text-on-surface-variant">
                     RPi Offline: los controles manuales están deshabilitados
                     hasta la reconexión.
+                  </Text>
+                )}
+
+                {!esAdmin && (
+                  <Text className="text-[11px] text-on-surface-variant">
+                    Solo un administrador puede usar el control manual.
                   </Text>
                 )}
               </Card>
@@ -315,13 +336,13 @@ export default function Camara() {
 
               {/* Área de captura */}
               <View className="relative mt-2 h-72 overflow-hidden rounded-2xl bg-surface-container-highest">
-                <Image
-                  source={{
-                    uri: resultado?.imagenUrl ?? IMAGEN_PREDETERMINADA,
-                  }}
-                  style={{ width: '100%', height: '100%' }}
-                  contentFit="cover"
-                />
+                {imagenResultado && (
+                  <Image
+                    source={{ uri: imagenResultado }}
+                    style={{ width: '100%', height: '100%' }}
+                    contentFit="cover"
+                  />
+                )}
 
                 <View className="pointer-events-none absolute inset-0 items-center justify-center">
                   <View className="h-56 w-56 items-center justify-center">
@@ -413,14 +434,16 @@ export default function Camara() {
                       className="flex-row items-center gap-2"
                       style={{ flex: 1 }}
                     >
-                      <Image
-                        source={{ uri: resultado.imagenUrl }}
-                        style={{
-                          width: 56,
-                          height: 56,
-                          borderRadius: 12,
-                        }}
-                      />
+                      {imagenIdentificada && (
+                        <Image
+                          source={{ uri: imagenIdentificada }}
+                          style={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: 12,
+                          }}
+                        />
+                      )}
 
                       <View
                         className="min-w-0 flex-col"
@@ -572,69 +595,75 @@ export default function Camara() {
                 </View>
 
                 <View className="mt-2 gap-2">
-                  {(escaneos.data ?? []).slice(0, 5).map((s) => (
-                    <Card
-                      key={s.id}
-                      className="flex-row items-center justify-between gap-2 p-2.5"
-                    >
-                      {/* Información de la planta */}
-                      <View
-                        className="min-w-0 flex-row items-center gap-2"
-                        style={{ flex: 1 }}
+                  {(escaneos.data ?? []).slice(0, 5).map((s) => {
+                    const imagenEscaneo = urlImagenSegura(s.imagenUrl);
+
+                    return (
+                      <Card
+                        key={s.id}
+                        className="flex-row items-center justify-between gap-2 p-2.5"
                       >
-                        <Image
-                          source={{ uri: s.imagenUrl }}
-                          style={{
-                            width: 48,
-                            height: 48,
-                            borderRadius: 12,
-                            flexShrink: 0,
-                          }}
-                        />
-
-                        <View className="min-w-0 flex-col" style={{ flex: 1 }}>
-                          <Text
-                            className="text-title-sm text-on-surface"
-                            numberOfLines={1}
-                          >
-                            {s.especie}
-                          </Text>
-
-                          <Text
-                            className="text-body-sm text-on-surface-variant"
-                            numberOfLines={1}
-                            style={{ fontStyle: 'italic' }}
-                          >
-                            {s.nombreCientifico}
-                          </Text>
-
-                          <Text className="text-label-sm text-on-surface-variant">
-                            {relativo(s.fecha)}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Porcentaje y sector */}
-                      <View
-                        className="items-end"
-                        style={{ flexShrink: 0, maxWidth: '38%' }}
-                      >
-                        <View className="rounded-full bg-primary-container px-2 py-0.5">
-                          <Text className="text-label-sm font-semibold text-on-primary-container">
-                            {s.confianzaPct.toFixed(1)}%
-                          </Text>
-                        </View>
-
-                        <Text
-                          className="mt-1 text-label-sm text-on-surface-variant"
-                          numberOfLines={2}
-                          style={{ textAlign: 'right' }}
+                        {/* Información de la planta */}
+                        <View
+                          className="min-w-0 flex-row items-center gap-2"
+                          style={{ flex: 1 }}
                         >
-                          {s.sectorAsignado ?? 'Sin slot'}
-                        </Text>
-                      </View>
-                    </Card>
-                  ))}
+                          {imagenEscaneo && (
+                            <Image
+                              source={{ uri: imagenEscaneo }}
+                              style={{
+                                width: 48,
+                                height: 48,
+                                borderRadius: 12,
+                                flexShrink: 0,
+                              }}
+                            />
+                          )}
+
+                          <View className="min-w-0 flex-col" style={{ flex: 1 }}>
+                            <Text
+                              className="text-title-sm text-on-surface"
+                              numberOfLines={1}
+                            >
+                              {s.especie}
+                            </Text>
+
+                            <Text
+                              className="text-body-sm text-on-surface-variant"
+                              numberOfLines={1}
+                              style={{ fontStyle: 'italic' }}
+                            >
+                              {s.nombreCientifico}
+                            </Text>
+
+                            <Text className="text-label-sm text-on-surface-variant">
+                              {relativo(s.fecha)}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Porcentaje y sector */}
+                        <View
+                          className="items-end"
+                          style={{ flexShrink: 0, maxWidth: '38%' }}
+                        >
+                          <View className="rounded-full bg-primary-container px-2 py-0.5">
+                            <Text className="text-label-sm font-semibold text-on-primary-container">
+                              {s.confianzaPct.toFixed(1)}%
+                            </Text>
+                          </View>
+
+                          <Text
+                            className="mt-1 text-label-sm text-on-surface-variant"
+                            numberOfLines={2}
+                            style={{ textAlign: 'right' }}
+                          >
+                            {s.sectorAsignado ?? 'Sin slot'}
+                          </Text>
+                        </View>
+                      </Card>
+                    );
+                  })}
 
                   {(escaneos.data ?? []).length === 0 && (
                     <Vacio

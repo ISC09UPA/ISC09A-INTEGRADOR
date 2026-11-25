@@ -1,3 +1,4 @@
+
 import { Confirmar } from '@/components/Confirmar';
 import { TimelineItem } from '@/components/TimelineItem';
 import { Card } from '@/components/ui/Card';
@@ -13,6 +14,7 @@ import { useState } from 'react';
 import { Alert, FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { timelineService } from '../../../services';
 import { backendApiEnabled } from '../../../services/backendApi';
+import { useSesion } from '../../../store/useSesionStore';
 import { hapticoToque } from '../../../utils/haptico';
 
 type FiltroTipo = 'todo' | 'riego' | 'alerta' | 'clima' | 'ia';
@@ -46,11 +48,13 @@ const MS_DIA = 86_400_000;
 export default function Timeline() {
   const tema = useTema();
   const qc = useQueryClient();
+  const esAdmin = useSesion((s) => s.usuario?.rol === 'admin');
 
   const [filtroTipo, setFiltroTipo] = useState<FiltroTipo>('todo');
   const [filtroPlanta, setFiltroPlanta] = useState<FiltroPlanta>('todas');
   const [filtroRango, setFiltroRango] = useState<FiltroRango>('semana');
   const [confirmarLimpieza, setConfirmarLimpieza] = useState(false);
+
   // Referencia de "ahora" para el rango y los KPIs. Se inicializa de forma perezosa
   // (sin parpadeo) y se actualiza al refrescar.
   const [ahoraMs, setAhoraMs] = useState(() => Date.now());
@@ -254,7 +258,7 @@ export default function Timeline() {
 
       {/* Pie: acciones secundarias */}
       <View className="flex-row items-center justify-end border-t border-surface-container-high bg-surface px-4 py-2">
-        {!backendApiEnabled && (
+        {!backendApiEnabled && esAdmin && (
           <Pressable
             onPress={() => {
               hapticoToque();
@@ -280,7 +284,7 @@ export default function Timeline() {
         </Pressable>
       </View>
 
-      {!backendApiEnabled && (
+      {!backendApiEnabled && esAdmin && (
         <Confirmar
           visible={confirmarLimpieza}
           titulo="Limpiar historial"
