@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/capability-resources.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/capability-resources.json",
   "title": "Configured capabilities v1",
   "type": "array",
   "items": {

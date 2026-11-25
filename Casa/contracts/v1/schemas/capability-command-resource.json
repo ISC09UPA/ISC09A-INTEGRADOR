@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/capability-command-resource.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/capability-command-resource.json",
   "title": "Capability command resource v1",
   "description": "Durable command, not proof of physical execution while pending or unknown.",
   "type": "object",

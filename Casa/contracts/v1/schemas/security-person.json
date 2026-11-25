@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casa-example.local/contracts/v1/schemas/security-person.json",
+  "title": "Authorized Physical Person",
+  "type": "object",
+  "required": ["id", "name", "method", "status", "validUntilUtc", "createdAtUtc", "updatedAtUtc"],
+  "properties": {
+    "id": { "$ref": "common.json#/$defs/uuid" },
+    "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "method": { "enum": ["face", "fingerprint"] },
+    "status": { "enum": ["pending", "authorized", "revoked", "expired", "failed"] },
+    "validUntilUtc": { "$ref": "common.json#/$defs/dateTimeUtc" },
+    "createdAtUtc": { "$ref": "common.json#/$defs/dateTimeUtc" },
+    "updatedAtUtc": { "$ref": "common.json#/$defs/dateTimeUtc" },
+    "revokedAtUtc": { "type": ["string", "null"], "format": "date-time" }
+  },
+  "additionalProperties": false
+}

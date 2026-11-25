@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/identity-logout-request.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/identity-logout-request.json",
   "title": "Identity logout request v1",
   "description": "Revokes the refresh token family. Access token does not need to be still valid.",
   "type": "object",

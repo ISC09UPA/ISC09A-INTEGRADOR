@@ -1,0 +1,80 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Casa Domótica Assistant API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5003/api/v1"
+    }
+  ],
+  "paths": {
+    "/assistant/houses/{houseId}/ask": {
+      "post": {
+        "summary": "Ask the read-only house assistant using current house and security data",
+        "security": [{ "userBearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "../schemas/assistant-ask-request.json" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Assistant answer.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "../schemas/assistant-ask-response.json" }
+              }
+            }
+          },
+          "400": { "description": "Invalid prompt or history." },
+          "401": { "description": "Missing, invalid or revoked session." },
+          "403": { "description": "No house permission." },
+          "429": { "description": "Rate limited." },
+          "503": { "description": "Model or upstream unavailable." }
+        }
+      }
+    },
+    "/assistant/houses/{houseId}/diagnostics/model": {
+      "get": {
+        "summary": "Verify Azure OpenAI configuration and credential readiness without simulating house data",
+        "security": [{ "userBearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Model configuration ready." },
+          "401": { "description": "Missing, invalid or revoked session." },
+          "403": { "description": "No house permission." },
+          "503": { "description": "Model unavailable." }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "userBearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casa-example.local/contracts/v1/schemas/identity-members-response.json",
+  "title": "Identity House Members Response",
+  "type": "object",
+  "required": ["members", "invitations"],
+  "properties": {
+    "members": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["userId", "email", "role", "enabled", "emailVerified"],
+        "properties": {
+          "userId": { "$ref": "common.json#/$defs/uuid" },
+          "email": { "type": "string", "format": "email", "maxLength": 254 },
+          "role": { "enum": ["admin", "resident"] },
+          "enabled": { "type": "boolean" },
+          "emailVerified": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "invitations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "houseId", "email", "role", "status", "createdAtUtc", "expiresAtUtc"],
+        "properties": {
+          "id": { "$ref": "common.json#/$defs/uuid" },
+          "houseId": { "$ref": "common.json#/$defs/uuid" },
+          "email": { "type": "string", "format": "email", "maxLength": 254 },
+          "role": { "const": "resident" },
+          "status": { "enum": ["pending", "accepted", "revoked", "expired"] },
+          "createdAtUtc": { "$ref": "common.json#/$defs/dateTimeUtc" },
+          "expiresAtUtc": { "$ref": "common.json#/$defs/dateTimeUtc" },
+          "acceptedAtUtc": { "type": ["string", "null"], "format": "date-time" },
+          "revokedAtUtc": { "type": ["string", "null"], "format": "date-time" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,21 @@
+{
+  "fixture": "invitation-created",
+  "schema": "identity-invitation-created.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Created resident invitation returning one-time opaque token to the creating admin.",
+  "data": {
+    "invitation": {
+      "id": "33333333-3333-4333-8333-333333333333",
+      "houseId": "55555555-5555-4555-8555-555555555555",
+      "email": "invited@example.com",
+      "role": "resident",
+      "status": "pending",
+      "createdAtUtc": "2026-11-20T00:00:00Z",
+      "expiresAtUtc": "2026-11-23T00:00:00Z",
+      "acceptedAtUtc": null,
+      "revokedAtUtc": null
+    },
+    "invitationToken": "opaque-invite-token-example-value"
+  }
+}

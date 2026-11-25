@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/command-result.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/command-result.json",
   "title": "CommandResult payload v1",
   "description": "Durable outcome of a physical command. This payload is carried inside a Telemetry envelope with type=CommandResult, and is also returned by GET /commands/{commandId}. EXECUTED requires a complete snapshot and a non-null stateRevision. Terminal error states require a non-null reasonCode. Pending is a Home order state, not a Pi result.",
   "type": "object",

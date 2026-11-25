@@ -1,0 +1,10 @@
+{
+  "fixture": "invitation-request",
+  "schema": "identity-invitation-request.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Administrator invites a resident by email.",
+  "data": {
+    "email": "invited@example.com"
+  }
+}

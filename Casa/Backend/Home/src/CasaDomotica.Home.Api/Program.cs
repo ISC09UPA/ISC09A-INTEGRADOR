@@ -70,6 +70,17 @@ _ = app.Services.GetRequiredService<IdentityVerificationKey>(); // Fail closed a
 app.Use(ContractProblems.Correlate);
 app.UseExceptionHandler();
 app.UseStatusCodePages(ContractProblems.WriteStatus); app.UseCors(); app.UseAuthentication(); app.UseAuthorization();
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/hubs/home/negotiate") && context.User.Identity?.IsAuthenticated == true)
+    {
+        if (!Guid.TryParse(context.Request.Query["houseId"], out var houseId)) { context.Response.StatusCode = 400; return; }
+        if (!Guid.TryParse(context.User.FindFirstValue("sub"), out var userId) || !Guid.TryParse(context.User.FindFirstValue("sid"), out var sessionId)) { context.Response.StatusCode = 401; return; }
+        var authorizer = context.RequestServices.GetRequiredService<IUserAuthorizer>();
+        if (!await authorizer.CheckAsync(new(userId, sessionId), houseId, "home:read", Guid.NewGuid(), context.RequestAborted)) { context.Response.StatusCode = 403; return; }
+    }
+    await next(context);
+});
 app.MapHealthChecks("/health");
 app.MapVideoEndpoints();
 app.MapPost("/internal/captures/{captureId:guid}/upload", async (Guid captureId, HttpContext context, CaptureUploadService upload, CancellationToken ct) =>
@@ -145,6 +156,26 @@ app.MapGet("/api/v1/houses/{houseId:guid}/security", async (Guid houseId, Claims
     if (mode is not ("armed" or "disarmed")) throw new HomeException("unavailable", "Invalid security state.");
     return Results.Ok(new { mode, updatedAtUtc = report.OccurredAtUtc, receivedAtUtc = report.ReceivedAtUtc });
 }).RequireAuthorization();
+app.MapGet("/api/v1/houses/{houseId:guid}/location", async (Guid houseId, ClaimsPrincipal user, IUserAuthorizer authorizer, HomeDb db, CancellationToken ct) =>
+{
+    if (!await authorizer.CheckAsync(Context(user), houseId, "home:read", Guid.NewGuid(), ct)) throw new HomeException("forbidden", "The user is not authorized for this house.");
+    var row = await db.Locations.AsNoTracking().SingleOrDefaultAsync(x => x.HouseId == houseId, ct);
+    return row is null ? Results.Problem(statusCode: 404, title: "House location is not configured.", extensions: new Dictionary<string, object?> { ["code"] = "notFound" }) : Results.Ok(new { label = row.Label, latitude = row.Latitude, longitude = row.Longitude, updatedAtUtc = row.UpdatedAtUtc });
+}).RequireAuthorization();
+app.MapPut("/api/v1/houses/{houseId:guid}/location", async (Guid houseId, HouseLocationRequest request, ClaimsPrincipal user, IUserAuthorizer authorizer, HomeDb db, TimeProvider clock, CancellationToken ct) =>
+{
+    var caller = Context(user);
+    if (!await authorizer.CheckAsync(caller, houseId, "home:manage", Guid.NewGuid(), ct)) throw new HomeException("forbidden", "Administrative permission is required to configure location.");
+    var label = request.Label?.Trim() ?? string.Empty;
+    if (string.IsNullOrWhiteSpace(label) || label.Length > 200 || !double.IsFinite(request.Latitude) || !double.IsFinite(request.Longitude) || request.Latitude is < -90 or > 90 || request.Longitude is < -180 or > 180 || (request.Latitude == 0 && request.Longitude == 0))
+        throw new HomeException("invalidPayload", "Provide a real house label and valid coordinates.");
+    var now = clock.GetUtcNow();
+    var row = await db.Locations.SingleOrDefaultAsync(x => x.HouseId == houseId, ct);
+    if (row is null) { row = new HouseLocationRow { HouseId = houseId }; db.Locations.Add(row); }
+    row.Label = label; row.Latitude = request.Latitude; row.Longitude = request.Longitude; row.UpdatedByUserId = caller.UserId; row.UpdatedAtUtc = now;
+    await db.SaveChangesAsync(ct);
+    return Results.Ok(new { label = row.Label, latitude = row.Latitude, longitude = row.Longitude, updatedAtUtc = row.UpdatedAtUtc });
+}).RequireAuthorization();
 app.MapPost("/api/v1/internal/device-events", async (IngestionRequest request, DeviceIngestion ingestion, RuntimeWakeups wakeups, CancellationToken ct) =>
 {
     if (string.IsNullOrWhiteSpace(request.SourceDeviceId) || request.SourceDeviceId.Length > 128) return Results.BadRequest();
@@ -162,6 +193,7 @@ static object Resource(StoredCommand command) => command.Type is "SetLight" or "
     : new { commandId = command.CommandId, houseId = command.HouseId, resourceId = command.LightId, status = command.Status, type = command.Type, requestedAtUtc = command.RequestedAtUtc, expiresAtUtc = command.ExpiresAtUtc, correlationId = command.CorrelationId, result = Result(command) };
 public sealed record LightCommandRequest(string Type, JsonElement Payload, string IdempotencyKey, Guid? CorrelationId, DateTimeOffset? ExpiresAtUtc = null);
 public sealed record CapabilityCommandRequest(string Type, JsonElement Payload, string IdempotencyKey, Guid? CorrelationId, DateTimeOffset ExpiresAtUtc);
+public sealed record HouseLocationRequest(string? Label, double Latitude, double Longitude);
 public sealed record IngestionRequest(string SourceDeviceId, JsonElement Envelope);
 public sealed class HomeApiErrors : Microsoft.AspNetCore.Diagnostics.IExceptionHandler
 {

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casa-example.local/contracts/v1/schemas/identity-invitation-request.json",
+  "title": "Identity Invite Resident Request",
+  "type": "object",
+  "required": ["email"],
+  "properties": {
+    "email": { "type": "string", "format": "email", "maxLength": 254 }
+  },
+  "additionalProperties": false
+}

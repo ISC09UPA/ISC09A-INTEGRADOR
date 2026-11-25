@@ -1,0 +1,12 @@
+{
+  "fixture": "enrollment-capture-request",
+  "schema": "security-enrollment-capture-request.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Biometric capture step referencing a Stage 4 capture or physical reader slot.",
+  "data": {
+    "captureId": "77777777-7777-4777-8777-777777777777",
+    "templateSlotId": null,
+    "confidence": null
+  }
+}

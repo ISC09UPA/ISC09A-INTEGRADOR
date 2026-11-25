@@ -468,6 +468,186 @@
       "status": 200,
       "schema": "notification-delivery.json",
       "fixture": "notifications/delivery-get.json"
+    },
+    {
+      "apiPath": "/identity/houses/{houseId}/members",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "identity-members-response.json",
+      "fixture": "identity/members-response.json"
+    },
+    {
+      "apiPath": "/identity/houses/{houseId}/invitations",
+      "method": "post",
+      "direction": "request",
+      "security": "userBearerAuth",
+      "schema": "identity-invitation-request.json",
+      "fixture": "identity/invitation-request.json"
+    },
+    {
+      "apiPath": "/identity/houses/{houseId}/invitations",
+      "method": "post",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 201,
+      "schema": "identity-invitation-created.json",
+      "fixture": "identity/invitation-created.json"
+    },
+    {
+      "apiPath": "/identity/invitations/accept",
+      "method": "post",
+      "direction": "request",
+      "security": "public",
+      "schema": "identity-accept-invitation-request.json",
+      "fixture": "identity/accept-invitation-request.json"
+    },
+    {
+      "apiPath": "/identity/auth/password/change",
+      "method": "post",
+      "direction": "request",
+      "security": "userBearerAuth",
+      "schema": "identity-password-change-request.json",
+      "fixture": "identity/password-change-request.json"
+    },
+    {
+      "apiPath": "/identity/auth/password-reset/request",
+      "method": "post",
+      "direction": "request",
+      "security": "public",
+      "schema": "identity-password-reset-request.json",
+      "fixture": "identity/password-reset-request.json"
+    },
+    {
+      "apiPath": "/identity/auth/password-reset/confirm",
+      "method": "post",
+      "direction": "request",
+      "security": "public",
+      "schema": "identity-password-reset-confirm.json",
+      "fixture": "identity/password-reset-confirm.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/persons",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "security-persons-page.json",
+      "fixture": "security/persons-page.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/persons",
+      "method": "post",
+      "direction": "request",
+      "security": "userBearerAuth",
+      "schema": "security-person-create-request.json",
+      "fixture": "security/person-create-request.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/persons",
+      "method": "post",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 201,
+      "schema": "security-person-enrollment-created.json",
+      "fixture": "security/person-enrollment-created.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/persons/{personId}",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "security-person.json",
+      "fixture": "security/person.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/persons/{personId}",
+      "method": "delete",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "security-person.json",
+      "fixture": "security/person.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/enrollments/{enrollmentId}",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "security-enrollment.json",
+      "fixture": "security/enrollment.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/enrollments/{enrollmentId}/capture",
+      "method": "post",
+      "direction": "request",
+      "security": "userBearerAuth",
+      "schema": "security-enrollment-capture-request.json",
+      "fixture": "security/enrollment-capture-request.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/enrollments/{enrollmentId}/capture",
+      "method": "post",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "security-enrollment.json",
+      "fixture": "security/enrollment.json"
+    },
+    {
+      "apiPath": "/security/houses/{houseId}/enrollments/{enrollmentId}/cancel",
+      "method": "post",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "security-enrollment.json",
+      "fixture": "security/enrollment.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/location",
+      "method": "get",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "home-location.json",
+      "fixture": "home-api/location.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/location",
+      "method": "put",
+      "direction": "request",
+      "security": "userBearerAuth",
+      "schema": "home-location-request.json",
+      "fixture": "home-api/location-request.json"
+    },
+    {
+      "apiPath": "/houses/{houseId}/location",
+      "method": "put",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "home-location.json",
+      "fixture": "home-api/location.json"
+    },
+    {
+      "apiPath": "/assistant/houses/{houseId}/ask",
+      "method": "post",
+      "direction": "request",
+      "security": "userBearerAuth",
+      "schema": "assistant-ask-request.json",
+      "fixture": "assistant/ask-request.json"
+    },
+    {
+      "apiPath": "/assistant/houses/{houseId}/ask",
+      "method": "post",
+      "direction": "response",
+      "security": "userBearerAuth",
+      "status": 200,
+      "schema": "assistant-ask-response.json",
+      "fixture": "assistant/ask-response.json"
     }
   ]
 }

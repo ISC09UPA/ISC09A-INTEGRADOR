@@ -6,7 +6,7 @@
   "expectedShapeValid": true,
   "description": "Same idempotency key with different content returns 409 Conflict.",
   "data": {
-    "type": "https://integrador9nocuatri.local/errors/conflict",
+    "type": "https://casa-example.local/errors/conflict",
     "title": "Conflict",
     "status": 409,
     "detail": "idempotency key reused with different content",

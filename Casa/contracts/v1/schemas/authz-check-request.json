@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/authz-check-request.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/authz-check-request.json",
   "title": "User membership authorization check request v1",
   "description": "Body for the authenticated service authorization endpoint. The caller uses its own service token and submits the user and session to be checked. Service/action access is restricted server-side.",
   "type": "object",

@@ -30,7 +30,7 @@ public sealed class AuthorizationTests
         Assert.Equal(AuthorizationOutcome.Allowed, await Create("admin").EvaluateAsync(_userId, _sessionId, _houseId, action, default));
     }
     [Theory]
-    [InlineData("home:control:door")][InlineData("home:control:security")][InlineData("home:control:capture")][InlineData("security:manage")][InlineData("notifications:manage")][InlineData("identity:manage:members")]
+    [InlineData("home:manage")][InlineData("home:control:door")][InlineData("home:control:security")][InlineData("home:control:capture")][InlineData("security:manage")][InlineData("notifications:manage")][InlineData("identity:manage:members")]
     public async Task SensitiveActionsRequireAdministrator(string action)
     {
         Assert.Equal(AuthorizationOutcome.Allowed, await Create("admin").EvaluateAsync(_userId, _sessionId, _houseId, action, default));

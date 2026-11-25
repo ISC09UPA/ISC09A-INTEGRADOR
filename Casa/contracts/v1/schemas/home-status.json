@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/home-status.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/home-status.json",
   "title": "Home status response v1",
   "description": "Projection of current device state. Requested state and historical results are separate; this response never rolls back by an old ACK.",
   "type": "object",

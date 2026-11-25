@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casa-example.local/contracts/v1/schemas/identity-invitation-created.json",
+  "title": "Identity Created Invitation Response",
+  "type": "object",
+  "required": ["invitation", "invitationToken"],
+  "properties": {
+    "invitation": {
+      "type": "object",
+      "required": ["id", "houseId", "email", "role", "status", "createdAtUtc", "expiresAtUtc"],
+      "properties": {
+        "id": { "$ref": "common.json#/$defs/uuid" },
+        "houseId": { "$ref": "common.json#/$defs/uuid" },
+        "email": { "type": "string", "format": "email", "maxLength": 254 },
+        "role": { "const": "resident" },
+        "status": { "const": "pending" },
+        "createdAtUtc": { "$ref": "common.json#/$defs/dateTimeUtc" },
+        "expiresAtUtc": { "$ref": "common.json#/$defs/dateTimeUtc" },
+        "acceptedAtUtc": { "type": ["string", "null"], "format": "date-time" },
+        "revokedAtUtc": { "type": ["string", "null"], "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "invitationToken": { "type": "string", "minLength": 16, "maxLength": 256 }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casa-example.local/contracts/v1/schemas/assistant-ask-request.json",
+  "title": "Assistant Ask Request",
+  "type": "object",
+  "required": ["message"],
+  "properties": {
+    "message": { "type": "string", "minLength": 1, "maxLength": 2000 },
+    "history": {
+      "type": ["array", "null"],
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": { "enum": ["user", "assistant"] },
+          "content": { "type": "string", "minLength": 1, "maxLength": 500 }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

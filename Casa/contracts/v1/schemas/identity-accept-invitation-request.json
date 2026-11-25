@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casa-example.local/contracts/v1/schemas/identity-accept-invitation-request.json",
+  "title": "Identity Accept Invitation Request",
+  "type": "object",
+  "required": ["token", "email"],
+  "properties": {
+    "token": { "type": "string", "minLength": 16, "maxLength": 256 },
+    "email": { "type": "string", "format": "email", "maxLength": 254 },
+    "password": { "type": ["string", "null"], "minLength": 14, "maxLength": 128 }
+  },
+  "additionalProperties": false
+}

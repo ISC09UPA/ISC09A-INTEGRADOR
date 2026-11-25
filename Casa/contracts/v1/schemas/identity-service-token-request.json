@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/identity-service-token-request.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/identity-service-token-request.json",
   "title": "Service token request v1",
   "description": "Home requests a service token by presenting a signed assertion. The assertion is a JWT signed with Home's private key; Identity validates it against the pinned Home public key.",
   "type": "object",

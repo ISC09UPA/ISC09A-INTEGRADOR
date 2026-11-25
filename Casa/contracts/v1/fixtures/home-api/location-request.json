@@ -1,0 +1,12 @@
+{
+  "fixture": "location-request",
+  "schema": "home-location-request.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Administrator saves real house coordinates.",
+  "data": {
+    "label": "Casa Centro",
+    "latitude": 21.8853,
+    "longitude": -102.2916
+  }
+}

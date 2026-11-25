@@ -1,0 +1,12 @@
+{
+  "fixture": "accept-invitation-request",
+  "schema": "identity-accept-invitation-request.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Invitee accepts a resident invitation using token, target email and password.",
+  "data": {
+    "token": "opaque-invite-token-example-value",
+    "email": "invited@example.com",
+    "password": "Resident-Password-2026!"
+  }
+}

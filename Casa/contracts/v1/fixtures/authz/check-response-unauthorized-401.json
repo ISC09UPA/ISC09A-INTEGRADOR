@@ -6,7 +6,7 @@
   "expectedShapeValid": true,
   "description": "HTTP 401 because the Home service credential is invalid or missing.",
   "data": {
-    "type": "https://integrador9nocuatri.local/errors/unauthorized",
+    "type": "https://casa-example.local/errors/unauthorized",
     "title": "Unauthorized",
     "status": 401,
     "detail": "invalid service credential",

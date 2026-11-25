@@ -1,0 +1,12 @@
+{
+  "fixture": "person-create-request",
+  "schema": "security-person-create-request.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Create physical person enrollment request.",
+  "data": {
+    "name": "Ana Pérez",
+    "method": "fingerprint",
+    "validUntilUtc": "2026-12-31T23:59:59Z"
+  }
+}

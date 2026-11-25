@@ -1,0 +1,11 @@
+{
+  "fixture": "ask-response",
+  "schema": "assistant-ask-response.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Assistant answer when house has no reports yet.",
+  "data": {
+    "text": "Todavía no hay reportes de estado, sensores ni actividad registrados para tu casa.",
+    "updatedAtUtc": null
+  }
+}

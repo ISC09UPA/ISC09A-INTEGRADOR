@@ -1,0 +1,22 @@
+{
+  "fixture": "persons-page",
+  "schema": "security-persons-page.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Paginated physical access persons list.",
+  "data": {
+    "items": [
+      {
+        "id": "44444444-4444-4444-8444-444444444444",
+        "name": "Ana Pérez",
+        "method": "fingerprint",
+        "status": "authorized",
+        "validUntilUtc": "2026-12-31T23:59:59Z",
+        "createdAtUtc": "2026-11-20T00:00:00Z",
+        "updatedAtUtc": "2026-11-20T00:05:00Z",
+        "revokedAtUtc": null
+      }
+    ],
+    "nextCursor": null
+  }
+}

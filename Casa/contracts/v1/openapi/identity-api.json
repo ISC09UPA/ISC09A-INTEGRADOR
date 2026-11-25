@@ -11,7 +11,7 @@
       "description": "Local dev"
     },
     {
-      "url": "https://i9n-identity-karma26.azurewebsites.net/api/v1",
+      "url": "https://identity-api.example.com/api/v1",
       "description": "Azure dev (proposed, not operational)"
     }
   ],
@@ -227,6 +227,154 @@
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
           }
+        }
+      }
+    },
+    "/identity/houses/{houseId}/members": {
+      "get": {
+        "operationId": "listHouseMembers",
+        "summary": "List house members and resident invitations",
+        "security": [{ "userBearerAuth": [] }],
+        "parameters": [
+          { "name": "houseId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "House members and invitations.",
+            "content": { "application/json": { "schema": { "$ref": "../schemas/identity-members-response.json" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/identity/houses/{houseId}/members/{memberUserId}": {
+      "delete": {
+        "operationId": "removeHouseResident",
+        "summary": "Revoke resident membership and active sessions",
+        "security": [{ "userBearerAuth": [] }],
+        "parameters": [
+          { "name": "houseId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "memberUserId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "204": { "description": "Resident removed and sessions revoked." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "description": "Member not found." },
+          "409": { "description": "Administrator membership cannot be removed." }
+        }
+      }
+    },
+    "/identity/houses/{houseId}/invitations": {
+      "post": {
+        "operationId": "createResidentInvitation",
+        "summary": "Invite a resident to a house",
+        "security": [{ "userBearerAuth": [] }],
+        "parameters": [
+          { "name": "houseId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "../schemas/identity-invitation-request.json" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "Invitation created.",
+            "content": { "application/json": { "schema": { "$ref": "../schemas/identity-invitation-created.json" } } }
+          },
+          "400": { "description": "Invalid request." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "description": "House not found." },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
+        }
+      }
+    },
+    "/identity/houses/{houseId}/invitations/{invitationId}": {
+      "delete": {
+        "operationId": "revokeResidentInvitation",
+        "summary": "Revoke a pending resident invitation",
+        "security": [{ "userBearerAuth": [] }],
+        "parameters": [
+          { "name": "houseId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+          { "name": "invitationId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "204": { "description": "Invitation revoked." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "404": { "description": "Pending invitation not found." }
+        }
+      }
+    },
+    "/identity/invitations/accept": {
+      "post": {
+        "operationId": "acceptResidentInvitation",
+        "summary": "Accept a single-use resident invitation",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "../schemas/identity-accept-invitation-request.json" } } }
+        },
+        "responses": {
+          "200": { "description": "Invitation accepted." },
+          "400": { "description": "Invalid request." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "422": { "description": "Invitation expired." },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
+        }
+      }
+    },
+    "/identity/auth/password/change": {
+      "post": {
+        "operationId": "changePassword",
+        "summary": "Change authenticated user password and revoke active sessions",
+        "security": [{ "userBearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "../schemas/identity-password-change-request.json" } } }
+        },
+        "responses": {
+          "204": { "description": "Password updated and sessions revoked." },
+          "400": { "description": "Invalid password format." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
+        }
+      }
+    },
+    "/identity/auth/password-reset/request": {
+      "post": {
+        "operationId": "requestPasswordReset",
+        "summary": "Request a password reset without revealing whether an account exists",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "../schemas/identity-password-reset-request.json" } } }
+        },
+        "responses": {
+          "202": { "description": "Uniform accepted response." },
+          "400": { "description": "Invalid email." },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
+        }
+      }
+    },
+    "/identity/auth/password-reset/confirm": {
+      "post": {
+        "operationId": "confirmPasswordReset",
+        "summary": "Confirm single-use password reset token and revoke active sessions",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "../schemas/identity-password-reset-confirm.json" } } }
+        },
+        "responses": {
+          "204": { "description": "Password reset and sessions revoked." },
+          "400": { "description": "Invalid input." },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "422": { "description": "Reset token expired." },
+          "429": { "$ref": "#/components/responses/TooManyRequests" }
         }
       }
     }

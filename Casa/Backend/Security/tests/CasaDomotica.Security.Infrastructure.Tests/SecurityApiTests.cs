@@ -53,7 +53,7 @@ public sealed class SecurityApiTests
                 services.AddDbContext<SecurityDb>(o => o.UseSqlite(connection));
                 services.RemoveAll<ISecurityAuthorizer>(); services.AddScoped<ISecurityAuthorizer>(_ => new Authorizer(house, user, admin));
                 services.RemoveAll<ICaptureContent>(); services.AddSingleton<ICaptureContent>(content);
-                foreach (var descriptor in services.Where(x => x.ServiceType == typeof(IHostedService) && (x.ImplementationType == typeof(SecurityBusWorker) || x.ImplementationType == typeof(CaptureCleanupWorker) || x.ImplementationType == typeof(CaptureAnalysisWorker))).ToArray()) services.Remove(descriptor);
+                foreach (var descriptor in services.Where(x => x.ServiceType == typeof(IHostedService) && (x.ImplementationType == typeof(SecurityBusWorker) || x.ImplementationType == typeof(CaptureCleanupWorker) || x.ImplementationType == typeof(CaptureAnalysisWorker) || x.ImplementationType == typeof(BiometricRetentionWorker))).ToArray()) services.Remove(descriptor);
             });
         });
         using var client = factory.CreateClient(); var path = $"/api/v1/security/houses/{house}/activity/{eventId}";
@@ -88,7 +88,18 @@ public sealed class SecurityApiTests
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/v1/security/houses/{Guid.NewGuid()}/captures/{captureId}/content")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.DeleteAsync($"/api/v1/security/houses/{house}/captures/{captureId}")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsync($"/api/v1/security/houses/{house}/captures/{captureId}/analysis", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync($"/api/v1/security/houses/{house}/persons", new { name = "Res", method = "fingerprint", validUntilUtc = DateTimeOffset.UtcNow.AddDays(5) })).StatusCode);
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Token(key, subject: admin));
+        var faceDiag = await client.GetFromJsonAsync<System.Text.Json.JsonElement>($"/api/v1/security/houses/{house}/diagnostics/face");
+        Assert.False(faceDiag.GetProperty("available").GetBoolean());
+        var createdPersonRes = await client.PostAsJsonAsync($"/api/v1/security/houses/{house}/persons", new { name = "Visita", method = "fingerprint", validUntilUtc = DateTimeOffset.UtcNow.AddDays(5) });
+        Assert.Equal(HttpStatusCode.Created, createdPersonRes.StatusCode);
+        var createdPerson = await createdPersonRes.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        Assert.Equal("pending", createdPerson.GetProperty("person").GetProperty("status").GetString());
+        var personId = createdPerson.GetProperty("person").GetProperty("id").GetGuid();
+        var enrollmentId = createdPerson.GetProperty("enrollment").GetProperty("id").GetGuid();
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsync($"/api/v1/security/houses/{house}/enrollments/{enrollmentId}/cancel", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.DeleteAsync($"/api/v1/security/houses/{house}/persons/{personId}")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/v1/security/houses/{house}/capture-retention")).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync($"/api/v1/security/houses/{house}/capture-retention", new { retentionDays = 0 })).StatusCode);
         var savedPrefsResponse = await client.PutAsJsonAsync($"/api/v1/security/houses/{house}/preferences", new { captures = true, analysis = true });

@@ -12,7 +12,8 @@ public static class ContractProblems
         {
             "invalidCredential" or "invalid_credentials" => "invalidCredential",
             "sessionRevoked" => "sessionRevoked",
-            _ => status switch { 400 => "badRequest", 401 => "invalidCredential", 403 => "forbidden", 404 => "notFound", 409 => "conflict", 429 => "rateLimited", _ => "serviceUnavailable" }
+            "requestExpired" => "requestExpired",
+            _ => status switch { 400 => "badRequest", 401 => "invalidCredential", 403 => "forbidden", 404 => "notFound", 409 => "conflict", 422 => "requestExpired", 429 => "rateLimited", _ => "serviceUnavailable" }
         };
         context.ProblemDetails.Extensions.Clear();
         context.ProblemDetails.Extensions["code"] = code;

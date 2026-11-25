@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/identity-service-token-response.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/identity-service-token-response.json",
   "title": "Service token response v1",
   "description": "Short-lived service token issued by Identity for Home internal API calls. No refresh token.",
   "type": "object",

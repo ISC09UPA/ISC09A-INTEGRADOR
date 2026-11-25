@@ -6,7 +6,7 @@
   "expectedShapeValid": true,
   "description": "HTTP 503 because Identity is unavailable. Home must fail closed.",
   "data": {
-    "type": "https://integrador9nocuatri.local/errors/service-unavailable",
+    "type": "https://casa-example.local/errors/service-unavailable",
     "title": "Service unavailable",
     "status": 503,
     "detail": "identity service timeout",

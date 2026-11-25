@@ -31,13 +31,17 @@ appBuilder.Services.AddScoped<SecurityEvents>();
 appBuilder.Services.AddScoped<ICaptureContent, PrivateCaptureContent>();
 appBuilder.Services.AddScoped<CaptureCleanup>();
 appBuilder.Services.AddScoped<CaptureAnalysis>();
+appBuilder.Services.AddScoped<IBiometricStore, SqlBiometricStore>();
+appBuilder.Services.AddScoped<BiometricOperations>();
 appBuilder.Services.AddHttpClient<IImageAnalyzer, AzureVisionAnalyzer>(client => client.Timeout = TimeSpan.FromSeconds(90)).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+appBuilder.Services.AddHttpClient<IFaceBiometricProvider, AzureFaceBiometricProvider>(client => client.Timeout = TimeSpan.FromSeconds(45)).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 appBuilder.Services.AddSingleton<SecurityServiceTokenCache>();
 appBuilder.Services.AddHttpClient<ISecurityAuthorizer, SecurityAuthorizer>(client => client.Timeout = TimeSpan.FromSeconds(45));
 appBuilder.Services.AddHttpClient("home", client => client.Timeout = TimeSpan.FromSeconds(45));
 appBuilder.Services.AddHostedService<SecurityBusWorker>();
 appBuilder.Services.AddHostedService<CaptureCleanupWorker>();
 appBuilder.Services.AddHostedService<CaptureAnalysisWorker>();
+appBuilder.Services.AddHostedService<BiometricRetentionWorker>();
 appBuilder.Services.AddSingleton<IdentityKey>();
 appBuilder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(_ => { });
 appBuilder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme).Configure<IdentityKey>((options, key) =>
@@ -242,6 +246,68 @@ routes.MapPut("/preferences", async (Guid houseId, SecurityPreferencesRequest re
     await db.SaveChangesAsync(ct);
     return Results.Ok(new { captures = row.CapturesEnabled, analysis = row.AnalysisEnabled, updatedAtUtc = row.UpdatedAtUtc });
 });
+routes.MapGet("/diagnostics/face", async (Guid houseId, ClaimsPrincipal user, ISecurityAuthorizer auth, BiometricOperations biometrics, CancellationToken ct) =>
+{
+    if (!await CanRead(user, houseId, auth, ct)) return Results.Forbid();
+    return Results.Ok(await biometrics.CheckFaceAvailabilityAsync(ct));
+});
+routes.MapGet("/persons", async (Guid houseId, string? cursor, ClaimsPrincipal user, ISecurityAuthorizer auth, BiometricOperations biometrics, CancellationToken ct) =>
+{
+    if (!await CanRead(user, houseId, auth, ct)) return Results.Forbid();
+    if (!TryCursor(cursor, out var after)) return Results.BadRequest();
+    var (items, nextCursor) = await biometrics.ListPersonsAsync(houseId, after?.Time, after?.Id, ct);
+    return Results.Ok(new { items, nextCursor });
+});
+routes.MapGet("/persons/{personId:guid}", async (Guid houseId, Guid personId, ClaimsPrincipal user, ISecurityAuthorizer auth, BiometricOperations biometrics, CancellationToken ct) =>
+{
+    if (!await CanRead(user, houseId, auth, ct)) return Results.Forbid();
+    var person = await biometrics.GetPersonAsync(houseId, personId, ct);
+    return person is null ? Results.NotFound() : Results.Ok(person);
+});
+routes.MapPost("/persons", async (Guid houseId, CreatePersonRequest request, ClaimsPrincipal user, ISecurityAuthorizer auth, BiometricOperations biometrics, CancellationToken ct) =>
+{
+    if (!await CanManage(user, houseId, auth, ct)) return Results.Forbid();
+    try
+    {
+        var created = await biometrics.StartEnrollmentAsync(houseId, request.Name, request.Method, request.ValidUntilUtc, ct);
+        return Results.Created($"/api/v1/security/houses/{houseId}/persons/{created.Person.Id}", created);
+    }
+    catch (BiometricException ex) { return Results.Problem(statusCode: ex.StatusCode, title: ex.Message, extensions: new Dictionary<string, object?> { ["code"] = ex.Code }); }
+});
+routes.MapDelete("/persons/{personId:guid}", async (Guid houseId, Guid personId, ClaimsPrincipal user, ISecurityAuthorizer auth, BiometricOperations biometrics, CancellationToken ct) =>
+{
+    if (!await CanManage(user, houseId, auth, ct)) return Results.Forbid();
+    var person = await biometrics.RevokePersonAsync(houseId, personId, ct);
+    return person is null ? Results.NotFound() : Results.Ok(person);
+});
+routes.MapGet("/enrollments/{enrollmentId:guid}", async (Guid houseId, Guid enrollmentId, ClaimsPrincipal user, ISecurityAuthorizer auth, BiometricOperations biometrics, CancellationToken ct) =>
+{
+    if (!await CanRead(user, houseId, auth, ct)) return Results.Forbid();
+    var session = await biometrics.GetEnrollmentAsync(houseId, enrollmentId, ct);
+    return session is null ? Results.NotFound() : Results.Ok(session);
+});
+routes.MapPost("/enrollments/{enrollmentId:guid}/capture", async (Guid houseId, Guid enrollmentId, CaptureEnrollmentRequest? request, ClaimsPrincipal user, ISecurityAuthorizer auth, BiometricOperations biometrics, CancellationToken ct) =>
+{
+    if (!await CanManage(user, houseId, auth, ct)) return Results.Forbid();
+    try
+    {
+        var session = await biometrics.CaptureEnrollmentAsync(houseId, enrollmentId, request?.CaptureId, request?.TemplateSlotId, request?.Confidence, ct);
+        return Results.Ok(session);
+    }
+    catch (BiometricException ex) { return Results.Problem(statusCode: ex.StatusCode, title: ex.Message, extensions: new Dictionary<string, object?> { ["code"] = ex.Code }); }
+});
+routes.MapPost("/enrollments/{enrollmentId:guid}/cancel", async (Guid houseId, Guid enrollmentId, ClaimsPrincipal user, ISecurityAuthorizer auth, BiometricOperations biometrics, CancellationToken ct) =>
+{
+    if (!await CanManage(user, houseId, auth, ct)) return Results.Forbid();
+    var session = await biometrics.CancelEnrollmentAsync(houseId, enrollmentId, ct);
+    return session is null ? Results.NotFound() : Results.Ok(session);
+});
+routes.MapPost("/biometrics/verify", async (Guid houseId, BiometricVerifyRequest request, ClaimsPrincipal user, ISecurityAuthorizer auth, BiometricOperations biometrics, CancellationToken ct) =>
+{
+    if (!await CanManage(user, houseId, auth, ct)) return Results.Forbid();
+    if (request.PersonId == Guid.Empty || string.IsNullOrWhiteSpace(request.Method)) return Results.BadRequest();
+    return Results.Ok(await biometrics.VerifyAccessAsync(houseId, request.PersonId, request.Method, request.CaptureId, request.TemplateSlotId, ct));
+});
 app.Run();
 
 static void ConfigureDatabase(IServiceCollection services, IConfiguration configuration) => services.AddDbContext<SecurityDb>(options => options.UseSqlServer(configuration.GetConnectionString("SecurityDb") ?? throw new InvalidOperationException("Security database is required."), sql => sql.CommandTimeout(90)));
@@ -258,4 +324,7 @@ static bool TryCursor(string? raw, out Cursor? cursor)
 public sealed record Cursor(DateTimeOffset Time, Guid Id);
 public sealed record RetentionRequest([property: System.Text.Json.Serialization.JsonRequired] int? RetentionDays);
 public sealed record SecurityPreferencesRequest([property: System.Text.Json.Serialization.JsonRequired] bool? Captures, [property: System.Text.Json.Serialization.JsonRequired] bool? Analysis);
+public sealed record CreatePersonRequest(string? Name, string? Method, DateTimeOffset? ValidUntilUtc);
+public sealed record CaptureEnrollmentRequest(Guid? CaptureId, string? TemplateSlotId, double? Confidence);
+public sealed record BiometricVerifyRequest(Guid PersonId, string Method, Guid? CaptureId, string? TemplateSlotId);
 public partial class Program { }

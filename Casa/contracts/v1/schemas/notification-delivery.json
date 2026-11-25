@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/notification-delivery.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/notification-delivery.json",
   "title": "Notification Delivery",
   "type": "object",
   "required": [

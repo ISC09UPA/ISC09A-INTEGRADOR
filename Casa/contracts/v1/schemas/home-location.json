@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casa-example.local/contracts/v1/schemas/home-location.json",
+  "title": "House Location",
+  "type": "object",
+  "required": ["label", "latitude", "longitude", "updatedAtUtc"],
+  "properties": {
+    "label": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+    "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+    "updatedAtUtc": { "$ref": "common.json#/$defs/dateTimeUtc" }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,14 @@
+{
+  "fixture": "ask-request",
+  "schema": "assistant-ask-request.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Read-only assistant question with bounded history.",
+  "data": {
+    "message": "¿Cómo estuvo la seguridad hoy?",
+    "history": [
+      { "role": "user", "content": "¿Hay luces encendidas?" },
+      { "role": "assistant", "content": "La luz de sala aparece apagada según el último reporte." }
+    ]
+  }
+}

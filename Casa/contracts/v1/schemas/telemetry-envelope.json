@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/telemetry-envelope.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/telemetry-envelope.json",
   "title": "Telemetry envelope v1",
   "description": "Common envelope for all device-to-cloud events. sourceDeviceId is assigned by Home Functions from authenticated IoT Hub metadata, never from JSON.",
   "type": "object",

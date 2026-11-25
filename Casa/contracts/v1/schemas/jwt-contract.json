@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/jwt-contract.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/jwt-contract.json",
   "title": "JWT contract v1",
   "description": "Contracts for user and service tokens. No secrets or real keys are stored here. Fixtures are illustrative and not cryptographic proof.",
   "type": "object",

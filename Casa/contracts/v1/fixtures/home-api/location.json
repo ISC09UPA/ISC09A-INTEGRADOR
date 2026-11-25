@@ -1,0 +1,13 @@
+{
+  "fixture": "location",
+  "schema": "home-location.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Configured real house location.",
+  "data": {
+    "label": "Casa Centro",
+    "latitude": 21.8853,
+    "longitude": -102.2916,
+    "updatedAtUtc": "2026-11-20T12:00:00Z"
+  }
+}

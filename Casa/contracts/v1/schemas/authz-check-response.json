@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/authz-check-response.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/authz-check-response.json",
   "title": "User membership authorization check response body v1",
   "description": "HTTP 200 response body for /identity/internal/authz/check. Denied/revoked are returned as HTTP 403 ProblemDetails; unavailable as HTTP 503 ProblemDetails.",
   "type": "object",

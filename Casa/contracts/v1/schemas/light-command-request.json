@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/light-command-request.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/light-command-request.json",
   "title": "Light command request v1",
   "description": "Request body for POST /api/v1/houses/{houseId}/lights/{lightId}/commands. Device target is resolved server-side from the house/light mapping. Idempotency key is required.",
   "type": "object",

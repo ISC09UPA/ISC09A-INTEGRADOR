@@ -7,15 +7,20 @@ public sealed class IdentityAdministration(IdentityDb db, IPasswordHasher passwo
     public async Task ProvisionRuntimeAsync(string password, CancellationToken ct)
     {
         if (password.Length is < 32 or > 128) throw new ArgumentException("Runtime credential length is invalid.");
-        await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @pwd nvarchar(128)={password}; DECLARE @sql nvarchar(max); IF USER_ID(N'identity_api') IS NULL SET @sql=N'CREATE USER [identity_api] WITH PASSWORD='+QUOTENAME(@pwd, CHAR(39)); ELSE SET @sql=N'ALTER USER [identity_api] WITH PASSWORD='+QUOTENAME(@pwd, CHAR(39)); EXEC sp_executesql @sql; GRANT SELECT,INSERT,UPDATE,DELETE ON dbo.IdentityUsers TO identity_api; GRANT SELECT,INSERT,UPDATE,DELETE ON dbo.IdentityHouses TO identity_api; GRANT SELECT,INSERT,UPDATE,DELETE ON dbo.IdentityMemberships TO identity_api; GRANT SELECT,INSERT,UPDATE,DELETE ON dbo.IdentitySessions TO identity_api; GRANT SELECT,INSERT,UPDATE,DELETE ON dbo.IdentityRefreshTokens TO identity_api; GRANT SELECT,INSERT,UPDATE,DELETE ON dbo.IdentityAssertions TO identity_api; GRANT SELECT ON dbo.IdentitySchemaVersions TO identity_api;", ct);
+        await db.Database.ExecuteSqlInterpolatedAsync($"DECLARE @pwd nvarchar(128)={password}; DECLARE @sql nvarchar(max); IF USER_ID(N'identity_api') IS NULL SET @sql=N'CREATE USER [identity_api] WITH PASSWORD='+QUOTENAME(@pwd, CHAR(39)); ELSE SET @sql=N'ALTER USER [identity_api] WITH PASSWORD='+QUOTENAME(@pwd, CHAR(39)); EXEC sp_executesql @sql; GRANT SELECT,INSERT,UPDATE,DELETE ON dbo.IdentityUsers TO identity_api; GRANT SELECT,INSERT,UPDATE,DELETE ON dbo.IdentityHouses TO identity_api; GRANT SELECT,INSERT,UPDATE,DELETE ON dbo.IdentityMemberships TO identity_api; GRANT SELECT,INSERT,UPDATE,DELETE ON dbo.IdentitySessions TO identity_api; GRANT SELECT,INSERT,UPDATE,DELETE ON dbo.IdentityRefreshTokens TO identity_api; GRANT SELECT,INSERT,UPDATE,DELETE ON dbo.IdentityAssertions TO identity_api; GRANT SELECT,INSERT,UPDATE,DELETE ON dbo.IdentityInvitations TO identity_api; GRANT SELECT,INSERT,UPDATE,DELETE ON dbo.IdentityPasswordResetTokens TO identity_api; GRANT SELECT ON dbo.IdentitySchemaVersions TO identity_api;", ct);
     }
     public async Task MigrateAsync(CancellationToken ct)
     {
         var assembly = typeof(IdentityAdministration).Assembly;
-        var name = assembly.GetManifestResourceNames().Single(x => x.EndsWith("001_identity.sql", StringComparison.Ordinal));
-        await using var stream = assembly.GetManifestResourceStream(name)!;
-        using var reader = new StreamReader(stream);
-        await db.Database.ExecuteSqlRawAsync(await reader.ReadToEndAsync(ct), ct);
+        var names = assembly.GetManifestResourceNames()
+            .Where(x => x.EndsWith(".sql", StringComparison.Ordinal))
+            .OrderBy(x => x, StringComparer.Ordinal);
+        foreach (var name in names)
+        {
+            await using var stream = assembly.GetManifestResourceStream(name)!;
+            using var reader = new StreamReader(stream);
+            await db.Database.ExecuteSqlRawAsync(await reader.ReadToEndAsync(ct), ct);
+        }
     }
     public async Task<(Guid UserId, Guid HouseId)> BootstrapAsync(string email, string password, string houseName, CancellationToken ct)
     {

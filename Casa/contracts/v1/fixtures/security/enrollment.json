@@ -1,0 +1,18 @@
+{
+  "fixture": "enrollment",
+  "schema": "security-enrollment.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Biometric enrollment session progress.",
+  "data": {
+    "id": "66666666-6666-4666-8666-666666666666",
+    "personId": "44444444-4444-4444-8444-444444444444",
+    "method": "fingerprint",
+    "status": "acquiring",
+    "instruction": "Esperando lectura en el lector físico de huella de la casa (Etapa 11).",
+    "error": null,
+    "errorCode": null,
+    "expiresAtUtc": "2026-11-20T00:15:00Z",
+    "updatedAtUtc": "2026-11-20T00:01:00Z"
+  }
+}

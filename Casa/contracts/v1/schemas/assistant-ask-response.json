@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casa-example.local/contracts/v1/schemas/assistant-ask-response.json",
+  "title": "Assistant Ask Response",
+  "type": "object",
+  "required": ["text", "updatedAtUtc"],
+  "properties": {
+    "text": { "type": "string", "minLength": 1 },
+    "updatedAtUtc": { "type": ["string", "null"], "format": "date-time" }
+  },
+  "additionalProperties": false
+}

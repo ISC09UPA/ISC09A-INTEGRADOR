@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casa-example.local/contracts/v1/schemas/security-person-create-request.json",
+  "title": "Create Authorized Person Enrollment Request",
+  "type": "object",
+  "required": ["name", "method", "validUntilUtc"],
+  "properties": {
+    "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "method": { "enum": ["face", "fingerprint"] },
+    "validUntilUtc": { "$ref": "common.json#/$defs/dateTimeUtc" }
+  },
+  "additionalProperties": false
+}

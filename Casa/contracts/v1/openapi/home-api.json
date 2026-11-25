@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Home API",
-    "description": "Casa Dom\u00f3tica Home v1: authenticated home, telemetry, capability resources and durable commands.",
+    "description": "Casa Domótica Home v1: authenticated home, telemetry, capability resources and durable commands.",
     "version": "1.0.0"
   },
   "servers": [
@@ -11,7 +11,7 @@
       "description": "Local dev"
     },
     {
-      "url": "https://i9n-home-karma26.azurewebsites.net/api/v1",
+      "url": "https://home-api.example.com/api/v1",
       "description": "Azure development"
     }
   ],
@@ -481,7 +481,7 @@
             "description": "Local dev"
           },
           {
-            "url": "https://i9n-home-karma26.azurewebsites.net",
+            "url": "https://home-api.example.com",
             "description": "Azure development"
           }
         ],
@@ -900,7 +900,7 @@
             "description": "Local dev"
           },
           {
-            "url": "https://i9n-home-karma26.azurewebsites.net",
+            "url": "https://home-api.example.com",
             "description": "Azure development"
           }
         ],
@@ -990,7 +990,7 @@
             "description": "Local dev"
           },
           {
-            "url": "https://i9n-home-karma26.azurewebsites.net",
+            "url": "https://home-api.example.com",
             "description": "Azure development"
           }
         ],
@@ -1037,6 +1037,98 @@
           },
           "503": {
             "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/houses/{houseId}/location": {
+      "get": {
+        "operationId": "getHouseLocation",
+        "summary": "Read configured house location",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "House location.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/home-location.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "put": {
+        "operationId": "saveHouseLocation",
+        "summary": "Configure real house coordinates (administrator only)",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "$ref": "../schemas/common.json#/$defs/uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/home-location-request.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved house location.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/home-location.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
           }
         }
       }

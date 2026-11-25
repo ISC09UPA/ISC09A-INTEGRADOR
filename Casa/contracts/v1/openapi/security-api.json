@@ -912,6 +912,372 @@
           }
         }
       }
+    },
+    "/security/houses/{houseId}/persons": {
+      "get": {
+        "summary": "List physical access persons for a house",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Persons page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/security-persons-page.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid cursor."
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No house permission."
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a pending physical access person and biometric enrollment session",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/security-person-create-request.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Pending person and enrollment session created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/security-person-enrollment-created.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request."
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No administrative permission."
+          }
+        }
+      }
+    },
+    "/security/houses/{houseId}/persons/{personId}": {
+      "get": {
+        "summary": "Read a physical access person",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Person record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/security-person.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No house permission."
+          },
+          "404": {
+            "description": "Person not found."
+          }
+        }
+      },
+      "delete": {
+        "summary": "Revoke physical access person and purge biometric references",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "personId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Person revoked and purged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/security-person.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No administrative permission."
+          },
+          "404": {
+            "description": "Person not found."
+          }
+        }
+      }
+    },
+    "/security/houses/{houseId}/enrollments/{enrollmentId}": {
+      "get": {
+        "summary": "Get biometric enrollment session status",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "enrollmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Enrollment session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/security-enrollment.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No house permission."
+          },
+          "404": {
+            "description": "Enrollment session not found."
+          }
+        }
+      }
+    },
+    "/security/houses/{houseId}/enrollments/{enrollmentId}/capture": {
+      "post": {
+        "summary": "Submit or advance biometric enrollment capture",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "enrollmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "../schemas/security-enrollment-capture-request.json"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated enrollment session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/security-enrollment.json"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request."
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No administrative permission."
+          },
+          "404": {
+            "description": "Enrollment or capture not found."
+          }
+        }
+      }
+    },
+    "/security/houses/{houseId}/enrollments/{enrollmentId}/cancel": {
+      "post": {
+        "summary": "Cancel a biometric enrollment session without authorizing the person",
+        "security": [
+          {
+            "userBearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "houseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "enrollmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancelled enrollment session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "../schemas/security-enrollment.json"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked session."
+          },
+          "403": {
+            "description": "No administrative permission."
+          },
+          "404": {
+            "description": "Enrollment session not found."
+          }
+        }
+      }
     }
   },
   "components": {

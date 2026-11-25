@@ -14,6 +14,8 @@ public static class DependencyInjection
         services.AddScoped<SqlIdentityRepository>();
         services.AddScoped<IUserRepository>(sp => sp.GetRequiredService<SqlIdentityRepository>());
         services.AddScoped<ISessionRepository>(sp => sp.GetRequiredService<SqlIdentityRepository>());
+        services.AddScoped<IAccountStore, SqlAccountStore>();
+        services.AddSingleton<IAccountEmailSender, NullAccountEmailSender>();
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
         services.AddSingleton<JwtTokens>();
         services.AddSingleton<ITokenService>(sp => sp.GetRequiredService<JwtTokens>());

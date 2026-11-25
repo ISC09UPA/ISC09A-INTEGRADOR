@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/device-twin.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/device-twin.json",
   "title": "Device twin desired configuration v1",
   "description": "Desired properties patch delivered through IoT Hub twin. Used only for thresholds, report interval and version. It never confirms a command, never opens doors and never changes security mode. The legacy lightingMode field must be ignored with a warning/diagnostic and must not overwrite the locally stored lighting_mode.",
   "type": "object",

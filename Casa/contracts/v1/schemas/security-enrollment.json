@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casa-example.local/contracts/v1/schemas/security-enrollment.json",
+  "title": "Biometric Enrollment Session",
+  "type": "object",
+  "required": ["id", "personId", "method", "status", "expiresAtUtc", "updatedAtUtc"],
+  "properties": {
+    "id": { "$ref": "common.json#/$defs/uuid" },
+    "personId": { "$ref": "common.json#/$defs/uuid" },
+    "method": { "enum": ["face", "fingerprint"] },
+    "status": { "enum": ["pending", "acquiring", "completed", "failed", "cancelled"] },
+    "instruction": { "type": ["string", "null"], "maxLength": 256 },
+    "error": { "type": ["string", "null"], "maxLength": 256 },
+    "errorCode": { "type": ["string", "null"], "maxLength": 64 },
+    "expiresAtUtc": { "$ref": "common.json#/$defs/dateTimeUtc" },
+    "updatedAtUtc": { "$ref": "common.json#/$defs/dateTimeUtc" }
+  },
+  "additionalProperties": false
+}

@@ -12,6 +12,8 @@ public sealed class SecurityDb(DbContextOptions<SecurityDb> options) : DbContext
     public DbSet<CapturePolicyRow> CapturePolicies => Set<CapturePolicyRow>();
     public DbSet<PreferenceRow> Preferences => Set<PreferenceRow>();
     public DbSet<OutboxRow> Outbox => Set<OutboxRow>();
+    public DbSet<PersonRow> Persons => Set<PersonRow>();
+    public DbSet<EnrollmentSessionRow> EnrollmentSessions => Set<EnrollmentSessionRow>();
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.Entity<InboxRow>().ToTable("SecurityInbox").HasKey(x => x.EventId);
@@ -22,6 +24,13 @@ public sealed class SecurityDb(DbContextOptions<SecurityDb> options) : DbContext
         model.Entity<CapturePolicyRow>().ToTable("SecurityCapturePolicies").HasKey(x => x.HouseId);
         model.Entity<PreferenceRow>().ToTable("SecurityPreferences").HasKey(x => x.HouseId);
         model.Entity<OutboxRow>().ToTable("SecurityOutbox").HasKey(x => x.EventId);
+        model.Entity<PersonRow>().ToTable("SecurityPersons").HasKey(x => x.PersonId);
+        model.Entity<EnrollmentSessionRow>(e =>
+        {
+            e.ToTable("SecurityEnrollmentSessions");
+            e.HasKey(x => x.EnrollmentId);
+            e.HasOne<PersonRow>().WithMany().HasForeignKey(x => x.PersonId).OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }
 public sealed class InboxRow { public Guid EventId { get; set; } public string BodyHash { get; set; } = ""; public DateTimeOffset ReceivedAtUtc { get; set; } }
@@ -32,3 +41,35 @@ public sealed class CaptureRow { public Guid CaptureId { get; set; } public Guid
 public sealed class CapturePolicyRow { public Guid HouseId { get; set; } public int? RetentionDays { get; set; } public DateTimeOffset UpdatedAtUtc { get; set; } }
 public sealed class PreferenceRow { public Guid HouseId { get; set; } public bool CapturesEnabled { get; set; } public bool AnalysisEnabled { get; set; } public DateTimeOffset UpdatedAtUtc { get; set; } }
 public sealed class OutboxRow { public Guid EventId { get; set; } public string Type { get; set; } = ""; public string BodyJson { get; set; } = ""; public DateTimeOffset CreatedAtUtc { get; set; } public DateTimeOffset? PublishedAtUtc { get; set; } }
+public sealed class PersonRow
+{
+    public Guid PersonId { get; set; }
+    public Guid HouseId { get; set; }
+    public string Name { get; set; } = "";
+    public string Method { get; set; } = "";
+    public string Status { get; set; } = "";
+    public DateTimeOffset ValidUntilUtc { get; set; }
+    public string? BiometricReferenceId { get; set; }
+    public Guid? EnrollmentCaptureId { get; set; }
+    public double? ConfidenceScore { get; set; }
+    public DateTimeOffset? RevokedAtUtc { get; set; }
+    public DateTimeOffset? RetentionPurgedAtUtc { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public DateTimeOffset UpdatedAtUtc { get; set; }
+}
+public sealed class EnrollmentSessionRow
+{
+    public Guid EnrollmentId { get; set; }
+    public Guid HouseId { get; set; }
+    public Guid PersonId { get; set; }
+    public string Method { get; set; } = "";
+    public string Status { get; set; } = "";
+    public string? Instruction { get; set; }
+    public string? ErrorCode { get; set; }
+    public string? ErrorMessage { get; set; }
+    public DateTimeOffset ExpiresAtUtc { get; set; }
+    public Guid? CaptureId { get; set; }
+    public string? TemplateSlotId { get; set; }
+    public DateTimeOffset CreatedAtUtc { get; set; }
+    public DateTimeOffset UpdatedAtUtc { get; set; }
+}

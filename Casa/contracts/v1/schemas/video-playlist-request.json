@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/video-playlist-request.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/video-playlist-request.json",
   "title": "Video producer playlist request v1",
   "description": "The device publishes a bounded, ascending, contiguous window of already uploaded segment sequences. The server generates the HLS playlist; the device never supplies URLs or paths.",
   "type": "object",

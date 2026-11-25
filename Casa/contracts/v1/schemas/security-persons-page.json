@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casa-example.local/contracts/v1/schemas/security-persons-page.json",
+  "title": "Authorized Physical Persons Page",
+  "type": "object",
+  "required": ["items", "nextCursor"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": { "$ref": "security-person.json" }
+    },
+    "nextCursor": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

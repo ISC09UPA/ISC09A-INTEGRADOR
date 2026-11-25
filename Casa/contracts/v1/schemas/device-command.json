@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/device-command.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/device-command.json",
   "title": "Device command v1",
   "description": "Home-to-device direct method. Sequence is monotonic per device. Physical execution requires a valid unexpired command and a confirmed device event; CaptureImage requires a future device driver and authorized capture workflow.",
   "type": "object",

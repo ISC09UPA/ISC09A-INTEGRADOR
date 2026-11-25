@@ -1,0 +1,30 @@
+{
+  "fixture": "person-enrollment-created",
+  "schema": "security-person-enrollment-created.json",
+  "expectedValid": true,
+  "expectedShapeValid": true,
+  "description": "Created person starts as pending until biometric enrollment succeeds.",
+  "data": {
+    "person": {
+      "id": "44444444-4444-4444-8444-444444444444",
+      "name": "Ana Pérez",
+      "method": "fingerprint",
+      "status": "pending",
+      "validUntilUtc": "2026-12-31T23:59:59Z",
+      "createdAtUtc": "2026-11-20T00:00:00Z",
+      "updatedAtUtc": "2026-11-20T00:00:00Z",
+      "revokedAtUtc": null
+    },
+    "enrollment": {
+      "id": "66666666-6666-4666-8666-666666666666",
+      "personId": "44444444-4444-4444-8444-444444444444",
+      "method": "fingerprint",
+      "status": "pending",
+      "instruction": "Registra la plantilla en el lector físico de huella de la casa (Etapa 11).",
+      "error": null,
+      "errorCode": null,
+      "expiresAtUtc": "2026-11-20T00:15:00Z",
+      "updatedAtUtc": "2026-11-20T00:00:00Z"
+    }
+  }
+}

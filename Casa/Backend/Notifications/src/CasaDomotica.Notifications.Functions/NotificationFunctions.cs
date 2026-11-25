@@ -50,6 +50,24 @@ public sealed class NotificationFunctions(
             await db.Database.CloseConnectionAsync();
             return await JsonResponseAsync(req, HttpStatusCode.OK, new { status = "ready" });
         }
+        catch (Microsoft.Data.SqlClient.SqlException error)
+        {
+            var address = error.Number == 40615
+                ? System.Text.RegularExpressions.Regex.Match(error.Message, @"Client with IP address '([0-9.]+)'").Groups[1].Value
+                : "";
+            return await JsonResponseAsync(
+                req,
+                HttpStatusCode.ServiceUnavailable,
+                new
+                {
+                    title = "Notifications storage unavailable.",
+                    status = 503,
+                    code = "unavailable",
+                    correlationId = Guid.NewGuid(),
+                    dependencyErrorCode = error.Number,
+                    dependencyClientAddress = address,
+                });
+        }
         catch
         {
             return await ProblemAsync(req, HttpStatusCode.ServiceUnavailable, "Notifications storage unavailable.", "unavailable", Guid.NewGuid());

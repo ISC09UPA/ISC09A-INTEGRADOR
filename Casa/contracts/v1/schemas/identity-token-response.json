@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/identity-token-response.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/identity-token-response.json",
   "title": "Identity token response v1",
   "description": "User session creation/refresh response. Tokens are illustrative strings, not real secrets.",
   "type": "object",

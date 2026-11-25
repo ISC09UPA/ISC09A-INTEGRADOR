@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Threading.RateLimiting;
+using CasaDomotica.Identity.Application.Accounts;
 using CasaDomotica.Identity.Application.Authentication;
 using CasaDomotica.Identity.Application.Common;
 using CasaDomotica.Identity.Domain.Interfaces;
@@ -36,6 +37,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddIdentityInfrastructure(builder.Configuration);
 builder.Services.AddScoped<Login>();
 builder.Services.AddScoped<AuthorizeUser>();
+builder.Services.AddScoped<AccountOperations>();
 builder.Services.AddProblemDetails(ContractProblems.Configure);
 builder.Services.AddExceptionHandler<UnavailableHandler>();
 builder.Services.AddHealthChecks();
@@ -111,6 +113,51 @@ app.MapGet("/api/v1/identity/me", async (ClaimsPrincipal principal, IdentityDb d
     var houses = await (from membership in db.Memberships.AsNoTracking() join house in db.Houses.AsNoTracking() on membership.HouseId equals house.Id where membership.UserId == id select new { houseId = house.Id, name = house.Name, role = membership.Role }).ToListAsync(ct);
     return Results.Ok(new { userId = id, email = user.Email, houses });
 }).RequireAuthorization();
+app.MapGet("/api/v1/identity/houses/{houseId:guid}/members", async (Guid houseId, ClaimsPrincipal principal, AccountOperations accounts, CancellationToken ct) =>
+{
+    var (value, error) = await accounts.ListMembersAsync(Guid.Parse(principal.FindFirstValue("sub")!), houseId, ct);
+    return error is not null ? AccountProblem(error) : Results.Ok(value);
+}).RequireAuthorization();
+app.MapGet("/api/v1/identity/houses/{houseId:guid}/members/{memberUserId:guid}", async (Guid houseId, Guid memberUserId, ClaimsPrincipal principal, AccountOperations accounts, CancellationToken ct) =>
+{
+    var (value, error) = await accounts.GetMemberAsync(Guid.Parse(principal.FindFirstValue("sub")!), houseId, memberUserId, ct);
+    return error is not null ? AccountProblem(error) : Results.Ok(value);
+}).RequireAuthorization();
+app.MapPost("/api/v1/identity/houses/{houseId:guid}/invitations", async (Guid houseId, InviteResidentRequest request, ClaimsPrincipal principal, AccountOperations accounts, CancellationToken ct) =>
+{
+    var (value, error) = await accounts.CreateInvitationAsync(Guid.Parse(principal.FindFirstValue("sub")!), houseId, request.Email, ct);
+    return error is not null ? AccountProblem(error) : Results.Created($"/api/v1/identity/houses/{houseId}/invitations/{value!.Invitation.Id}", value);
+}).RequireAuthorization().RequireRateLimiting("authentication");
+app.MapDelete("/api/v1/identity/houses/{houseId:guid}/invitations/{invitationId:guid}", async (Guid houseId, Guid invitationId, ClaimsPrincipal principal, AccountOperations accounts, CancellationToken ct) =>
+{
+    var error = await accounts.RevokeInvitationAsync(Guid.Parse(principal.FindFirstValue("sub")!), houseId, invitationId, ct);
+    return error is not null ? AccountProblem(error) : Results.NoContent();
+}).RequireAuthorization();
+app.MapDelete("/api/v1/identity/houses/{houseId:guid}/members/{memberUserId:guid}", async (Guid houseId, Guid memberUserId, ClaimsPrincipal principal, AccountOperations accounts, CancellationToken ct) =>
+{
+    var error = await accounts.RemoveResidentAsync(Guid.Parse(principal.FindFirstValue("sub")!), houseId, memberUserId, ct);
+    return error is not null ? AccountProblem(error) : Results.NoContent();
+}).RequireAuthorization();
+app.MapPost("/api/v1/identity/invitations/accept", async (AcceptInvitationRequest request, AccountOperations accounts, CancellationToken ct) =>
+{
+    var (value, error) = await accounts.AcceptInvitationAsync(request.Token, request.Email, request.Password, ct);
+    return error is not null ? AccountProblem(error) : Results.Ok(value);
+}).RequireRateLimiting("authentication");
+app.MapPost("/api/v1/identity/auth/password/change", async (ChangePasswordRequest request, ClaimsPrincipal principal, AccountOperations accounts, CancellationToken ct) =>
+{
+    var error = await accounts.ChangePasswordAsync(Guid.Parse(principal.FindFirstValue("sub")!), request.CurrentPassword, request.NewPassword, ct);
+    return error is not null ? AccountProblem(error) : Results.NoContent();
+}).RequireAuthorization().RequireRateLimiting("authentication");
+app.MapPost("/api/v1/identity/auth/password-reset/request", async (PasswordResetRequestBody request, AccountOperations accounts, CancellationToken ct) =>
+{
+    var error = await accounts.RequestPasswordResetAsync(request.Email, ct);
+    return error is not null ? AccountProblem(error) : Results.Accepted(value: new { status = "accepted" });
+}).RequireRateLimiting("authentication");
+app.MapPost("/api/v1/identity/auth/password-reset/confirm", async (PasswordResetConfirmBody request, AccountOperations accounts, CancellationToken ct) =>
+{
+    var error = await accounts.ConfirmPasswordResetAsync(request.Token, request.Email, request.NewPassword, ct);
+    return error is not null ? AccountProblem(error) : Results.NoContent();
+}).RequireRateLimiting("authentication");
 app.MapPost("/api/v1/identity/internal/token", async (AssertionRequest request, IConfiguration configuration, JwtTokens signer, IdentityDb db, CancellationToken ct) =>
 {
     if (request.GrantType != "urn:ietf:params:oauth:grant-type:jwt-bearer" || string.IsNullOrEmpty(request.Assertion) || request.Assertion.Length > 8192) return InvalidCredentials();
@@ -132,9 +179,15 @@ app.Run();
 
 static TokenValidationParameters Validation(SecurityKey key, string audience) => new() { ValidIssuer = "Identity", ValidAudience = audience, IssuerSigningKey = key, ValidAlgorithms = [SecurityAlgorithms.EcdsaSha256], RequireSignedTokens = true, RequireExpirationTime = true, ValidateIssuer = true, ValidateAudience = true, ValidateIssuerSigningKey = true, ValidateLifetime = true, ClockSkew = TimeSpan.FromSeconds(10) };
 static IResult InvalidCredentials() => Results.Problem(statusCode: 401, title: "Invalid credentials", extensions: new Dictionary<string, object?> { ["code"] = "invalid_credentials" });
+static IResult AccountProblem(AccountError error) => Results.Problem(statusCode: error.StatusCode, title: error.Message, extensions: new Dictionary<string, object?> { ["code"] = error.Code });
 static IResult SessionResult(Result<LoginResponse> result) => result is Result<LoginResponse>.Success success ? Results.Ok(success.Value) : InvalidCredentials();
 public sealed record LoginRequest(string? Email, string? Password);
 public sealed record RefreshRequest(string? RefreshToken);
+public sealed record InviteResidentRequest(string? Email);
+public sealed record AcceptInvitationRequest(string? Token, string? Email, string? Password);
+public sealed record ChangePasswordRequest(string? CurrentPassword, string? NewPassword);
+public sealed record PasswordResetRequestBody(string? Email);
+public sealed record PasswordResetConfirmBody(string? Token, string? Email, string? NewPassword);
 public sealed record AssertionRequest(string GrantType, string Assertion);
 public sealed record AuthorizationRequest(Guid UserId, Guid SessionId, Guid HouseId, string Action, Guid CorrelationId, string? ResourceId);
 public sealed class UnavailableHandler : Microsoft.AspNetCore.Diagnostics.IExceptionHandler

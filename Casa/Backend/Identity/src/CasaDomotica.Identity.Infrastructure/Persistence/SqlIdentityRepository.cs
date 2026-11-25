@@ -12,7 +12,7 @@ public sealed class SqlIdentityRepository(IdentityDb db) : IUserRepository, ISes
     {
         if (row is null) return null;
         var memberships = await db.Memberships.AsNoTracking().Where(x => x.UserId == row.Id).Select(x => new HouseMembership(x.HouseId, x.Role)).ToListAsync(ct);
-        return new User { Id = row.Id, Email = row.Email, PasswordHash = row.PasswordHash, Enabled = row.Enabled, Memberships = memberships };
+        return new User { Id = row.Id, Email = row.Email, PasswordHash = row.PasswordHash, Enabled = row.Enabled, EmailVerified = row.EmailVerified, Memberships = memberships };
     }
     public async Task CreateAsync(Session session, string refreshHash, CancellationToken ct)
     {
@@ -40,5 +40,13 @@ public sealed class SqlIdentityRepository(IdentityDb db) : IUserRepository, ISes
         if (sessionId is null) return;
         await db.Sessions.Where(x => x.Id == sessionId).ExecuteUpdateAsync(update => update.SetProperty(x => x.RevokedAt, DateTimeOffset.UtcNow), ct);
     }
-    public Task<bool> IsActiveAsync(Guid sessionId, Guid userId, DateTimeOffset now, CancellationToken ct) => db.Sessions.AsNoTracking().AnyAsync(x => x.Id == sessionId && x.UserId == userId && x.RevokedAt == null && x.ExpiresAt > now && db.Users.Any(u => u.Id == userId && u.Enabled), ct);
+    public async Task<bool> IsActiveAsync(Guid sessionId, Guid userId, DateTimeOffset now, CancellationToken ct)
+    {
+        var session = await db.Sessions.AsNoTracking()
+            .Where(x => x.Id == sessionId && x.UserId == userId && x.RevokedAt == null)
+            .Select(x => new { x.ExpiresAt })
+            .SingleOrDefaultAsync(ct);
+        if (session is null || session.ExpiresAt <= now) return false;
+        return await db.Users.AsNoTracking().AnyAsync(u => u.Id == userId && u.Enabled, ct);
+    }
 }

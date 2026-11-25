@@ -6,7 +6,7 @@
   "expectedShapeValid": true,
   "description": "HTTP 403 because the session was revoked after request acceptance.",
   "data": {
-    "type": "https://integrador9nocuatri.local/errors/session-revoked",
+    "type": "https://casa-example.local/errors/session-revoked",
     "title": "Session revoked",
     "status": 403,
     "detail": "session revoked",

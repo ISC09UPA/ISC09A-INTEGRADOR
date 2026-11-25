@@ -401,4 +401,84 @@ public sealed class HomeApiIntegrationTests
             Assert.False(unclaimedRow.Active);
         }
     }
+
+    [Fact]
+    public async Task HouseLocationRemainsUnconfiguredUntilAdminSavesRealCoordinates()
+    {
+        await using var fixture = new Fixture();
+        await fixture.Start();
+        var client = fixture.Client!;
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", fixture.Token(fixture.Resident));
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/v1/houses/{fixture.House}/location")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.PutAsJsonAsync($"/api/v1/houses/{fixture.House}/location", new { label = "Casa Centro", latitude = 21.8853, longitude = -102.2916 })).StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", fixture.Token(fixture.Admin));
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync($"/api/v1/houses/{fixture.House}/location", new { label = "Casa Centro", latitude = 0.0, longitude = 0.0 })).StatusCode);
+
+        var saved = await client.PutAsJsonAsync($"/api/v1/houses/{fixture.House}/location", new { label = "Casa Centro", latitude = 21.8853, longitude = -102.2916 });
+        Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", fixture.Token(fixture.Resident));
+        var read = await client.GetFromJsonAsync<JsonElement>($"/api/v1/houses/{fixture.House}/location");
+        Assert.Equal("Casa Centro", read.GetProperty("label").GetString());
+        Assert.Equal(21.8853, read.GetProperty("latitude").GetDouble(), 4);
+    }
+
+    [Fact]
+    public async Task SignalRNegotiateRequiresAuthorizedHouseSessionAndNotifierRevokesAccess()
+    {
+        await using var fixture = new Fixture();
+        await fixture.Start();
+        var client = fixture.Client!;
+
+        var unauth = await client.PostAsync($"/hubs/home/negotiate?negotiateVersion=1&houseId={fixture.House}", null);
+        Assert.Equal(HttpStatusCode.Unauthorized, unauth.StatusCode);
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", fixture.Token(fixture.Resident));
+        var badHouse = await client.PostAsync($"/hubs/home/negotiate?negotiateVersion=1&houseId={Guid.NewGuid()}", null);
+        Assert.Equal(HttpStatusCode.Forbidden, badHouse.StatusCode);
+
+        var subscriptions = new HouseSubscriptions();
+        var revokedUser = Guid.NewGuid();
+        subscriptions.Add(new("conn-ok", fixture.House, new(fixture.Resident, Guid.NewGuid()), DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds()));
+        subscriptions.Add(new("conn-revoked", fixture.House, new(revokedUser, Guid.NewGuid()), DateTimeOffset.UtcNow.AddMinutes(5).ToUnixTimeSeconds()));
+        var hub = new RecordingHubContext();
+        var notifier = new SignalRStateNotifier(hub, subscriptions, new TestAuthorizer(fixture.House, fixture.Admin, fixture.Resident));
+        await notifier.NotifyAsync(fixture.House, CancellationToken.None);
+
+        Assert.Contains(hub.Sent, item => item.ConnectionId == "conn-ok" && item.Method == "stateChanged");
+        Assert.Contains(hub.Sent, item => item.ConnectionId == "conn-revoked" && item.Method == "permissionRevoked");
+        Assert.Single(subscriptions.For(fixture.House));
+        Assert.Equal("conn-ok", subscriptions.For(fixture.House)[0].ConnectionId);
+    }
+
+    private sealed class RecordingHubContext : Microsoft.AspNetCore.SignalR.IHubContext<HouseHub>
+    {
+        public List<(string ConnectionId, string Method)> Sent { get; } = [];
+        public Microsoft.AspNetCore.SignalR.IHubClients Clients => new RecordingClients(Sent);
+        public Microsoft.AspNetCore.SignalR.IGroupManager Groups => throw new NotSupportedException();
+
+        private sealed class RecordingClients(List<(string ConnectionId, string Method)> sent) : Microsoft.AspNetCore.SignalR.IHubClients
+        {
+            public Microsoft.AspNetCore.SignalR.IClientProxy All => throw new NotSupportedException();
+            public Microsoft.AspNetCore.SignalR.IClientProxy AllExcept(IReadOnlyList<string> excludedConnectionIds) => throw new NotSupportedException();
+            public Microsoft.AspNetCore.SignalR.IClientProxy Client(string connectionId) => new RecordingProxy(connectionId, sent);
+            public Microsoft.AspNetCore.SignalR.IClientProxy Clients(IReadOnlyList<string> connectionIds) => throw new NotSupportedException();
+            public Microsoft.AspNetCore.SignalR.IClientProxy Group(string groupName) => throw new NotSupportedException();
+            public Microsoft.AspNetCore.SignalR.IClientProxy GroupExcept(string groupName, IReadOnlyList<string> excludedConnectionIds) => throw new NotSupportedException();
+            public Microsoft.AspNetCore.SignalR.IClientProxy Groups(IReadOnlyList<string> groupNames) => throw new NotSupportedException();
+            public Microsoft.AspNetCore.SignalR.IClientProxy User(string userId) => throw new NotSupportedException();
+            public Microsoft.AspNetCore.SignalR.IClientProxy Users(IReadOnlyList<string> userIds) => throw new NotSupportedException();
+        }
+
+        private sealed class RecordingProxy(string connectionId, List<(string ConnectionId, string Method)> sent) : Microsoft.AspNetCore.SignalR.IClientProxy
+        {
+            public Task SendCoreAsync(string method, object?[] args, CancellationToken cancellationToken = default)
+            {
+                sent.Add((connectionId, method));
+                return Task.CompletedTask;
+            }
+        }
+    }
 }

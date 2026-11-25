@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casa-example.local/contracts/v1/schemas/security-enrollment-capture-request.json",
+  "title": "Biometric Enrollment Capture Request",
+  "type": "object",
+  "properties": {
+    "captureId": { "type": ["string", "null"], "format": "uuid" },
+    "templateSlotId": { "type": ["string", "null"], "minLength": 1, "maxLength": 64 },
+    "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 }
+  },
+  "additionalProperties": false
+}

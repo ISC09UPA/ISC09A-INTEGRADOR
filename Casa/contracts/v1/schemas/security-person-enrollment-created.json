@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://casa-example.local/contracts/v1/schemas/security-person-enrollment-created.json",
+  "title": "Created Person and Biometric Enrollment Session",
+  "type": "object",
+  "required": ["person", "enrollment"],
+  "properties": {
+    "person": { "$ref": "security-person.json" },
+    "enrollment": { "$ref": "security-enrollment.json" }
+  },
+  "additionalProperties": false
+}

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/common.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/common.json",
   "title": "Common definitions for Casa Dom\u00f3tica contracts v1",
   "description": "Reusable primitives. All dates are UTC ISO-8601. Identifiers are opaque UUIDv4 strings unless noted.",
   "type": "object",

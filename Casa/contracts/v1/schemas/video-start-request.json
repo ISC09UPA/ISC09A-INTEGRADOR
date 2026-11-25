@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://integrador9nocuatri.local/contracts/v1/schemas/video-start-request.json",
+  "$id": "https://casa-example.local/contracts/v1/schemas/video-start-request.json",
   "title": "Video session start request v1",
   "description": "Creates one short-lived private video session for an associated camera resource. The idempotency key is a UUID chosen by the client; replaying it returns the same session without creating another order.",
   "type": "object",
