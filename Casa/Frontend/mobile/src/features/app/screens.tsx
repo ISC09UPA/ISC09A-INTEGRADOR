@@ -5,9 +5,9 @@ import { Alert, Image, Linking, Switch, View, Text, Pressable } from 'react-nati
 import { useRouter } from 'expo-router';
 import { beginCommand, type CommandRequestSpec, completeTerminalCommand, createCommandRequest, getTracked, handleCommandPreAdmissionRejection, isUnresolved, markCommandAmbiguous, recoverTrackedCommand, subscribeCommands, updateTracked } from '../../core/commands';
 import { isLightFresh, isResourceFresh, uniqueResource } from '../../core/homeState';
-import { api, services, missingService, ServiceError } from '../../core/api';
+import { api, ServiceError } from '../../core/api';
 import { useApp } from '../../core/state';
-import type { Command, Entry, Filters, Page, Preferences } from '../../core/models';
+import type { AssistantTurn, AuthorizedPerson, Command, Enrollment, Entry, Filters, NotificationDelivery, Page, Preferences } from '../../core/models';
 import { Button, Card, Copy, date, Empty, Field, Note, styles } from './ui';
 import { useOperation, useResource } from './useResource';
 
@@ -98,15 +98,105 @@ function CommandNotice({ tracker }: { tracker: ReturnType<typeof useCommandTrack
 export function LoginScreen() {
   const app = useApp(); const op = useOperation(); const router = useRouter();
   const [email, setEmail] = useState(''); const [password, setPassword] = useState('');
-  return <><Copy muted>CASA DOMÓTICA</Copy><Card title="Bienvenido a tu hogar"><Copy muted>Consulta y controla tu casa desde un solo lugar.</Copy><Field label="Correo electrónico" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" /><Field label="Contraseña" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" /><Button disabled={app.restoring || op.busy || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) || !password} label={op.busy ? 'Iniciando sesión…' : 'Iniciar sesión'} onPress={() => void op.run(() => app.login(email.trim(), password), () => { setPassword(''); router.replace('/'); })} />{!!op.message && <Note error>{op.message}</Note>}</Card><Note>Usa una cuenta habilitada por el administrador y su contraseña de Casa Domótica.</Note></>;
+  return (
+    <>
+      <Copy muted>CASA DOMÓTICA</Copy>
+      <Card title="Bienvenido a tu hogar">
+        <Copy muted>Consulta y controla tu casa desde un solo lugar.</Copy>
+        <Field label="Correo electrónico" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" />
+        <Field label="Contraseña" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" />
+        <Button disabled={app.restoring || op.busy || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) || !password} label={op.busy ? 'Iniciando sesión…' : 'Iniciar sesión'} onPress={() => void op.run(() => app.login(email.trim(), password), () => { setPassword(''); router.replace('/'); })} />
+        <Button secondary label="Aceptar invitación" onPress={() => router.push('/accept-invitation' as never)} />
+        <Button secondary label="Recuperar contraseña" onPress={() => router.push('/password-recovery' as never)} />
+        {!!op.message && <Note error>{op.message}</Note>}
+      </Card>
+      <Note>No existe registro público. Usa una cuenta habilitada o una invitación emitida por el administrador.</Note>
+    </>
+  );
 }
+export function AcceptInvitationScreen() {
+  const router = useRouter(); const op = useOperation();
+  const [token, setToken] = useState(''); const [email, setEmail] = useState(''); const [password, setPassword] = useState('');
+  const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const validPass = password.length >= 14 && password.length <= 128;
+  return (
+    <>
+      <Card title="Unirse como residente">
+        <Copy muted>Si es tu primera cuenta en Casa Domótica, define una contraseña de al menos 14 caracteres. Si ya tienes cuenta, escribe tu contraseña actual; no se restablecerá.</Copy>
+        <Field label="Token de invitación" value={token} onChangeText={setToken} autoCapitalize="none" autoCorrect={false} />
+        <Field label="Correo invitado" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+        <Field label="Contraseña (mín. 14 caracteres)" value={password} onChangeText={setPassword} secureTextEntry />
+        <Button
+          disabled={op.busy || token.trim().length < 16 || !validEmail || !validPass}
+          label={op.busy ? 'Validando invitación…' : 'Aceptar invitación'}
+          onPress={() => void op.run(
+            () => api.acceptInvitation(token.trim(), email.trim(), password),
+            result => {
+              setPassword('');
+              op.setMessage(result.createdNewUser ? 'Cuenta residente creada. Ya puedes iniciar sesión.' : 'Invitación aceptada. Inicia sesión con tu contraseña habitual.');
+            },
+          )}
+        />
+        <Button secondary label="Ir a iniciar sesión" onPress={() => router.replace('/login' as never)} />
+        {!!op.message && <Note>{op.message}</Note>}
+      </Card>
+    </>
+  );
+}
+export function PasswordRecoveryScreen() {
+  const router = useRouter(); const op = useOperation();
+  const [email, setEmail] = useState(''); const [token, setToken] = useState(''); const [newPassword, setNewPassword] = useState('');
+  const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const validPass = newPassword.length >= 14 && newPassword.length <= 128;
+  return (
+    <>
+      <Card title="Solicitar recuperación">
+        <Copy muted>Solo las cuentas habilitadas con correo verificado pueden recuperar acceso.</Copy>
+        <Field label="Correo de tu cuenta" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+        <Button
+          secondary
+          disabled={op.busy || !validEmail}
+          label="Solicitar código de recuperación"
+          onPress={() => void op.run(
+            () => api.requestPasswordReset(email.trim()),
+            () => op.setMessage('Si existe una cuenta verificada para ese correo, se registró la solicitud de recuperación.'),
+          )}
+        />
+      </Card>
+      <Card title="Confirmar nueva contraseña">
+        <Field label="Token de recuperación" value={token} onChangeText={setToken} autoCapitalize="none" autoCorrect={false} />
+        <Field label="Nueva contraseña (mín. 14 caracteres)" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
+        <Button
+          disabled={op.busy || token.trim().length < 16 || !validEmail || !validPass}
+          label="Restablecer contraseña"
+          onPress={() => void op.run(
+            () => api.confirmPasswordReset(token.trim(), email.trim(), newPassword),
+            () => {
+              setNewPassword('');
+              setToken('');
+              op.setMessage('Contraseña actualizada y sesiones anteriores revocadas. Ya puedes iniciar sesión.');
+            },
+          )}
+        />
+        <Button secondary label="Volver a iniciar sesión" onPress={() => router.replace('/login' as never)} />
+      </Card>
+      {!!op.message && <Note>{op.message}</Note>}
+    </>
+  );
+}
+const realtimeText: Record<'connecting' | 'connected' | 'reconnecting' | 'disconnected', string> = {
+  connected: 'Enlace en tiempo real activo (SignalR)',
+  connecting: 'Conectando tiempo real; sincronización REST activa',
+  reconnecting: 'Reconectando tiempo real; sincronizando por REST…',
+  disconnected: 'Sincronización REST periódica',
+};
 export function HomeScreen() {
   const app = useHouse(); const router = useRouter();
   const recent = useResource(() => api.securityList(requireHouse(app.id), 'activity'), [app.id, app.sessionKey]);
-  return <><Copy muted>TU HOGAR, A LA MANO</Copy><Copy>{app.house?.name ?? 'Tu casa'}</Copy><Note>{app.connected ? 'Servicio disponible' : 'Esperando conexión con tu casa'}</Note><Copy muted>Último reporte · {date(app.home?.updatedAtUtc)}</Copy><View style={{ backgroundColor: '#142E40', borderRadius: 22, padding: 24, gap: 16 }}><Text style={{ color: '#8DD4C1', fontSize: 24 }}>◇</Text><Text style={{ color: '#FFFDF8', fontSize: 23, fontWeight: '600' }}>La seguridad de tu hogar</Text><Text style={{ color: '#D5E1E3', fontSize: 15 }}>Consulta el modo efectivo y los incidentes reportados por tu casa.</Text><Button secondary label="Ver seguridad →" onPress={() => router.push('/security' as never)} /></View><Copy>Tu casa</Copy><View style={{ flexDirection: 'row', gap: 12 }}>{[['lights', 'Luces', '☼'], ['camera', 'Cámara', '▣']].map(([route, title, icon]) => <Pressable key={route} accessibilityRole="button" accessibilityLabel={title} onPress={() => router.push(`/${route}` as never)} style={[styles.card, { flex: 1, minHeight: 140 }]}><Text style={{ color: '#087F78', fontSize: 25 }}>{icon}</Text><Copy>{title}</Copy><Copy muted>{route === 'lights' ? app.home ? `${app.home.lights.length} luces reportadas` : 'Sin estado recibido' : 'Consultar cámara'}</Copy></Pressable>)}</View><View style={[styles.row, { justifyContent: 'space-between' }]}><Copy>Actividad reciente</Copy><Button secondary label="Ver todo" onPress={() => router.push('/activity' as never)} /></View><ResourceState {...recent} />{recent.data?.items.slice(0, 3).map(entry => <Item key={entry.id} entry={entry} onPress={() => router.push({ pathname: '/[screen]', params: { screen: 'incident', id: entry.id, kind: 'activity' } })} />)}{!recent.loading && !recent.data?.items.length && <Empty text={recent.error ? 'La actividad aparecerá cuando el servicio esté disponible.' : 'No hay actividad reportada.'} />}<TelemetryScreen /></>;
+  return <><Copy muted>TU HOGAR, A LA MANO</Copy><Copy>{app.house?.name ?? 'Tu casa'}</Copy><Note>{app.connected ? `Servicio disponible · ${realtimeText[app.realtimeStatus]}` : 'Esperando conexión con tu casa'}</Note><Copy muted>Último reporte · {date(app.home?.updatedAtUtc)}</Copy><View style={{ backgroundColor: '#142E40', borderRadius: 22, padding: 24, gap: 16 }}><Text style={{ color: '#8DD4C1', fontSize: 24 }}>◇</Text><Text style={{ color: '#FFFDF8', fontSize: 23, fontWeight: '600' }}>La seguridad de tu hogar</Text><Text style={{ color: '#D5E1E3', fontSize: 15 }}>Consulta el modo efectivo y los incidentes reportados por tu casa.</Text><Button secondary label="Ver seguridad →" onPress={() => router.push('/security' as never)} /></View><Copy>Tu casa</Copy><View style={{ flexDirection: 'row', gap: 12 }}>{[['lights', 'Luces', '☼'], ['camera', 'Cámara', '▣']].map(([route, title, icon]) => <Pressable key={route} accessibilityRole="button" accessibilityLabel={title} onPress={() => router.push(`/${route}` as never)} style={[styles.card, { flex: 1, minHeight: 140 }]}><Text style={{ color: '#087F78', fontSize: 25 }}>{icon}</Text><Copy>{title}</Copy><Copy muted>{route === 'lights' ? app.home ? `${app.home.lights.length} luces reportadas` : 'Sin estado recibido' : 'Consultar cámara'}</Copy></Pressable>)}</View><View style={[styles.row, { justifyContent: 'space-between' }]}><Copy>Actividad reciente</Copy><Button secondary label="Ver todo" onPress={() => router.push('/activity' as never)} /></View><ResourceState {...recent} />{recent.data?.items.slice(0, 3).map(entry => <Item key={entry.id} entry={entry} onPress={() => router.push({ pathname: '/[screen]', params: { screen: 'incident', id: entry.id, kind: 'activity' } })} />)}{!recent.loading && !recent.data?.items.length && <Empty text={recent.error ? 'La actividad aparecerá cuando el servicio esté disponible.' : 'No hay actividad reportada.'} />}<TelemetryScreen /></>;
 }
 export function TelemetryScreen() {
-  const app = useHouse(); const resource = useResource(() => api.telemetry(requireHouse(app.id)), [app.id]);
+  const app = useHouse(); const resource = useResource(() => api.telemetry(requireHouse(app.id)), [app.id, app.sessionKey]);
   return <Card title="Sensores"><ResourceState {...resource} />{resource.data?.map(reading => <View key={reading.sensorId} style={{ gap: 5 }}><Copy>{reading.name}: {String(reading.value)} {reading.unit ?? ''}</Copy><Copy muted>Medido: {date(reading.occurredAtUtc)}</Copy><Copy muted>Recibido: {date(reading.receivedAtUtc)}</Copy></View>)}{!resource.data?.length && <Copy muted>Sin lecturas disponibles. Los sensores enviarán sus reportes a través de Raspberry, IoT Hub y el backend.</Copy>}<Button secondary label="Consultar sensores" onPress={() => void resource.reload().catch(() => {})} /></Card>;
 }
 export function LightsScreen() {
@@ -133,40 +223,277 @@ export function SecurityScreen() {
   const blocked = !app.admin || !app.connected || !app.stateAvailable || app.loading || app.stale || !!devices.error || devices.loading || !!resource.error || resource.loading || !target || !isResourceFresh(target) || !resource.data || !modeFresh || track.busy || track.unresolved || !!target.pendingCommand;
   return <><ResourceState {...resource} /><ResourceState {...devices} /><Card title="Protección de tu casa"><Copy>{resource.data ? resource.data.mode === 'armed' ? 'Seguridad armada' : 'Seguridad desarmada' : 'Modo efectivo sin reporte'}</Copy><Copy muted>{date(resource.data?.updatedAtUtc)}</Copy>{!!resource.data && !modeFresh && <Note>El último reporte de seguridad no es reciente.</Note>}{!target && <Note>Esperando el dispositivo de seguridad de la casa.</Note>}{!app.admin && <Note>Armar y desarmar requiere permiso administrativo.</Note>}{target?.pendingCommand && <Note>{commandText[target.pendingCommand.status]}</Note>}<Button disabled={blocked} label={resource.data?.mode === 'armed' ? 'Desarmar seguridad' : 'Armar seguridad'} onPress={() => { if (target && resource.data) confirm('¿Cambiar el modo de seguridad?', () => track.submit({ houseId: app.id, targetKind: 'capability', targetId: target.resourceId, type: 'SetSecurityMode', payload: { mode: resource.data!.mode === 'armed' ? 'disarmed' : 'armed' } }, (key, request) => api.capability(request.houseId, request.targetId, 'SetSecurityMode', request.payload as { mode: 'armed' | 'disarmed' }, key, request.expiresAtUtc))); }} /><CommandNotice tracker={track} /></Card><ResourceState {...incidents} />{currentIncidents?.items.length ? currentIncidents.items.map(incident => <Item key={incident.id} entry={incident} onPress={() => router.push({ pathname: '/[screen]', params: { screen: 'incident', id: incident.id, kind: 'incident' } })} />) : !incidents.loading && <Empty text={incidents.error ? 'Los incidentes aparecerán cuando el servicio esté disponible.' : 'No hay incidentes reportados.'} />}{!!currentIncidents?.nextCursor && <Button secondary disabled={incidentOp.busy} label="Cargar más incidentes" onPress={() => { const requestScope = incidentScope; const cursor = currentIncidents.nextCursor; void incidentOp.run(() => api.securityList(requireHouse(app.id), 'incidents', { cursor }), page => { if (currentScope.current === requestScope) setIncidentPage(previous => previous?.scope === requestScope ? { scope: requestScope, page: { items: [...previous.page.items, ...page.items.filter(item => !previous.page.items.some(existing => existing.id === item.id))], nextCursor: page.nextCursor } } : previous); }); }} />}{!!incidentOp.message && <Note error>{incidentOp.message}</Note>}<Button secondary label="Actualizar seguridad" onPress={() => void Promise.all([resource.reload(), devices.reload(), incidents.reload()]).catch(() => {})} /></>;
 }
-export function ListScreen({ kind }: { kind: 'activity' | 'persons' | 'access' | 'captures' | 'members' }) {
+export function ListScreen({ kind }: { kind: 'activity' | 'access' | 'captures' }) {
   const app = useHouse(); const router = useRouter(); const [filters, setFilters] = useState<Filters>({}); const [items, setItems] = useState<Entry[]>([]); const [cursor, setCursor] = useState<string>(); const op = useOperation();
   const listScope = `${app.sessionKey}:${app.id}:${kind}:${filters.type ?? ''}:${filters.result ?? ''}:${filters.date ?? ''}`; const currentListScope = useRef(listScope); currentListScope.current = listScope;
   useEffect(() => { setItems([]); setCursor(undefined); }, [listScope]);
-  const loadPage = (query: Filters) => kind === 'activity' || kind === 'access' || kind === 'captures' ? api.securityList(requireHouse(app.id), kind, query) : services().list(kind, requireHouse(app.id), query);
+  const loadPage = (query: Filters) => api.securityList(requireHouse(app.id), kind, query);
   const resource = useResource<Page>(() => loadPage(filters), [kind, app.id, app.sessionKey, filters.type, filters.result, filters.date]);
   useEffect(() => { setItems(resource.data?.items ?? []); setCursor(resource.data?.nextCursor); }, [resource.data]);
   const [dateInput, setDateInput] = useState('');
-  const [inviteEmail, setInviteEmail] = useState('');
   const retention = useResource(() => kind === 'captures' && app.admin ? api.captureRetention(requireHouse(app.id)) : Promise.resolve(null), [kind, app.id, app.sessionKey, app.admin]);
   const [retentionDays, setRetentionDays] = useState('');
   useEffect(() => { setRetentionDays(retention.data?.retentionDays?.toString() ?? ''); }, [retention.data]);
-  return <><ResourceState {...resource} />{kind === 'activity' && <Card title="Filtrar actividad"><Field label="Tipo de evento" value={filters.type ?? ''} onChangeText={type => setFilters(value => ({ ...value, type }))} /><Field label="Resultado" value={filters.result ?? ''} onChangeText={result => setFilters(value => ({ ...value, result }))} /><Field label="Fecha (AAAA-MM-DD)" value={dateInput} onChangeText={setDateInput} /><Button secondary disabled={!!dateInput && !/^\d{4}-\d{2}-\d{2}$/.test(dateInput)} label="Aplicar fecha" onPress={() => setFilters(old => ({ ...old, date: dateInput }))} /><Button secondary label="Limpiar filtros" onPress={() => { setFilters({}); setDateInput(''); }} /></Card>}{kind === 'captures' && app.admin && <Card title="Conservación de capturas"><ResourceState {...retention} /><Copy muted>Sin plazo configurado no se eliminan capturas automáticamente. Al configurar un plazo se eliminarán las capturas que ya lo superen.</Copy><Field label="Conservar durante días" value={retentionDays} onChangeText={setRetentionDays} keyboardType="number-pad" /><Button secondary disabled={op.busy || retention.loading || !!retention.error || !/^\d+$/.test(retentionDays) || Number(retentionDays) < 1 || Number(retentionDays) > 3650} label="Guardar plazo" onPress={() => confirm('¿Activar el borrado automático de capturas antiguas?', () => void op.run(() => api.setCaptureRetention(requireHouse(app.id), Number(retentionDays)), () => void retention.reload().catch(() => {})))} /><Button secondary disabled={op.busy || retention.loading || !!retention.error || retention.data?.retentionDays == null} label="Desactivar borrado automático" onPress={() => void op.run(() => api.setCaptureRetention(requireHouse(app.id), null), () => void retention.reload().catch(() => {}))} /></Card>}{kind === 'persons' && <Button disabled={!app.admin} label="Registrar persona" onPress={() => router.push('/enrollment' as never)} />}{kind === 'access' && <DoorScreen />}{kind === 'members' && app.admin && <Card title="Invitar residente"><Field label="Correo de la persona" value={inviteEmail} onChangeText={setInviteEmail} keyboardType="email-address" autoCapitalize="none" /><Button disabled={app.restoring || op.busy || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail)} label="Enviar invitación" onPress={() => void op.run(() => services().invite(app.id, inviteEmail.trim(), 'resident'), () => { setInviteEmail(''); void resource.reload().catch(() => {}); })} /></Card>}{items.map(entry => <Item key={entry.id} entry={entry} onPress={() => router.push({ pathname: '/[screen]', params: { screen: kind === 'persons' ? 'person' : kind === 'captures' ? 'capture' : kind === 'activity' ? 'incident' : 'detail', id: entry.id, kind } })} />)}{!resource.loading && !items.length && <Empty text={resource.error ? 'La lista se mostrará cuando el servicio esté disponible.' : 'No hay registros para mostrar.'} />}{!!cursor && <Button secondary disabled={op.busy} label="Cargar más" onPress={() => { const requestScope = listScope; void op.run(() => loadPage({ ...filters, cursor }), page => { if (currentListScope.current !== requestScope) return; setItems(old => [...old, ...page.items.filter(item => !old.some(existing => existing.id === item.id))]); setCursor(page.nextCursor); }); }} />}{!!op.message && <Note error>{op.message}</Note>}<Button secondary label="Actualizar lista" onPress={() => void resource.reload().catch(() => {})} /></>;
+  return <><ResourceState {...resource} />{kind === 'activity' && <Card title="Filtrar actividad"><Field label="Tipo de evento" value={filters.type ?? ''} onChangeText={type => setFilters(value => ({ ...value, type }))} /><Field label="Resultado" value={filters.result ?? ''} onChangeText={result => setFilters(value => ({ ...value, result }))} /><Field label="Fecha (AAAA-MM-DD)" value={dateInput} onChangeText={setDateInput} /><Button secondary disabled={!!dateInput && !/^\d{4}-\d{2}-\d{2}$/.test(dateInput)} label="Aplicar fecha" onPress={() => setFilters(old => ({ ...old, date: dateInput }))} /><Button secondary label="Limpiar filtros" onPress={() => { setFilters({}); setDateInput(''); }} /></Card>}{kind === 'captures' && app.admin && <Card title="Conservación de capturas"><ResourceState {...retention} /><Copy muted>Sin plazo configurado no se eliminan capturas automáticamente. Al configurar un plazo se eliminarán las capturas que ya lo superen.</Copy><Field label="Conservar durante días" value={retentionDays} onChangeText={setRetentionDays} keyboardType="number-pad" /><Button secondary disabled={op.busy || retention.loading || !!retention.error || !/^\d+$/.test(retentionDays) || Number(retentionDays) < 1 || Number(retentionDays) > 3650} label="Guardar plazo" onPress={() => confirm('¿Activar el borrado automático de capturas antiguas?', () => void op.run(() => api.setCaptureRetention(requireHouse(app.id), Number(retentionDays)), () => void retention.reload().catch(() => {})))} /><Button secondary disabled={op.busy || retention.loading || !!retention.error || retention.data?.retentionDays == null} label="Desactivar borrado automático" onPress={() => void op.run(() => api.setCaptureRetention(requireHouse(app.id), null), () => void retention.reload().catch(() => {}))} /></Card>}{kind === 'access' && <DoorScreen />}{items.map(entry => <Item key={entry.id} entry={entry} onPress={() => router.push({ pathname: '/[screen]', params: { screen: kind === 'captures' ? 'capture' : kind === 'activity' ? 'incident' : 'detail', id: entry.id, kind } })} />)}{!resource.loading && !items.length && <Empty text={resource.error ? 'La lista se mostrará cuando el servicio esté disponible.' : 'No hay registros para mostrar.'} />}{!!cursor && <Button secondary disabled={op.busy} label="Cargar más" onPress={() => { const requestScope = listScope; void op.run(() => loadPage({ ...filters, cursor }), page => { if (currentListScope.current !== requestScope) return; setItems(old => [...old, ...page.items.filter(item => !old.some(existing => existing.id === item.id))]); setCursor(page.nextCursor); }); }} />}{!!op.message && <Note error>{op.message}</Note>}<Button secondary label="Actualizar lista" onPress={() => void resource.reload().catch(() => {})} /></>;
+}
+const personStatusLabel: Record<AuthorizedPerson['status'], string> = {
+  pending: 'Pendiente de registro biométrico',
+  authorized: 'Autorizada',
+  revoked: 'Revocada',
+  expired: 'Vencida',
+  failed: 'Registro fallido o cancelado',
+};
+export function PersonsScreen() {
+  const app = useHouse(); const router = useRouter(); const op = useOperation();
+  const resource = useResource(() => api.persons(requireHouse(app.id)), [app.id, app.sessionKey]);
+  const [items, setItems] = useState<AuthorizedPerson[]>([]);
+  const [cursor, setCursor] = useState<string | null>(null);
+  useEffect(() => { setItems(resource.data?.items ?? []); setCursor(resource.data?.nextCursor ?? null); }, [resource.data]);
+  return (
+    <>
+      <ResourceState {...resource} />
+      <Button disabled={!app.admin} label="Registrar persona" onPress={() => router.push('/enrollment' as never)} />
+      {items.map(person => (
+        <Card key={person.id} title={person.name}>
+          <Copy muted>Método: {person.method === 'face' ? 'Rostro' : 'Huella física'} · Estado: {personStatusLabel[person.status]}</Copy>
+          <Copy muted>Vigencia: {date(person.validUntilUtc)}</Copy>
+          <Button secondary label="Ver detalle" onPress={() => router.push({ pathname: '/[screen]', params: { screen: 'person', id: person.id } })} />
+        </Card>
+      ))}
+      {!resource.loading && !items.length && <Empty text={resource.error ? 'La lista se mostrará cuando el servicio esté disponible.' : 'No hay personas con acceso físico registradas.'} />}
+      {!!cursor && (
+        <Button
+          secondary
+          disabled={op.busy}
+          label="Cargar más"
+          onPress={() => void op.run(
+            () => api.persons(requireHouse(app.id), cursor),
+            page => {
+              setItems(old => [...old, ...page.items.filter(item => !old.some(x => x.id === item.id))]);
+              setCursor(page.nextCursor ?? null);
+            },
+          )}
+        />
+      )}
+      {!!op.message && <Note error>{op.message}</Note>}
+      <Button secondary label="Actualizar personas" onPress={() => void resource.reload().catch(() => {})} />
+    </>
+  );
+}
+export function PersonDetailScreen({ id }: { id: string }) {
+  const app = useHouse(); const op = useOperation();
+  const resource = useResource(() => api.personDetail(requireHouse(app.id), id), [id, app.id, app.sessionKey]);
+  const person = resource.data;
+  return (
+    <>
+      <ResourceState {...resource} />
+      {person ? (
+        <Card title={person.name}>
+          <Copy>Estado: {personStatusLabel[person.status]}</Copy>
+          <Copy muted>Método: {person.method === 'face' ? 'Rostro (Azure Face)' : 'Huella en lector físico'}</Copy>
+          <Copy muted>Vigencia hasta: {date(person.validUntilUtc)}</Copy>
+          {!!person.revokedAtUtc && <Copy muted>Revocada: {date(person.revokedAtUtc)}</Copy>}
+          <Button
+            disabled={!app.admin || op.busy || person.status === 'revoked'}
+            label="Revocar acceso"
+            onPress={() => confirm('¿Revocar acceso físico y eliminar referencias biométricas de esta persona?', () => void op.run(
+              () => api.revokePerson(requireHouse(app.id), id),
+              () => void resource.reload().catch(() => {}),
+            ))}
+          />
+        </Card>
+      ) : !resource.loading && <Empty text="Sin detalle disponible." />}
+      {!!op.message && <Note error>{op.message}</Note>}
+    </>
+  );
+}
+export function MembersScreen() {
+  const app = useHouse();
+  const op = useOperation();
+  const resource = useResource(() => app.admin ? api.members(requireHouse(app.id)) : Promise.resolve(null), [app.id, app.sessionKey, app.admin]);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [createdToken, setCreatedToken] = useState('');
+  if (!app.admin) return <Note>Solo el administrador puede consultar o gestionar miembros de la casa.</Note>;
+  return (
+    <>
+      <ResourceState {...resource} />
+      <Card title="Invitar residente">
+        <Copy muted>La invitación crea únicamente cuentas o membresías con rol residente.</Copy>
+        <Field label="Correo de la persona" value={inviteEmail} onChangeText={setInviteEmail} keyboardType="email-address" autoCapitalize="none" />
+        <Button
+          disabled={app.restoring || op.busy || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.trim())}
+          label="Enviar invitación"
+          onPress={() => confirm('¿Generar una invitación de residente para este correo?', () => void op.run(
+            () => api.inviteResident(requireHouse(app.id), inviteEmail.trim()),
+            created => {
+              setInviteEmail('');
+              setCreatedToken(created.invitationToken);
+              op.setMessage(`Invitación creada para ${created.invitation.email}. Vigencia hasta ${date(created.invitation.expiresAtUtc)}.`);
+              void resource.reload().catch(() => {});
+            },
+          ))}
+        />
+        {!!createdToken && <Note>Token único de invitación (compártelo de forma segura; no se volverá a mostrar): {createdToken}</Note>}
+      </Card>
+
+      <Card title="Miembros activos">
+        {resource.data?.members.map(member => (
+          <View key={member.userId} style={{ gap: 6, paddingBottom: 8 }}>
+            <Copy>{member.email}</Copy>
+            <Copy muted>Rol: {member.role === 'admin' ? 'Administrador' : 'Residente'} · {member.enabled ? 'Habilitado' : 'Deshabilitado'}</Copy>
+            {member.role === 'resident' && (
+              <Button
+                secondary
+                disabled={op.busy}
+                label="Revocar residente"
+                onPress={() => confirm(`¿Revocar el acceso de ${member.email}? Sus sesiones activas se cerrarán de inmediato.`, () => void op.run(
+                  () => api.removeResident(requireHouse(app.id), member.userId),
+                  () => {
+                    op.setMessage(`Acceso revocado para ${member.email}.`);
+                    void resource.reload().catch(() => {});
+                  },
+                ))}
+              />
+            )}
+          </View>
+        ))}
+        {!resource.loading && !resource.data?.members.length && <Copy muted>No hay miembros registrados.</Copy>}
+      </Card>
+
+      <Card title="Invitaciones">
+        {resource.data?.invitations.map(inv => (
+          <View key={inv.id} style={{ gap: 6, paddingBottom: 8 }}>
+            <Copy>{inv.email}</Copy>
+            <Copy muted>Estado: {inv.status} · Expira: {date(inv.expiresAtUtc)}</Copy>
+            {inv.status === 'pending' && (
+              <Button
+                secondary
+                disabled={op.busy}
+                label="Revocar invitación"
+                onPress={() => confirm(`¿Revocar la invitación pendiente de ${inv.email}?`, () => void op.run(
+                  () => api.revokeInvitation(requireHouse(app.id), inv.id),
+                  () => {
+                    op.setMessage(`Invitación revocada para ${inv.email}.`);
+                    void resource.reload().catch(() => {});
+                  },
+                ))}
+              />
+            )}
+          </View>
+        ))}
+        {!resource.loading && !resource.data?.invitations.length && <Copy muted>No hay invitaciones emitidas.</Copy>}
+      </Card>
+      {!!op.message && <Note>{op.message}</Note>}
+      <Button secondary label="Actualizar miembros" onPress={() => void resource.reload().catch(() => {})} />
+    </>
+  );
 }
 export function DoorScreen() {
-  const app = useHouse(); const devices = useResource(() => api.resources(requireHouse(app.id)), [app.id]); const target = uniqueResource(devices.data, 'door');
+  const app = useHouse(); const devices = useResource(() => api.resources(requireHouse(app.id)), [app.id, app.sessionKey]); const target = uniqueResource(devices.data, 'door');
   const track = useCommandTracking(`${app.sessionKey}:${app.id}:door:${target?.resourceId ?? ''}`, api.command, async () => { await Promise.all([devices.reload(), app.reload()]); }, (key, expiresAtUtc) => api.commandByKey(app.id, key, expiresAtUtc));
   return <Card title="Acceso principal"><ResourceState {...devices} /><Copy muted>La confirmación indica que se activó el mecanismo. La posición física de la puerta necesita un sensor.</Copy>{!target && <Note>Esperando el dispositivo de la puerta.</Note>}{target?.pendingCommand && <Note>{commandText[target.pendingCommand.status]}</Note>}<Button label="Solicitar apertura" disabled={!app.admin || !app.connected || !app.stateAvailable || app.loading || app.stale || !!devices.error || devices.loading || !target || !isResourceFresh(target) || !!target.pendingCommand || track.busy || track.unresolved} onPress={() => { if (target) confirm('¿Activar el mecanismo de apertura?', () => track.submit({ houseId: app.id, targetKind: 'capability', targetId: target.resourceId, type: 'OpenDoor', payload: {} }, (key, request) => api.capability(requireHouse(request.houseId), request.targetId, 'OpenDoor', {}, key, request.expiresAtUtc))); }} /><CommandNotice tracker={track} /><Button secondary disabled={devices.loading} label="Actualizar estado de la puerta" onPress={() => void devices.reload().catch(() => {})} /></Card>;
 }
 export function EnrollmentScreen() {
-  const app = useHouse(); const op = useOperation(); const [name, setName] = useState(''); const [until, setUntil] = useState(''); const [method, setMethod] = useState<'face' | 'fingerprint'>('face'); const [entry, setEntry] = useState<Awaited<ReturnType<ReturnType<typeof services>['enroll']>> | null>(null); const [review, setReview] = useState(false);
+  const app = useHouse(); const op = useOperation();
+  const faceDiag = useResource(() => app.id ? api.faceAvailability(requireHouse(app.id)) : Promise.resolve(null), [app.id, app.sessionKey]);
+  const [name, setName] = useState('');
+  const [until, setUntil] = useState('');
+  const [method, setMethod] = useState<'face' | 'fingerprint'>('fingerprint');
+  const [captureId, setCaptureId] = useState('');
+  const [entry, setEntry] = useState<Enrollment | null>(null);
+  const [review, setReview] = useState(false);
   const validDate = Number.isFinite(Date.parse(until)) && Date.parse(until) > Date.now();
-  return <><Card title={review ? 'Revisar registro' : 'Datos de acceso'}><Field label="Nombre" value={name} onChangeText={setName} editable={!review} /><Field label="Vigencia hasta (AAAA-MM-DD)" value={until} onChangeText={setUntil} editable={!review} /><View style={styles.row}><Button secondary disabled={review} label={method === 'face' ? '✓ Rostro' : 'Rostro'} onPress={() => setMethod('face')} /><Button secondary disabled={review} label={method === 'fingerprint' ? '✓ Huella' : 'Huella'} onPress={() => setMethod('fingerprint')} /></View><Copy muted>{method === 'fingerprint' ? 'La huella se registra en el lector físico de la casa.' : 'El registro facial requiere conectar el servicio de imágenes autorizado de la casa.'}</Copy>{review ? <><Note>No se concederá acceso hasta que el backend confirme el registro completo.</Note><Button disabled={!app.admin || op.busy || !!entry && !['failed', 'cancelled'].includes(entry.status)} label="Solicitar registro" onPress={() => void op.run(() => services().enroll(requireHouse(app.id), { name: name.trim(), method, validUntilUtc: new Date(until).toISOString() }), setEntry)} /><Button secondary disabled={!!entry && !['failed', 'cancelled'].includes(entry.status)} label="Editar datos" onPress={() => { setReview(false); setEntry(null); }} /></> : <Button disabled={!name.trim() || !validDate || !app.admin} label="Revisar" onPress={() => setReview(true)} />}{entry && <Card title="Registro biométrico"><Copy>Estado: {entry.status}</Copy>{entry.instruction && <Copy>{entry.instruction}</Copy>}{entry.error && <Note error>{entry.error}</Note>}{entry.status === 'completed' ? <Note>Registro completado por el servicio.</Note> : entry.status !== 'cancelled' && entry.status !== 'failed' && <><Button secondary disabled={op.busy} label="Consultar avance" onPress={() => void op.run(() => services().enrollment(entry.id), setEntry)} />{method === 'face' && <Button disabled={op.busy} label="Solicitar captura del rostro en casa" onPress={() => void op.run(() => services().captureEnrollment(entry.id), setEntry)} />}<Button secondary disabled={op.busy} label="Cancelar registro" onPress={() => void op.run(() => services().cancelEnrollment(entry.id), setEntry)} /></>}</Card>}{!!op.message && <Note error>{op.message}</Note>}</Card></>;
+  return (
+    <>
+      <Card title={review ? 'Revisar registro' : 'Datos de acceso físico'}>
+        <Copy muted>Las personas con acceso físico son independientes de las cuentas móviles. No se utiliza biometría del teléfono.</Copy>
+        <Field label="Nombre" value={name} onChangeText={setName} editable={!review} />
+        <Field label="Vigencia hasta (AAAA-MM-DD)" value={until} onChangeText={setUntil} editable={!review} />
+        <View style={styles.row}>
+          <Button secondary disabled={review} label={method === 'face' ? '✓ Rostro' : 'Rostro'} onPress={() => setMethod('face')} />
+          <Button secondary disabled={review} label={method === 'fingerprint' ? '✓ Huella' : 'Huella'} onPress={() => setMethod('fingerprint')} />
+        </View>
+        {method === 'face' ? (
+          faceDiag.data && !faceDiag.data.available
+            ? <Note>{faceDiag.data.detail}</Note>
+            : <Copy muted>El registro facial usa capturas privadas de la casa y Azure Face autorizado.</Copy>
+        ) : (
+          <Copy muted>La huella se registra únicamente en el lector físico de la casa (Etapa 11).</Copy>
+        )}
+        {review ? (
+          <>
+            <Note>La persona permanecerá pendiente y sin acceso hasta que el backend confirme un registro válido.</Note>
+            <Button
+              disabled={!app.admin || op.busy || (!!entry && !['failed', 'cancelled'].includes(entry.status))}
+              label="Solicitar registro"
+              onPress={() => void op.run(
+                () => api.createPersonEnrollment(requireHouse(app.id), { name: name.trim(), method, validUntilUtc: new Date(until).toISOString() }),
+                created => setEntry(created.enrollment),
+              )}
+            />
+            <Button secondary disabled={!!entry && !['failed', 'cancelled'].includes(entry.status)} label="Editar datos" onPress={() => { setReview(false); setEntry(null); }} />
+          </>
+        ) : (
+          <Button disabled={!name.trim() || !validDate || !app.admin} label="Revisar" onPress={() => setReview(true)} />
+        )}
+        {entry && (
+          <Card title="Sesión de registro biométrico">
+            <Copy>Estado: {entry.status}</Copy>
+            <Copy muted>Expira: {date(entry.expiresAtUtc)}</Copy>
+            {!!entry.instruction && <Copy>{entry.instruction}</Copy>}
+            {!!entry.error && <Note error>{entry.error}</Note>}
+            {entry.status === 'completed' ? (
+              <Note>Registro completado y persona autorizada.</Note>
+            ) : entry.status !== 'cancelled' && entry.status !== 'failed' && (
+              <>
+                {method === 'face' && (
+                  <Field
+                    label="ID de captura privada (opcional)"
+                    value={captureId}
+                    onChangeText={setCaptureId}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                )}
+                <Button
+                  secondary
+                  disabled={op.busy}
+                  label="Consultar avance"
+                  onPress={() => void op.run(() => api.enrollment(requireHouse(app.id), entry.id), setEntry)}
+                />
+                <Button
+                  disabled={op.busy}
+                  label={method === 'face' ? 'Validar rostro con captura' : 'Iniciar lectura física'}
+                  onPress={() => void op.run(
+                    () => api.captureEnrollment(requireHouse(app.id), entry.id, captureId.trim() ? { captureId: captureId.trim() } : undefined),
+                    setEntry,
+                  )}
+                />
+                <Button
+                  secondary
+                  disabled={op.busy}
+                  label="Cancelar registro"
+                  onPress={() => void op.run(() => api.cancelEnrollment(requireHouse(app.id), entry.id), setEntry)}
+                />
+              </>
+            )}
+          </Card>
+        )}
+        {!!op.message && <Note error>{op.message}</Note>}
+      </Card>
+    </>
+  );
 }
 export function DetailScreen({ id, kind = 'activity' }: { id: string; kind?: string }) {
   const app = useHouse(); const router = useRouter(); const op = useOperation();
-  const listKind = ['persons', 'captures', 'access', 'members'].includes(kind) ? kind as 'persons' | 'captures' | 'access' | 'members' : 'activity';
-  const resource = useResource(async () => kind === 'incident' ? api.securityDetail(requireHouse(app.id), 'incidents', id) : listKind === 'activity' || listKind === 'access' ? api.securityDetail(requireHouse(app.id), 'activity', id) : listKind === 'captures' ? api.securityDetail(requireHouse(app.id), 'captures', id) : services().detail(listKind, requireHouse(app.id), id), [id, kind, listKind, app.id, app.sessionKey]);
+  const listKind = ['captures', 'access'].includes(kind) ? kind as 'captures' | 'access' : 'activity';
+  const resource = useResource(async () => kind === 'incident' ? api.securityDetail(requireHouse(app.id), 'incidents', id) : listKind === 'activity' || listKind === 'access' ? api.securityDetail(requireHouse(app.id), 'activity', id) : api.securityDetail(requireHouse(app.id), 'captures', id), [id, kind, listKind, app.id, app.sessionKey]);
   const captureImage = useResource(async () => listKind === 'captures' && resource.data ? api.captureImageSource(requireHouse(app.id), id) : null, [id, listKind, app.id, app.sessionKey, resource.data?.id]);
   const [imageError, setImageError] = useState(false);
   useEffect(() => { setImageError(false); }, [captureImage.data]);
   const deletion = useResource(async () => listKind === 'captures' && app.admin ? api.captureDeletion(requireHouse(app.id), id) : null, [id, listKind, app.id, app.sessionKey, app.admin]);
   const deletionActive = !!deletion.data && deletion.data.status !== 'none';
-  return <><ResourceState {...resource} />{listKind === 'captures' && app.admin && <ResourceState {...deletion} />}{deletionActive && <Card title="Eliminación de captura"><Copy>{deletion.data?.status === 'deleted' ? 'Eliminación confirmada.' : deletion.data?.status === 'blocked' ? 'La eliminación está bloqueada porque el archivo cambió; no se ha borrado.' : 'Eliminación solicitada; esperando confirmación.'}</Copy><Button secondary label="Actualizar eliminación" onPress={() => void deletion.reload().catch(() => {})} /><Button secondary label="Volver a capturas" onPress={() => router.replace('/captures' as never)} /></Card>}{resource.data && !deletionActive ? <><Item entry={resource.data} />{listKind === 'captures' && <ResourceState {...captureImage} />}{listKind === 'captures' && captureImage.data && <Image accessibilityLabel="Captura privada de la casa" source={captureImage.data} onError={() => setImageError(true)} style={{ width: '100%', height: 230, borderRadius: 20 }} resizeMode="contain" />}{listKind === 'captures' && imageError && <Note error>No se pudo cargar la imagen privada; actualiza la captura para volver a intentarlo.</Note>}{!!resource.data.analysis && <Card title="Análisis de la imagen (inglés)"><Copy>{resource.data.analysis}</Copy></Card>}{listKind === 'persons' && <Button disabled={!app.admin || op.busy || resource.data.status === 'revoked'} label="Revocar acceso" onPress={() => confirm('¿Revocar el permiso de esta persona?', () => void op.run(() => services().revoke(id), () => void resource.reload().catch(() => {})))} />}{listKind === 'captures' && <><Copy muted>Estado del análisis: {resource.data.status ?? 'sin solicitar'}</Copy><Button disabled={!app.admin || op.busy || ['pending', 'analyzing', 'completed'].includes(resource.data.status ?? '')} label="Solicitar análisis de imagen" onPress={() => void op.run(() => api.analyzeCapture(requireHouse(app.id), id), () => void resource.reload().catch(() => {}))} /><Button secondary disabled={!app.admin || op.busy || deletion.loading || !!deletion.error || !deletion.data} label="Eliminar captura" onPress={() => confirm('¿Solicitar la eliminación de esta captura?', () => void op.run(() => api.deleteCapture(requireHouse(app.id), id), () => void deletion.reload().catch(() => {})))} /><Button secondary label="Actualizar captura" onPress={() => void Promise.all([resource.reload(), captureImage.reload()]).catch(() => {})} /></>}{listKind === 'activity' && <><Button secondary label="Consultar capturas" onPress={() => router.push('/captures' as never)} /><Button secondary label="Consultar avisos" onPress={() => router.push('/preferences' as never)} /></>}</> : !deletionActive && <Empty text="Sin detalle disponible." />}{!!op.message && <Note error>{op.message}</Note>}</>;
+  return <><ResourceState {...resource} />{listKind === 'captures' && app.admin && <ResourceState {...deletion} />}{deletionActive && <Card title="Eliminación de captura"><Copy>{deletion.data?.status === 'deleted' ? 'Eliminación confirmada.' : deletion.data?.status === 'blocked' ? 'La eliminación está bloqueada porque el archivo cambió; no se ha borrado.' : 'Eliminación solicitada; esperando confirmación.'}</Copy><Button secondary label="Actualizar eliminación" onPress={() => void deletion.reload().catch(() => {})} /><Button secondary label="Volver a capturas" onPress={() => router.replace('/captures' as never)} /></Card>}{resource.data && !deletionActive ? <><Item entry={resource.data} />{listKind === 'captures' && <ResourceState {...captureImage} />}{listKind === 'captures' && captureImage.data && <Image accessibilityLabel="Captura privada de la casa" source={captureImage.data} onError={() => setImageError(true)} style={{ width: '100%', height: 230, borderRadius: 20 }} resizeMode="contain" />}{listKind === 'captures' && imageError && <Note error>No se pudo cargar la imagen privada; actualiza la captura para volver a intentarlo.</Note>}{!!resource.data.analysis && <Card title="Análisis de la imagen (inglés)"><Copy>{resource.data.analysis}</Copy></Card>}{listKind === 'captures' && <><Copy muted>Estado del análisis: {resource.data.status ?? 'sin solicitar'}</Copy><Button disabled={!app.admin || op.busy || ['pending', 'analyzing', 'completed'].includes(resource.data.status ?? '')} label="Solicitar análisis de imagen" onPress={() => void op.run(() => api.analyzeCapture(requireHouse(app.id), id), () => void resource.reload().catch(() => {}))} /><Button secondary disabled={!app.admin || op.busy || deletion.loading || !!deletion.error || !deletion.data} label="Eliminar captura" onPress={() => confirm('¿Solicitar la eliminación de esta captura?', () => void op.run(() => api.deleteCapture(requireHouse(app.id), id), () => void deletion.reload().catch(() => {})))} /><Button secondary label="Actualizar captura" onPress={() => void Promise.all([resource.reload(), captureImage.reload()]).catch(() => {})} /></>}{listKind === 'activity' && <><Button secondary label="Consultar capturas" onPress={() => router.push('/captures' as never)} /><Button secondary label="Consultar avisos" onPress={() => router.push('/preferences' as never)} /></>}</> : !deletionActive && <Empty text="Sin detalle disponible." />}{!!op.message && <Note error>{op.message}</Note>}</>;
 }
 export function CameraScreen() {
   const app = useHouse(); const op = useOperation(); const camera = app.cameraSession; const setCamera = app.setCameraSession;
@@ -242,24 +569,339 @@ export function CameraScreen() {
 }
 
 export function LocationScreen() {
-  const app = useHouse(); const op = useOperation(); const [location, setLocation] = useState<Awaited<ReturnType<ReturnType<typeof services>['location']>> | null>(null);
-  return <Card title="Ubicación de tu casa"><Copy muted>Se consulta la ubicación configurada de la casa. No se necesita la ubicación de este teléfono.</Copy><Button disabled={op.busy || !app.id} label="Ver ubicación" onPress={() => void op.run(() => services().location(requireHouse(app.id)), setLocation)} />{location && <><Copy>{location.label}</Copy><Copy muted>{location.latitude}, {location.longitude}</Copy><Button secondary label="Abrir mapa" onPress={() => void op.run(async () => { if (!Number.isFinite(location.latitude) || !Number.isFinite(location.longitude) || Math.abs(location.latitude) > 90 || Math.abs(location.longitude) > 180) throw new Error('Coordenadas inválidas.'); await Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`); })} /></>}{!!op.message && <Note error>{op.message}</Note>}</Card>;
+  const app = useHouse(); const op = useOperation();
+  const resource = useResource(() => api.location(requireHouse(app.id)), [app.id, app.sessionKey]);
+  const [label, setLabel] = useState('');
+  const [latInput, setLatInput] = useState('');
+  const [lonInput, setLonInput] = useState('');
+  const location = resource.data;
+  const lat = Number(latInput.trim());
+  const lon = Number(lonInput.trim());
+  const validCoords = !!label.trim() && Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180 && !(lat === 0 && lon === 0);
+  return (
+    <>
+      <ResourceState {...resource} />
+      <Card title="Ubicación de tu casa">
+        <Copy muted>Se consulta únicamente la ubicación configurada de la vivienda. Nunca se solicita geolocalización del teléfono ni se rellenan coordenadas ficticias.</Copy>
+        {location ? (
+          <>
+            <Copy>{location.label}</Copy>
+            <Copy muted>{location.latitude}, {location.longitude}</Copy>
+            {!!location.updatedAtUtc && <Copy muted>Actualizada: {date(location.updatedAtUtc)}</Copy>}
+            <Button
+              secondary
+              label="Abrir mapa"
+              onPress={() => void op.run(async () => {
+                if (!Number.isFinite(location.latitude) || !Number.isFinite(location.longitude) || Math.abs(location.latitude) > 90 || Math.abs(location.longitude) > 180) throw new Error('Coordenadas inválidas.');
+                await Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`);
+              })}
+            />
+          </>
+        ) : !resource.loading && (
+          <Note>La ubicación de la casa sigue sin configurar hasta ingresar coordenadas reales.</Note>
+        )}
+        <Button secondary disabled={resource.loading} label="Actualizar ubicación" onPress={() => void resource.reload().catch(() => {})} />
+      </Card>
+      {app.admin && (
+        <Card title="Configurar ubicación real">
+          <Field label="Nombre o referencia" value={label} onChangeText={setLabel} maxLength={200} />
+          <Field label="Latitud (-90 a 90)" value={latInput} onChangeText={setLatInput} keyboardType="numbers-and-punctuation" />
+          <Field label="Longitud (-180 a 180)" value={lonInput} onChangeText={setLonInput} keyboardType="numbers-and-punctuation" />
+          <Button
+            disabled={op.busy || !validCoords}
+            label="Guardar ubicación real"
+            onPress={() => confirm('¿Guardar estas coordenadas reales como ubicación de la casa?', () => void op.run(
+              () => api.saveLocation(requireHouse(app.id), { label: label.trim(), latitude: lat, longitude: lon }),
+              saved => {
+                setLabel(''); setLatInput(''); setLonInput('');
+                op.setMessage(`Ubicación guardada: ${saved.label}.`);
+                void resource.reload().catch(() => {});
+              },
+            ))}
+          />
+        </Card>
+      )}
+      {!!op.message && <Note>{op.message}</Note>}
+    </>
+  );
 }
+const deliveryLabel: Record<NotificationDelivery['status'], string> = {
+  requested: 'Solicitud registrada en el servicio.',
+  accepted: 'Aceptada por el proveedor; esto no confirma recepción en la bandeja.',
+  delivered: 'Entrega confirmada por el proveedor.',
+  failed: 'El envío falló en el proveedor.',
+  unknown: 'Resultado desconocido del proveedor; conserva la clave antes de reintentar.',
+};
 export function PreferencesScreen() {
-  const app = useHouse(); const resource = useResource(() => services().preferences(requireHouse(app.id)), [app.id]); const op = useOperation(); const [draft, setDraft] = useState<Preferences | null>(null); const [delivery, setDelivery] = useState('');
-  useEffect(() => setDraft(resource.data), [resource.data]);
-  return <><ResourceState {...resource} /><Card title="Evidencias y avisos">{(['captures', 'analysis', 'email'] as const).map((key, index) => <View key={key} style={styles.row}><View style={{ flex: 1 }}><Copy>{['Capturas automáticas', 'Análisis automático', 'Avisos por correo'][index]}</Copy></View><Switch accessibilityLabel={['Capturas automáticas', 'Análisis automático', 'Avisos por correo'][index]} value={draft?.[key] ?? false} disabled={!draft || op.busy || !app.admin} onValueChange={value => setDraft(old => old ? { ...old, [key]: value } : null)} trackColor={{ true: '#087F78' }} /></View>)}<Copy muted>Destino verificado: {draft?.verifiedEmail ?? 'Sin destino recibido'}</Copy><Button disabled={!draft || !app.admin || op.busy} label="Guardar preferencias" onPress={() => { if (draft) void op.run(() => services().savePreferences(app.id, draft), value => { setDraft(value); op.setMessage('Preferencias guardadas por el servicio.'); }); }} /><Button secondary disabled={!draft?.verifiedEmail || op.busy || !app.admin} label="Enviar correo de prueba" onPress={() => void op.run(() => services().testEmail(app.id), value => setDelivery(`Solicitud ${value.id}: ${value.status}. El resultado del proveedor no confirma recepción en la bandeja.`))} />{!!delivery && <Note>{delivery}</Note>}{!!op.message && <Note>{op.message}</Note>}</Card></>;
+  const app = useHouse();
+  const resource = useResource(() => api.preferences(requireHouse(app.id)), [app.id]);
+  const op = useOperation();
+  const [draft, setDraft] = useState<Preferences | null>(null);
+  const [recipientEmail, setRecipientEmail] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [testKey, setTestKey] = useState('');
+  const [delivery, setDelivery] = useState<NotificationDelivery | null>(null);
+  useEffect(() => { setDraft(resource.data); }, [resource.data]);
+  const pendingEmail = draft?.pendingRecipientEmail ?? '';
+  const hasVerified = !!draft?.verifiedEmail;
+  const emailToggleDisabled = !draft || op.busy || !app.admin || (!hasVerified && !draft.email);
+  return (
+    <>
+      <ResourceState {...resource} />
+      <Card title="Evidencias y avisos">
+        <View style={styles.row}>
+          <View style={{ flex: 1 }}><Copy>Capturas automáticas</Copy></View>
+          <Switch accessibilityLabel="Capturas automáticas" value={draft?.captures ?? false} disabled={!draft || op.busy || !app.admin} onValueChange={value => setDraft(old => old ? { ...old, captures: value } : null)} trackColor={{ true: '#087F78' }} />
+        </View>
+        <View style={styles.row}>
+          <View style={{ flex: 1 }}><Copy>Análisis automático</Copy></View>
+          <Switch accessibilityLabel="Análisis automático" value={draft?.analysis ?? false} disabled={!draft || op.busy || !app.admin} onValueChange={value => setDraft(old => old ? { ...old, analysis: value } : null)} trackColor={{ true: '#087F78' }} />
+        </View>
+        <View style={styles.row}>
+          <View style={{ flex: 1 }}><Copy>Avisos por correo</Copy></View>
+          <Switch accessibilityLabel="Avisos por correo" value={draft?.email ?? false} disabled={emailToggleDisabled} onValueChange={value => setDraft(old => old ? { ...old, email: value } : null)} trackColor={{ true: '#087F78' }} />
+        </View>
+        {!hasVerified && <Note>Verifica un destinatario antes de activar los avisos por correo.</Note>}
+        {!app.admin && <Note>Solo el administrador de la casa puede modificar preferencias o verificar destinatarios.</Note>}
+        <Button
+          disabled={!draft || !app.admin || op.busy}
+          label="Guardar preferencias"
+          onPress={() => {
+            if (!draft) return;
+            void op.run(() => api.savePreferences(requireHouse(app.id), draft), value => {
+              setDraft(value);
+              op.setMessage('Preferencias guardadas por el servicio.');
+            });
+          }}
+        />
+      </Card>
+
+      <Card title="Destinatario de correo">
+        <Copy muted>Destino verificado: {draft?.verifiedEmail ?? 'Sin destinatario verificado'}</Copy>
+        {!!draft?.verifiedAtUtc && <Copy muted>Verificado: {date(draft.verifiedAtUtc)}</Copy>}
+        {!!pendingEmail && <Copy muted>Verificación pendiente: {pendingEmail}</Copy>}
+        <Field
+          label="Correo destinatario"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          value={recipientEmail}
+          onChangeText={setRecipientEmail}
+          maxLength={254}
+        />
+        <Button
+          secondary
+          disabled={!app.admin || op.busy || !recipientEmail.trim()}
+          label="Enviar código de verificación"
+          onPress={() => confirm('¿Enviar código de verificación a este correo?', () => void op.run(
+            () => api.verifyNotificationRecipient(requireHouse(app.id), recipientEmail.trim()),
+            challenge => {
+              setDraft(old => old ? { ...old, pendingRecipientEmail: challenge.pendingRecipientEmail } : old);
+              op.setMessage(`Verificación solicitada para ${challenge.pendingRecipientEmail} (${challenge.status}). Expira: ${date(challenge.expiresAtUtc)}.`);
+            },
+          ))}
+        />
+        {!!pendingEmail && (
+          <>
+            <Field
+              label="Código de verificación"
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={verificationCode}
+              onChangeText={setVerificationCode}
+              maxLength={64}
+            />
+            <Button
+              disabled={!app.admin || op.busy || verificationCode.trim().length < 6}
+              label="Confirmar código"
+              onPress={() => void op.run(
+                () => api.confirmNotificationRecipient(requireHouse(app.id), verificationCode.trim()),
+                updated => {
+                  setDraft(old => old ? {
+                    ...old,
+                    email: updated.email,
+                    verifiedEmail: updated.verifiedEmail ?? null,
+                    verifiedAtUtc: updated.verifiedAtUtc ?? null,
+                    pendingRecipientEmail: updated.pendingRecipientEmail ?? null,
+                    notificationsUpdatedAtUtc: updated.updatedAtUtc ?? null,
+                  } : old);
+                  setVerificationCode('');
+                  op.setMessage('Destinatario verificado correctamente.');
+                },
+              )}
+            />
+          </>
+        )}
+      </Card>
+
+      <Card title="Prueba de envío">
+        <Copy muted>Envía un correo de prueba únicamente bajo solicitud explícita del administrador.</Copy>
+        <Button
+          secondary
+          disabled={!hasVerified || op.busy || !app.admin}
+          label={testKey ? 'Reintentar correo de prueba (misma clave)' : 'Enviar correo de prueba'}
+          onPress={() => confirm('¿Solicitar el envío de un correo de prueba al destinatario verificado?', () => {
+            const key = testKey || operationKey();
+            setTestKey(key);
+            void op.run(async () => {
+              try {
+                const result = await api.testEmail(requireHouse(app.id), key);
+                if (result.status !== 'unknown') setTestKey('');
+                return result;
+              } catch (error) {
+                if (error instanceof ServiceError && error.definitelyNotApplied) setTestKey('');
+                throw error;
+              }
+            }, value => {
+              setDelivery(value);
+              op.setMessage(`Solicitud ${value.id}: ${deliveryLabel[value.status]}`);
+            });
+          })}
+        />
+        {delivery && (
+          <>
+            <Copy muted>Estado del envío: {delivery.status}{delivery.errorCode ? ` (${delivery.errorCode})` : ''}</Copy>
+            <Button
+              secondary
+              disabled={op.busy}
+              label="Actualizar estado de envío"
+              onPress={() => void op.run(
+                () => api.notificationDelivery(requireHouse(app.id), delivery.id),
+                value => {
+                  setDelivery(value);
+                  op.setMessage(`Estado actual (${value.id}): ${deliveryLabel[value.status]}`);
+                },
+              )}
+            />
+          </>
+        )}
+      </Card>
+      {!!op.message && <Note>{op.message}</Note>}
+    </>
+  );
 }
 export function AssistantScreen() {
-  const app = useHouse(); const op = useOperation(); const [message, setMessage] = useState(''); const [reply, setReply] = useState<{ text: string; updatedAtUtc?: string } | null>(null);
-  return <><Card title="Pregunta por tu casa"><Copy muted>Consulta el último estado reportado. El asistente es de solo lectura.</Copy><Field label="Tu consulta" multiline value={message} onChangeText={setMessage} maxLength={2000} /><Button disabled={!message.trim() || !app.id || op.busy} label={op.busy ? 'Consultando…' : 'Consultar'} onPress={() => void op.run(() => api.ask(app.id, message.trim()), setReply)} />{reply && <><Copy>{reply.text}</Copy><Copy muted>Datos consultados: {date(reply.updatedAtUtc)}</Copy></>}{!!op.message && <Note error>{op.message}</Note>}</Card><Note>No puede abrir la puerta, desarmar ni ejecutar órdenes.</Note></>;
+  const app = useHouse(); const op = useOperation();
+  const [message, setMessage] = useState('');
+  const [history, setHistory] = useState<AssistantTurn[]>([]);
+  const [reply, setReply] = useState<{ text: string; updatedAtUtc?: string } | null>(null);
+  const [modelStatus, setModelStatus] = useState('');
+  useEffect(() => { setHistory([]); setReply(null); setModelStatus(''); }, [app.id, app.sessionKey]);
+  return (
+    <>
+      <Card title="Pregunta por tu casa">
+        <Copy muted>Consulta el último estado reportado en Casa y Seguridad. El asistente es estrictamente de solo lectura.</Copy>
+        {history.map((turn, idx) => (
+          <View key={idx} style={{ gap: 2 }}>
+            <Copy muted>{turn.role === 'user' ? 'Tú:' : 'Asistente:'}</Copy>
+            <Copy>{turn.content}</Copy>
+          </View>
+        ))}
+        <Field label="Tu consulta" multiline value={message} onChangeText={setMessage} maxLength={2000} />
+        <Button
+          disabled={!message.trim() || !app.id || op.busy}
+          label={op.busy ? 'Consultando…' : 'Consultar'}
+          onPress={() => {
+            const prompt = message.trim();
+            const recent = history.slice(-6);
+            void op.run(
+              () => api.ask(requireHouse(app.id), prompt, recent),
+              res => {
+                setReply(res);
+                setHistory(old => [...old, { role: 'user' as const, content: prompt.slice(0, 500) }, { role: 'assistant' as const, content: res.text.slice(0, 500) }].slice(-6));
+                setMessage('');
+              },
+            );
+          }}
+        />
+        {reply && <Copy muted>Datos consultados: {reply.updatedAtUtc ? date(reply.updatedAtUtc) : 'Sin reportes disponibles'}</Copy>}
+        {!!history.length && <Button secondary disabled={op.busy} label="Limpiar historial" onPress={() => { setHistory([]); setReply(null); }} />}
+        <Button
+          secondary
+          disabled={op.busy || !app.id}
+          label="Verificar proveedor del modelo"
+          onPress={() => void op.run(
+            () => api.assistantDiagnostics(requireHouse(app.id)),
+            res => setModelStatus(`Modelo listo${res.deployment ? ` (${res.deployment})` : ''}.`),
+          )}
+        />
+        {!!modelStatus && <Note>{modelStatus}</Note>}
+        {!!op.message && <Note error>{op.message}</Note>}
+      </Card>
+      <Note>No puede abrir la puerta, desarmar seguridad ni encender luces.</Note>
+    </>
+  );
 }
 export function SettingsScreen() {
   const app = useHouse(); const router = useRouter(); const op = useOperation();
-  return <><Card title="Tu cuenta"><Copy>{app.profile?.email ?? 'Sin sesión iniciada'}</Copy><Copy muted>{app.house?.role ?? 'Sin rol'} · {app.house?.name ?? 'Sin casa asignada'}</Copy><Copy muted>En Android, la sesión se conserva en almacenamiento protegido. En el navegador dura hasta cerrar o recargar la página.</Copy></Card><Button secondary label="Avisos y preferencias" onPress={() => router.push('/preferences' as never)} /><Button secondary disabled={!app.admin} label="Miembros de la casa" onPress={() => router.push('/members' as never)} /><Button label={app.profile ? 'Cerrar sesión' : 'Iniciar sesión'} disabled={op.busy} onPress={() => { if (!app.profile) router.push('/login' as never); else confirm('¿Cerrar sesión?', () => void op.run(async () => { try { await app.logout(); } finally { router.replace('/login' as never); } })); }} />{!!op.message && <Note error>{op.message}</Note>}</>;
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const validNew = newPassword.length >= 14 && newPassword.length <= 128 && newPassword === confirmPassword && newPassword !== currentPassword;
+  return (
+    <>
+      <Card title="Tu cuenta">
+        <Copy>{app.profile?.email ?? 'Sin sesión iniciada'}</Copy>
+        <Copy muted>{app.house?.role ?? 'Sin rol'} · {app.house?.name ?? 'Sin casa asignada'}</Copy>
+        <Copy muted>{realtimeText[app.realtimeStatus]}</Copy>
+        <Copy muted>En Android, la sesión se conserva en almacenamiento protegido. En el navegador dura hasta cerrar o recargar la página.</Copy>
+        {app.houses.length > 1 && (
+          <View style={{ gap: 8 }}>
+            <Copy muted>Cambiar casa (limpia caché y órdenes en memoria):</Copy>
+            {app.houses.map(item => (
+              <Button
+                key={item.houseId}
+                secondary={item.houseId !== app.id}
+                disabled={op.busy || item.houseId === app.id}
+                label={`${item.name ?? item.houseId} (${item.role})`}
+                onPress={() => app.selectHouse(item.houseId)}
+              />
+            ))}
+          </View>
+        )}
+        <Button
+          secondary
+          disabled={op.busy || !app.profile}
+          label="Actualizar permisos"
+          onPress={() => void op.run(() => app.refreshProfile(), () => op.setMessage('Permisos y perfil actualizados desde Identidad.'))}
+        />
+      </Card>
+      <Button secondary label="Avisos y preferencias" onPress={() => router.push('/preferences' as never)} />
+      <Button secondary disabled={!app.admin} label="Miembros de la casa" onPress={() => router.push('/members' as never)} />
+      {!!app.profile && (
+        <Card title="Cambiar contraseña">
+          <Copy muted>Al cambiar tu contraseña se cerrarán todas las sesiones activas en tus dispositivos.</Copy>
+          <Field label="Contraseña actual" value={currentPassword} onChangeText={setCurrentPassword} secureTextEntry />
+          <Field label="Nueva contraseña (mín. 14 caracteres)" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
+          <Field label="Confirmar nueva contraseña" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
+          <Button
+            secondary
+            disabled={op.busy || !currentPassword || !validNew}
+            label="Actualizar contraseña"
+            onPress={() => confirm('¿Cambiar tu contraseña? Deberás iniciar sesión nuevamente.', () => void op.run(async () => {
+              await api.changePassword(currentPassword, newPassword);
+              setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+              try { await app.logout(); } finally { router.replace('/login' as never); }
+            }))}
+          />
+        </Card>
+      )}
+      <Button label={app.profile ? 'Cerrar sesión' : 'Iniciar sesión'} disabled={op.busy} onPress={() => { if (!app.profile) router.push('/login' as never); else confirm('¿Cerrar sesión?', () => void op.run(async () => { try { await app.logout(); } finally { router.replace('/login' as never); } })); }} />
+      {!!op.message && <Note error>{op.message}</Note>}
+    </>
+  );
 }
 export function MoreScreen() {
-  const router = useRouter();
-  return <>{[['persons', 'Personas autorizadas'], ['access', 'Accesos y puerta'], ['captures', 'Capturas'], ['location', 'Ubicación de la casa'], ['preferences', 'Avisos y preferencias'], ['assistant', 'Asistente'], ['settings', 'Configuración']].map(([screen, label]) => <Button key={screen} secondary label={label} onPress={() => router.push(`/${screen}` as never)} />)}</>;
+  const app = useHouse(); const router = useRouter();
+  const items: [string, string][] = [
+    ['persons', 'Personas autorizadas'],
+    ['access', 'Accesos y puerta'],
+    ['captures', 'Capturas'],
+    ['location', 'Ubicación de la casa'],
+    ['preferences', 'Avisos y preferencias'],
+    ...(app.admin ? [['members', 'Miembros de la casa'] as [string, string]] : []),
+    ['assistant', 'Asistente'],
+    ['settings', 'Configuración'],
+  ];
+  return <>{items.map(([screen, label]) => <Button key={screen} secondary label={label} onPress={() => router.push(`/${screen}` as never)} />)}</>;
 }
-export function UnavailableScreen() { return <Note>{missingService().message}</Note>; }

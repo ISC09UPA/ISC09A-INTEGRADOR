@@ -2,8 +2,10 @@ jest.mock('../src/core/secureSession', () => ({ saveRefreshToken: jest.fn(), rea
 process.env.EXPO_PUBLIC_IDENTITY_URL = 'https://identity.example';
 process.env.EXPO_PUBLIC_HOME_URL = 'https://home.example';
 process.env.EXPO_PUBLIC_SECURITY_URL = 'https://security.example';
+process.env.EXPO_PUBLIC_NOTIFICATIONS_URL = 'https://notifications.example';
+process.env.EXPO_PUBLIC_ASSISTANT_URL = 'https://assistant.example';
 // Controlled responses are confined to tests, never shipped as app data.
-const { api, clearSession, hasSession, setExpiryHandler } = require('../src/core/api') as typeof import('../src/core/api');
+const { api, clearSession, hasSession, setExpiryHandler, setPermissionRejectedHandler } = require('../src/core/api') as typeof import('../src/core/api');
 const fetchMock = jest.fn();
 global.fetch = fetchMock;
 const response = (body: unknown, status = 200) => ({ ok: status < 400, status, json: async () => body });
@@ -196,4 +198,213 @@ it('forwards an explicit expiresAtUtc verbatim on api.light and api.capability w
   fetchMock.mockResolvedValueOnce(response({ commandId: 'door-1', status: 'pending' }, 200));
   await api.commandByKey('house', 'key-door', doorDeadline);
   expect(fetchMock.mock.calls[4][0]).toBe('https://home.example/api/v1/houses/house/commands/by-key/key-door?expiresAtUtc=2026-11-18T12%3A00%3A10.000Z');
+});
+
+it('loads and saves split security and notification preferences', async () => {
+  await login();
+  fetchMock
+    .mockResolvedValueOnce(response({ captures: true, analysis: false, updatedAtUtc: '2026-11-20T01:00:00Z' }))
+    .mockResolvedValueOnce(response({ email: true, verifiedEmail: 'casa@example.com', verifiedAtUtc: '2026-11-20T00:30:00Z', pendingRecipientEmail: null, updatedAtUtc: '2026-11-20T01:05:00Z' }));
+
+  const loaded = await api.preferences('house');
+  expect(loaded).toMatchObject({
+    captures: true,
+    analysis: false,
+    email: true,
+    verifiedEmail: 'casa@example.com',
+    pendingRecipientEmail: null,
+  });
+  expect(fetchMock.mock.calls[2][0]).toBe('https://security.example/api/v1/security/houses/house/preferences');
+  expect(fetchMock.mock.calls[3][0]).toBe('https://notifications.example/api/v1/notifications/houses/house/preferences');
+
+  fetchMock
+    .mockResolvedValueOnce(response({ captures: true, analysis: true, updatedAtUtc: '2026-11-20T02:00:00Z' }))
+    .mockResolvedValueOnce(response({ email: false, verifiedEmail: 'casa@example.com', verifiedAtUtc: '2026-11-20T00:30:00Z', pendingRecipientEmail: null, updatedAtUtc: '2026-11-20T02:00:00Z' }));
+
+  const saved = await api.savePreferences('house', { captures: true, analysis: true, email: false });
+  expect(saved).toMatchObject({ captures: true, analysis: true, email: false });
+  expect(fetchMock.mock.calls[4][1].method).toBe('PUT');
+  expect(JSON.parse(fetchMock.mock.calls[4][1].body)).toEqual({ captures: true, analysis: true });
+  expect(fetchMock.mock.calls[5][1].method).toBe('PUT');
+  expect(JSON.parse(fetchMock.mock.calls[5][1].body)).toEqual({ email: false });
+});
+
+it('verifies and confirms a notification recipient email', async () => {
+  await login();
+  fetchMock.mockResolvedValueOnce(response({
+    pendingRecipientEmail: 'alertas@example.com',
+    status: 'accepted',
+    expiresAtUtc: '2026-11-20T03:00:00Z',
+    deliveryId: 'delivery-verify-1',
+  }, 202));
+
+  const challenge = await api.verifyNotificationRecipient('house', 'alertas@example.com');
+  expect(challenge).toMatchObject({ pendingRecipientEmail: 'alertas@example.com', status: 'accepted', deliveryId: 'delivery-verify-1' });
+  expect(fetchMock.mock.calls[2][0]).toBe('https://notifications.example/api/v1/notifications/houses/house/recipient/verify');
+  expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toEqual({ email: 'alertas@example.com' });
+
+  fetchMock.mockResolvedValueOnce(response({
+    email: false,
+    verifiedEmail: 'alertas@example.com',
+    verifiedAtUtc: '2026-11-20T02:50:00Z',
+    pendingRecipientEmail: null,
+    updatedAtUtc: '2026-11-20T02:50:00Z',
+  }));
+
+  const confirmed = await api.confirmNotificationRecipient('house', '123456');
+  expect(confirmed.verifiedEmail).toBe('alertas@example.com');
+  expect(fetchMock.mock.calls[3][0]).toBe('https://notifications.example/api/v1/notifications/houses/house/recipient/confirm');
+  expect(JSON.parse(fetchMock.mock.calls[3][1].body)).toEqual({ code: '123456' });
+});
+
+it('sends test email with Idempotency-Key and queries delivery status', async () => {
+  await login();
+  fetchMock.mockResolvedValueOnce(response({
+    id: 'delivery-1',
+    kind: 'test',
+    status: 'accepted',
+    providerOperationId: 'op-1',
+    errorCode: null,
+    createdAtUtc: '2026-11-20T04:00:00Z',
+    updatedAtUtc: '2026-11-20T04:00:01Z',
+  }, 202));
+
+  const created = await api.testEmail('house', 'idem-test-1');
+  expect(created).toMatchObject({ id: 'delivery-1', status: 'accepted', kind: 'test' });
+  expect(fetchMock.mock.calls[2][0]).toBe('https://notifications.example/api/v1/notifications/houses/house/test-email');
+  expect(fetchMock.mock.calls[2][1].headers['Idempotency-Key']).toBe('idem-test-1');
+
+  fetchMock.mockResolvedValueOnce(response({
+    id: 'delivery-1',
+    kind: 'test',
+    status: 'delivered',
+    providerOperationId: 'op-1',
+    errorCode: null,
+    createdAtUtc: '2026-11-20T04:00:00Z',
+    updatedAtUtc: '2026-11-20T04:00:05Z',
+  }));
+
+  const polled = await api.notificationDelivery('house', 'delivery-1');
+  expect(polled.status).toBe('delivered');
+  expect(fetchMock.mock.calls[3][0]).toBe('https://notifications.example/api/v1/notifications/houses/house/deliveries/delivery-1');
+});
+
+it('rejects enabling email notifications when recipient is not verified', async () => {
+  await login();
+  fetchMock.mockResolvedValueOnce(response({ status: 422, code: 'recipientNotVerified', correlationId: 'corr-notif' }, 422));
+  await expect(api.testEmail('house', 'idem-test-2')).rejects.toMatchObject({
+    status: 422,
+    code: 'recipientNotVerified',
+    definitelyNotApplied: true,
+    message: 'Verifica primero un correo destinatario antes de activar los avisos o enviar pruebas.',
+  });
+});
+
+it('lists, invites, revokes invitations and removes residents via Identity API', async () => {
+  await login();
+  fetchMock.mockResolvedValueOnce(response({
+    members: [{ userId: 'u-1', email: 'admin@example.com', role: 'admin', enabled: true, emailVerified: true }],
+    invitations: [{ id: 'inv-1', houseId: 'house', email: 'res@example.com', role: 'resident', status: 'pending', createdAtUtc: '2026-11-20T00:00:00Z', expiresAtUtc: '2026-11-23T00:00:00Z' }],
+  }));
+
+  const listed = await api.members('house');
+  expect(listed.members).toHaveLength(1);
+  expect(listed.invitations).toHaveLength(1);
+  expect(fetchMock.mock.calls[2][0]).toBe('https://identity.example/api/v1/identity/houses/house/members');
+
+  fetchMock.mockResolvedValueOnce(response({
+    invitation: { id: 'inv-2', houseId: 'house', email: 'nuevo@example.com', role: 'resident', status: 'pending', createdAtUtc: '2026-11-20T00:00:00Z', expiresAtUtc: '2026-11-23T00:00:00Z' },
+    invitationToken: 'opaque-invite-token',
+  }, 201));
+
+  const created = await api.inviteResident('house', 'nuevo@example.com');
+  expect(created.invitationToken).toBe('opaque-invite-token');
+  expect(fetchMock.mock.calls[3][0]).toBe('https://identity.example/api/v1/identity/houses/house/invitations');
+
+  fetchMock.mockResolvedValueOnce(response({}, 204));
+  await api.revokeInvitation('house', 'inv-2');
+  expect(fetchMock.mock.calls[4][0]).toBe('https://identity.example/api/v1/identity/houses/house/invitations/inv-2');
+  expect(fetchMock.mock.calls[4][1].method).toBe('DELETE');
+
+  fetchMock.mockResolvedValueOnce(response({}, 204));
+  await api.removeResident('house', 'u-2');
+  expect(fetchMock.mock.calls[5][0]).toBe('https://identity.example/api/v1/identity/houses/house/members/u-2');
+  expect(fetchMock.mock.calls[5][1].method).toBe('DELETE');
+});
+
+it('accepts invitation, changes password and recovers password without requiring session on public routes', async () => {
+  fetchMock.mockResolvedValueOnce(response({ houseId: 'house', userId: 'u-new', role: 'resident', createdNewUser: true }));
+  const accepted = await api.acceptInvitation('opaque-invite-token', 'nuevo@example.com', 'Resident-Pass-2026!');
+  expect(accepted).toMatchObject({ role: 'resident', createdNewUser: true });
+  expect(fetchMock.mock.calls[0][0]).toBe('https://identity.example/api/v1/identity/invitations/accept');
+
+  fetchMock.mockResolvedValueOnce(response({ status: 'accepted' }, 202));
+  await expect(api.requestPasswordReset('nuevo@example.com')).resolves.toEqual({ status: 'accepted' });
+  expect(fetchMock.mock.calls[1][0]).toBe('https://identity.example/api/v1/identity/auth/password-reset/request');
+
+  fetchMock.mockResolvedValueOnce(response({}, 204));
+  await api.confirmPasswordReset('opaque-reset-token', 'nuevo@example.com', 'Updated-Pass-2026!');
+  expect(fetchMock.mock.calls[2][0]).toBe('https://identity.example/api/v1/identity/auth/password-reset/confirm');
+
+  await login();
+  fetchMock.mockResolvedValueOnce(response({}, 204));
+  await api.changePassword('test-password', 'Changed-Pass-2026!');
+  expect(fetchMock.mock.calls[5][0]).toBe('https://identity.example/api/v1/identity/auth/password/change');
+  expect(fetchMock.mock.calls[5][1].headers.Authorization).toBe('Bearer test-access');
+});
+
+it('manages physical persons and biometric enrollments via Security API', async () => {
+  await login();
+  fetchMock.mockResolvedValueOnce(response({ available: false, code: 'faceAccessPendingApproval', detail: 'Pending Limited Access' }));
+  const face = await api.faceAvailability('house');
+  expect(face.available).toBe(false);
+
+  fetchMock.mockResolvedValueOnce(response({
+    person: { id: 'p-1', name: 'Ana', method: 'face', status: 'pending', validUntilUtc: '2026-12-31T00:00:00Z', createdAtUtc: '2026-11-20T00:00:00Z', updatedAtUtc: '2026-11-20T00:00:00Z', revokedAtUtc: null },
+    enrollment: { id: 'e-1', personId: 'p-1', method: 'face', status: 'pending', instruction: 'Esperando captura', error: null, errorCode: null, expiresAtUtc: '2026-11-20T00:15:00Z', updatedAtUtc: '2026-11-20T00:00:00Z' },
+  }, 201));
+  const created = await api.createPersonEnrollment('house', { name: 'Ana', method: 'face', validUntilUtc: '2026-12-31T00:00:00Z' });
+  expect(created.person.status).toBe('pending');
+  expect(created.enrollment.id).toBe('e-1');
+
+  fetchMock.mockResolvedValueOnce(response({ id: 'e-1', personId: 'p-1', method: 'face', status: 'failed', instruction: null, error: 'Pending approval', errorCode: 'faceAccessPendingApproval', expiresAtUtc: '2026-11-20T00:15:00Z', updatedAtUtc: '2026-11-20T00:01:00Z' }));
+  const captured = await api.captureEnrollment('house', 'e-1', { captureId: 'cap-1' });
+  expect(captured.status).toBe('failed');
+  expect(captured.errorCode).toBe('faceAccessPendingApproval');
+
+  fetchMock.mockResolvedValueOnce(response({ id: 'p-1', name: 'Ana', method: 'face', status: 'revoked', validUntilUtc: '2026-12-31T00:00:00Z', createdAtUtc: '2026-11-20T00:00:00Z', updatedAtUtc: '2026-11-20T00:02:00Z', revokedAtUtc: '2026-11-20T00:02:00Z' }));
+  const revoked = await api.revokePerson('house', 'p-1');
+  expect(revoked.status).toBe('revoked');
+  expect(fetchMock.mock.calls[5][1].method).toBe('DELETE');
+});
+
+it('queries and saves house location without inventing coordinates and forwards bounded assistant history', async () => {
+  await login();
+  fetchMock.mockResolvedValueOnce(response({}, 404));
+  await expect(api.location('house')).resolves.toBeNull();
+
+  fetchMock.mockResolvedValueOnce(response({ label: 'Casa Centro', latitude: 21.8853, longitude: -102.2916, updatedAtUtc: '2026-11-20T12:00:00Z' }));
+  const saved = await api.saveLocation('house', { label: 'Casa Centro', latitude: 21.8853, longitude: -102.2916 });
+  expect(saved.label).toBe('Casa Centro');
+  expect(fetchMock.mock.calls[3][0]).toBe('https://home.example/api/v1/houses/house/location');
+  expect(fetchMock.mock.calls[3][1].method).toBe('PUT');
+
+  fetchMock.mockResolvedValueOnce(response({ text: 'Sin reportes recientes.', updatedAtUtc: null }));
+  const answer = await api.ask('house', '¿Cómo está la casa?', [{ role: 'user', content: 'Hola' }]);
+  expect(answer.text).toBe('Sin reportes recientes.');
+  expect(answer.updatedAtUtc).toBeUndefined();
+  expect(JSON.parse(fetchMock.mock.calls[4][1].body)).toEqual({
+    message: '¿Cómo está la casa?',
+    history: [{ role: 'user', content: 'Hola' }],
+  });
+});
+
+it('notifies permission handler on 403 outside /identity/me', async () => {
+  await login();
+  const rejected = jest.fn();
+  setPermissionRejectedHandler(rejected);
+  fetchMock.mockResolvedValueOnce(response({}, 403));
+  await expect(api.status('house')).rejects.toMatchObject({ status: 403 });
+  expect(rejected).toHaveBeenCalledTimes(1);
+  setPermissionRejectedHandler(() => {});
 });

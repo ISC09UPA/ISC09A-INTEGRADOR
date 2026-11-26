@@ -1,36 +1,41 @@
 import { saveRefreshToken, readRefreshToken, deleteRefreshToken } from './secureSession';
-import type { CameraSession, CapabilityResource, Command, Entry, Filters, HomeStatus, Page, Profile, Security, SensorReading, ServiceExtensions, Session } from './models';
+import type { AcceptedInvitation, AssistantTurn, AuthorizedPerson, CameraSession, CapabilityResource, Command, CreatedInvitation, Enrollment, Entry, FaceAvailability, Filters, HomeStatus, HouseMembersResponse, Location, NotificationDelivery, Page, PersonEnrollmentCreated, PersonsPage, Preferences, Profile, RecipientVerificationChallenge, Security, SensorReading, Session } from './models';
 
 export class ServiceError extends Error {
   constructor(message: string, public status = 0, public correlationId?: string, public definitelyNotApplied = false, public code?: string) { super(message); }
 }
-export const missingService = () => new ServiceError('Este servicio todavía no está conectado.', 0, undefined, true);
-const preAdmissionCodes = new Set(['badRequest', 'invalidCredential', 'sessionRevoked', 'forbidden', 'notFound', 'noReport', 'requestExpired', 'manualModeRequired', 'pendingCommand', 'duplicateChanged', 'deviceOffline']);
+const preAdmissionCodes = new Set(['badRequest', 'invalidCredential', 'sessionRevoked', 'forbidden', 'notFound', 'noReport', 'requestExpired', 'manualModeRequired', 'pendingCommand', 'duplicateChanged', 'deviceOffline', 'recipientNotVerified', 'verificationNotFound', 'verificationExpired', 'invalidVerificationCode']);
 const problemMessages: Record<string, string> = {
   manualModeRequired: 'Cambia la luz a modo manual antes de encenderla o apagarla.',
   pendingCommand: 'Ya hay una orden en curso para este recurso. Consulta el estado antes de continuar.',
   deviceOffline: 'El dispositivo no tiene un reporte reciente. Actualiza el estado de la casa.',
   duplicateChanged: 'La clave de operación ya se utilizó con otra solicitud.',
   requestExpired: 'La solicitud venció antes de ser admitida. Intenta de nuevo.',
+  recipientNotVerified: 'Verifica primero un correo destinatario antes de activar los avisos o enviar pruebas.',
+  verificationNotFound: 'No hay una verificación de correo pendiente.',
+  verificationExpired: 'El código de verificación expiró. Solicita uno nuevo.',
+  invalidVerificationCode: 'El código de verificación no coincide.',
 };
 const identityUrl = process.env.EXPO_PUBLIC_IDENTITY_URL ?? '';
 const homeUrl = process.env.EXPO_PUBLIC_HOME_URL ?? '';
 const securityUrl = process.env.EXPO_PUBLIC_SECURITY_URL ?? '';
 const assistantUrl = process.env.EXPO_PUBLIC_ASSISTANT_URL ?? '';
+const notificationsUrl = process.env.EXPO_PUBLIC_NOTIFICATIONS_URL ?? '';
 let session: Session | null = null;
 let sessionVersion = 0;
 let expiresAt = 0;
 let refresh: Promise<void> | null = null;
 let onExpired = () => {};
-let extensions: ServiceExtensions | null = null;
-export function configureExtensions(value: ServiceExtensions) { extensions = value; }
-export function services(): ServiceExtensions { if (!extensions) throw missingService(); return extensions; }
+let onPermissionRejected = () => {};
+export function getHomeUrl() { return homeUrl; }
+export function getAccessToken() { return authorizedToken(); }
 export function requestService<T>(baseUrl: string, path: string, method = 'GET', body?: unknown) { return request<T>(baseUrl, path, method, body); }
 export function setExpiryHandler(handler: () => void) { onExpired = handler; }
+export function setPermissionRejectedHandler(handler: () => void) { onPermissionRejected = handler; }
 export function clearSession() { sessionVersion++; session = null; expiresAt = 0; void deleteRefreshToken().catch(() => {}); }
 export function hasSession() { return session !== null; }
 
-async function request<T>(base: string, path: string, method = 'GET', body?: unknown, authenticated = true): Promise<T> {
+async function request<T>(base: string, path: string, method = 'GET', body?: unknown, authenticated = true, extraHeaders?: Record<string, string>): Promise<T> {
   if (!base) throw new ServiceError('Falta configurar la dirección del servicio.', 0, undefined, true);
   if (authenticated && !session) throw new ServiceError('Inicia sesión para consultar tu casa.', 401, undefined, true);
   if (authenticated && Date.now() >= expiresAt) {
@@ -43,12 +48,13 @@ async function request<T>(base: string, path: string, method = 'GET', body?: unk
   try {
     const response = await fetch(`${base.replace(/\/$/, '')}/api/v1${path}`, {
       method, signal: controller.signal,
-      headers: { Accept: 'application/json', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(authenticated ? { Authorization: `Bearer ${session?.accessToken}` } : {}) },
+      headers: { Accept: 'application/json', ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...(authenticated ? { Authorization: `Bearer ${session?.accessToken}` } : {}), ...extraHeaders },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
     if (!response.ok) {
       const problem = await response.json().catch(() => ({}));
       if (response.status === 401 && authenticated && requestVersion === sessionVersion) { clearSession(); onExpired(); }
+      if (response.status === 403 && authenticated && requestVersion === sessionVersion && !path.startsWith('/identity/me')) { onPermissionRejected(); }
       const code = typeof problem.code === 'string' ? problem.code : undefined;
       const messages: Record<number, string> = { 401: 'La sesión expiró o las credenciales no son válidas.', 403: 'No tienes permiso para esta acción.', 409: 'La operación está en conflicto. Actualiza el estado antes de continuar.', 501: 'El backend aún no implementa esta función.' };
       const message = (code && problemMessages[code]) ?? messages[response.status] ?? 'El servicio no pudo completar la solicitud.';
@@ -99,6 +105,54 @@ function videoSessionValue(value: unknown): CameraSession {
   }
   return { id: item.id, status: status as CameraSession['status'], expiresAtUtc: item.expiresAtUtc, commandId: item.commandId, streamUrl: streamUrl as string | undefined, streamType: streamType as 'hls' | undefined };
 }
+type SecurityPrefsPayload = { captures: boolean; analysis: boolean; updatedAtUtc?: string | null };
+type NotificationPrefsPayload = { email: boolean; verifiedEmail?: string | null; verifiedAtUtc?: string | null; pendingRecipientEmail?: string | null; updatedAtUtc?: string | null };
+function securityPrefsValue(value: unknown): SecurityPrefsPayload {
+  if (!value || typeof value !== 'object') throw new ServiceError('Las preferencias de seguridad recibidas no son compatibles.');
+  const item = value as Record<string, unknown>;
+  if (typeof item.captures !== 'boolean' || typeof item.analysis !== 'boolean') throw new ServiceError('Las preferencias de seguridad recibidas no son compatibles.');
+  return { captures: item.captures, analysis: item.analysis, updatedAtUtc: typeof item.updatedAtUtc === 'string' ? item.updatedAtUtc : null };
+}
+function notificationPrefsValue(value: unknown): NotificationPrefsPayload {
+  if (!value || typeof value !== 'object') throw new ServiceError('Las preferencias de avisos recibidas no son compatibles.');
+  const item = value as Record<string, unknown>;
+  if (typeof item.email !== 'boolean') throw new ServiceError('Las preferencias de avisos recibidas no son compatibles.');
+  return {
+    email: item.email,
+    verifiedEmail: typeof item.verifiedEmail === 'string' ? item.verifiedEmail : null,
+    verifiedAtUtc: typeof item.verifiedAtUtc === 'string' ? item.verifiedAtUtc : null,
+    pendingRecipientEmail: typeof item.pendingRecipientEmail === 'string' ? item.pendingRecipientEmail : null,
+    updatedAtUtc: typeof item.updatedAtUtc === 'string' ? item.updatedAtUtc : null,
+  };
+}
+function mergePreferences(security: SecurityPrefsPayload, notifications: NotificationPrefsPayload): Preferences {
+  return {
+    captures: security.captures,
+    analysis: security.analysis,
+    email: notifications.email,
+    verifiedEmail: notifications.verifiedEmail ?? null,
+    verifiedAtUtc: notifications.verifiedAtUtc ?? null,
+    pendingRecipientEmail: notifications.pendingRecipientEmail ?? null,
+    securityUpdatedAtUtc: security.updatedAtUtc ?? null,
+    notificationsUpdatedAtUtc: notifications.updatedAtUtc ?? null,
+  };
+}
+function deliveryValue(value: unknown): NotificationDelivery {
+  if (!value || typeof value !== 'object') throw new ServiceError('El estado de envío recibido no es compatible.');
+  const item = value as Record<string, unknown>;
+  if (typeof item.id !== 'string' || !item.id || !['test', 'event', 'verification'].includes(String(item.kind)) || !['requested', 'accepted', 'failed', 'unknown', 'delivered'].includes(String(item.status)) || typeof item.createdAtUtc !== 'string' || typeof item.updatedAtUtc !== 'string') {
+    throw new ServiceError('El estado de envío recibido no es compatible.');
+  }
+  return {
+    id: item.id,
+    kind: item.kind as NotificationDelivery['kind'],
+    status: item.status as NotificationDelivery['status'],
+    providerOperationId: typeof item.providerOperationId === 'string' ? item.providerOperationId : null,
+    errorCode: typeof item.errorCode === 'string' ? item.errorCode : null,
+    createdAtUtc: item.createdAtUtc,
+    updatedAtUtc: item.updatedAtUtc,
+  };
+}
 export const api = {
   async restore() {
     const expectedVersion = sessionVersion;
@@ -122,6 +176,32 @@ export const api = {
     try { if (previous) await request(identityUrl, '/identity/auth/logout', 'POST', { refreshToken: previous.refreshToken }); }
     finally { sessionVersion++; session = null; expiresAt = 0; await deleteRefreshToken(); }
   },
+  async members(houseId: string): Promise<HouseMembersResponse> {
+    const value = await request<HouseMembersResponse>(identityUrl, `/identity/houses/${encodeURIComponent(houseId)}/members`);
+    if (!value || !Array.isArray(value.members) || !Array.isArray(value.invitations)) {
+      throw new ServiceError('La lista de miembros recibida no es compatible.');
+    }
+    return value;
+  },
+  async inviteResident(houseId: string, email: string): Promise<CreatedInvitation> {
+    const value = await request<CreatedInvitation>(identityUrl, `/identity/houses/${encodeURIComponent(houseId)}/invitations`, 'POST', { email });
+    if (!value?.invitation?.id || typeof value.invitationToken !== 'string' || !value.invitationToken) {
+      throw new ServiceError('La invitación recibida no es compatible.');
+    }
+    return value;
+  },
+  revokeInvitation: (houseId: string, invitationId: string) =>
+    request<void>(identityUrl, `/identity/houses/${encodeURIComponent(houseId)}/invitations/${encodeURIComponent(invitationId)}`, 'DELETE'),
+  removeResident: (houseId: string, memberUserId: string) =>
+    request<void>(identityUrl, `/identity/houses/${encodeURIComponent(houseId)}/members/${encodeURIComponent(memberUserId)}`, 'DELETE'),
+  acceptInvitation: (token: string, email: string, password?: string) =>
+    request<AcceptedInvitation>(identityUrl, '/identity/invitations/accept', 'POST', { token, email, ...(password ? { password } : {}) }, false),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<void>(identityUrl, '/identity/auth/password/change', 'POST', { currentPassword, newPassword }),
+  requestPasswordReset: (email: string) =>
+    request<{ status: string }>(identityUrl, '/identity/auth/password-reset/request', 'POST', { email }, false),
+  confirmPasswordReset: (token: string, email: string, newPassword: string) =>
+    request<void>(identityUrl, '/identity/auth/password-reset/confirm', 'POST', { token, email, newPassword }, false),
   status: (houseId: string) => request<HomeStatus>(homeUrl, `/houses/${encodeURIComponent(houseId)}/status`),
   telemetry: (houseId: string) => request<SensorReading[]>(homeUrl, `/houses/${encodeURIComponent(houseId)}/telemetry`),
   async resources(houseId: string) {
@@ -179,10 +259,84 @@ export const api = {
   captureDeletion: (houseId: string, id: string) => request<{ id: string; status: string }>(securityUrl, `/security/houses/${encodeURIComponent(houseId)}/captures/${encodeURIComponent(id)}/deletion`),
   captureRetention: (houseId: string) => request<{ retentionDays: number | null }>(securityUrl, `/security/houses/${encodeURIComponent(houseId)}/capture-retention`),
   setCaptureRetention: (houseId: string, retentionDays: number | null) => request<{ retentionDays: number | null }>(securityUrl, `/security/houses/${encodeURIComponent(houseId)}/capture-retention`, 'PUT', { retentionDays }),
-  async ask(houseId: string, message: string) {
-    const value = await request<{ text: string; updatedAtUtc: string | null }>(assistantUrl, `/assistant/houses/${encodeURIComponent(houseId)}/ask`, 'POST', { message });
-    if (!value || typeof value.text !== 'string' || !value.text.trim() || value.updatedAtUtc !== null && !Number.isFinite(Date.parse(value.updatedAtUtc))) throw new ServiceError('La respuesta del asistente no es compatible.');
+  faceAvailability: (houseId: string) => request<FaceAvailability>(securityUrl, `/security/houses/${encodeURIComponent(houseId)}/diagnostics/face`),
+  persons: (houseId: string, cursor?: string) =>
+    request<PersonsPage>(securityUrl, `/security/houses/${encodeURIComponent(houseId)}/persons${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`),
+  personDetail: (houseId: string, personId: string) =>
+    request<AuthorizedPerson>(securityUrl, `/security/houses/${encodeURIComponent(houseId)}/persons/${encodeURIComponent(personId)}`),
+  createPersonEnrollment: (houseId: string, input: { name: string; method: 'face' | 'fingerprint'; validUntilUtc: string }) =>
+    request<PersonEnrollmentCreated>(securityUrl, `/security/houses/${encodeURIComponent(houseId)}/persons`, 'POST', input),
+  enrollment: (houseId: string, enrollmentId: string) =>
+    request<Enrollment>(securityUrl, `/security/houses/${encodeURIComponent(houseId)}/enrollments/${encodeURIComponent(enrollmentId)}`),
+  captureEnrollment: (houseId: string, enrollmentId: string, body?: { captureId?: string; templateSlotId?: string; confidence?: number }) =>
+    request<Enrollment>(securityUrl, `/security/houses/${encodeURIComponent(houseId)}/enrollments/${encodeURIComponent(enrollmentId)}/capture`, 'POST', body ?? {}),
+  cancelEnrollment: (houseId: string, enrollmentId: string) =>
+    request<Enrollment>(securityUrl, `/security/houses/${encodeURIComponent(houseId)}/enrollments/${encodeURIComponent(enrollmentId)}/cancel`, 'POST'),
+  revokePerson: (houseId: string, personId: string) =>
+    request<AuthorizedPerson>(securityUrl, `/security/houses/${encodeURIComponent(houseId)}/persons/${encodeURIComponent(personId)}`, 'DELETE'),
+  async preferences(houseId: string): Promise<Preferences> {
+    const encoded = encodeURIComponent(houseId);
+    const [sec, notif] = await Promise.all([
+      request<unknown>(securityUrl, `/security/houses/${encoded}/preferences`),
+      request<unknown>(notificationsUrl, `/notifications/houses/${encoded}/preferences`),
+    ]);
+    return mergePreferences(securityPrefsValue(sec), notificationPrefsValue(notif));
+  },
+  async savePreferences(houseId: string, value: Pick<Preferences, 'captures' | 'analysis' | 'email'>): Promise<Preferences> {
+    const encoded = encodeURIComponent(houseId);
+    const [sec, notif] = await Promise.all([
+      request<unknown>(securityUrl, `/security/houses/${encoded}/preferences`, 'PUT', { captures: value.captures, analysis: value.analysis }),
+      request<unknown>(notificationsUrl, `/notifications/houses/${encoded}/preferences`, 'PUT', { email: value.email }),
+    ]);
+    return mergePreferences(securityPrefsValue(sec), notificationPrefsValue(notif));
+  },
+  async verifyNotificationRecipient(houseId: string, email: string): Promise<RecipientVerificationChallenge> {
+    const raw = await request<Record<string, unknown>>(notificationsUrl, `/notifications/houses/${encodeURIComponent(houseId)}/recipient/verify`, 'POST', { email });
+    if (!raw || typeof raw.pendingRecipientEmail !== 'string' || typeof raw.status !== 'string' || typeof raw.expiresAtUtc !== 'string') {
+      throw new ServiceError('La solicitud de verificación recibida no es compatible.');
+    }
+    return { pendingRecipientEmail: raw.pendingRecipientEmail, status: raw.status, expiresAtUtc: raw.expiresAtUtc, deliveryId: typeof raw.deliveryId === 'string' ? raw.deliveryId : null };
+  },
+  async confirmNotificationRecipient(houseId: string, code: string): Promise<NotificationPrefsPayload> {
+    return notificationPrefsValue(await request<unknown>(notificationsUrl, `/notifications/houses/${encodeURIComponent(houseId)}/recipient/confirm`, 'POST', { code }));
+  },
+  async testEmail(houseId: string, idempotencyKey: string): Promise<NotificationDelivery> {
+    return deliveryValue(await request<unknown>(notificationsUrl, `/notifications/houses/${encodeURIComponent(houseId)}/test-email`, 'POST', undefined, true, { 'Idempotency-Key': idempotencyKey }));
+  },
+  async notificationDelivery(houseId: string, deliveryId: string): Promise<NotificationDelivery> {
+    return deliveryValue(await request<unknown>(notificationsUrl, `/notifications/houses/${encodeURIComponent(houseId)}/deliveries/${encodeURIComponent(deliveryId)}`));
+  },
+  async ask(houseId: string, message: string, history?: AssistantTurn[]) {
+    const trimmedHistory = history?.slice(-6).map(item => ({ role: item.role, content: item.content.slice(0, 500) }));
+    const value = await request<{ text: string; updatedAtUtc: string | null }>(
+      assistantUrl,
+      `/assistant/houses/${encodeURIComponent(houseId)}/ask`,
+      'POST',
+      trimmedHistory?.length ? { message, history: trimmedHistory } : { message },
+    );
+    if (!value || typeof value.text !== 'string' || !value.text.trim() || (value.updatedAtUtc !== null && !Number.isFinite(Date.parse(value.updatedAtUtc)))) throw new ServiceError('La respuesta del asistente no es compatible.');
     return { text: value.text, updatedAtUtc: value.updatedAtUtc ?? undefined };
+  },
+  assistantDiagnostics: (houseId: string) =>
+    request<{ status: string; deployment?: string }>(assistantUrl, `/assistant/houses/${encodeURIComponent(houseId)}/diagnostics/model`),
+  async location(houseId: string): Promise<Location | null> {
+    try {
+      const value = await request<Location>(homeUrl, `/houses/${encodeURIComponent(houseId)}/location`);
+      if (!value || typeof value.label !== 'string' || !Number.isFinite(value.latitude) || !Number.isFinite(value.longitude)) {
+        throw new ServiceError('La ubicación recibida no es compatible.');
+      }
+      return value;
+    } catch (error) {
+      if (error instanceof ServiceError && error.status === 404) return null;
+      throw error;
+    }
+  },
+  async saveLocation(houseId: string, input: { label: string; latitude: number; longitude: number }): Promise<Location> {
+    const value = await request<Location>(homeUrl, `/houses/${encodeURIComponent(houseId)}/location`, 'PUT', input);
+    if (!value || typeof value.label !== 'string' || !Number.isFinite(value.latitude) || !Number.isFinite(value.longitude)) {
+      throw new ServiceError('La ubicación recibida no es compatible.');
+    }
+    return value;
   },
   light: (houseId: string, lightId: string, type: 'SetLight' | 'SetLightingMode', payload: { on: boolean } | { mode: 'manual' | 'auto' }, key: string, expiresAtUtc = new Date(Date.now() + 30000).toISOString()) => request<Command>(homeUrl, `/houses/${encodeURIComponent(houseId)}/lights/${encodeURIComponent(lightId)}/commands`, 'POST', { type, payload, idempotencyKey: key, expiresAtUtc }),
   command: (id: string) => request<Command>(homeUrl, `/commands/${encodeURIComponent(id)}`),

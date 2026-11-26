@@ -1,5 +1,10 @@
 export type Role = 'admin' | 'resident';
 export type Profile = { userId: string; email: string; houses: { houseId: string; name?: string; role: Role }[] };
+export type HouseMember = { userId: string; email: string; role: Role; enabled: boolean; emailVerified: boolean };
+export type HouseInvitation = { id: string; houseId: string; email: string; role: 'resident'; status: 'pending' | 'accepted' | 'revoked' | 'expired'; createdAtUtc: string; expiresAtUtc: string; acceptedAtUtc?: string | null; revokedAtUtc?: string | null };
+export type HouseMembersResponse = { members: HouseMember[]; invitations: HouseInvitation[] };
+export type CreatedInvitation = { invitation: HouseInvitation; invitationToken: string };
+export type AcceptedInvitation = { houseId: string; userId: string; role: 'resident'; createdNewUser: boolean };
 export type Session = { accessToken: string; refreshToken: string; sessionId: string; userId: string; expiresIn: number; refreshExpiresIn: number };
 export type CommandState = 'pending' | 'executed' | 'rejected' | 'expired' | 'failed' | 'unknown';
 export type Command = { commandId: string; status: CommandState; reason?: string; stateRevision?: number | null; snapshot?: { lightOn: boolean; lightingMode: 'auto' | 'manual'; source: string; appliedAtUtc: string } | null };
@@ -9,26 +14,57 @@ export type Entry = { id: string; title: string; description?: string; occurredA
 export type Page = { items: Entry[]; nextCursor?: string };
 export type Filters = { type?: string; result?: string; date?: string; cursor?: string };
 export type Security = { mode: 'armed' | 'disarmed'; updatedAtUtc: string; receivedAtUtc: string; incident?: Entry };
-export type Preferences = { captures: boolean; analysis: boolean; email: boolean; verifiedEmail?: string };
+export type Preferences = {
+  captures: boolean;
+  analysis: boolean;
+  email: boolean;
+  verifiedEmail?: string | null;
+  verifiedAtUtc?: string | null;
+  pendingRecipientEmail?: string | null;
+  securityUpdatedAtUtc?: string | null;
+  notificationsUpdatedAtUtc?: string | null;
+};
+export type NotificationDelivery = {
+  id: string;
+  kind: 'test' | 'event' | 'verification';
+  status: 'requested' | 'accepted' | 'failed' | 'unknown' | 'delivered';
+  providerOperationId?: string | null;
+  errorCode?: string | null;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+};
+export type RecipientVerificationChallenge = {
+  pendingRecipientEmail: string;
+  status: string;
+  expiresAtUtc: string;
+  deliveryId?: string | null;
+};
 export type CameraSession = { id: string; status: 'connecting' | 'live' | 'ended' | 'failed'; expiresAtUtc: string; commandId: string; streamUrl?: string; streamType?: 'hls' };
-export type Enrollment = { id: string; status: 'pending' | 'acquiring' | 'completed' | 'failed' | 'cancelled'; instruction?: string; error?: string };
-export type Location = { latitude: number; longitude: number; label: string };
+export type Enrollment = {
+  id: string;
+  personId: string;
+  method: 'face' | 'fingerprint';
+  status: 'pending' | 'acquiring' | 'completed' | 'failed' | 'cancelled';
+  instruction?: string | null;
+  error?: string | null;
+  errorCode?: string | null;
+  expiresAtUtc: string;
+  updatedAtUtc: string;
+};
+export type AuthorizedPerson = {
+  id: string;
+  name: string;
+  method: 'face' | 'fingerprint';
+  status: 'pending' | 'authorized' | 'revoked' | 'expired' | 'failed';
+  validUntilUtc: string;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+  revokedAtUtc?: string | null;
+};
+export type PersonsPage = { items: AuthorizedPerson[]; nextCursor?: string | null };
+export type PersonEnrollmentCreated = { person: AuthorizedPerson; enrollment: Enrollment };
+export type FaceAvailability = { available: boolean; code: string; detail: string };
+export type Location = { latitude: number; longitude: number; label: string; updatedAtUtc?: string | null };
+export type AssistantTurn = { role: 'user' | 'assistant'; content: string };
 export type SensorReading = { sensorId: string; name: string; value: number | boolean | string; unit?: string; occurredAtUtc: string; receivedAtUtc: string };
 export type CapabilityResource = { resourceId: string; kind: 'security' | 'door' | 'camera'; deviceReportedAtUtc: string | null; pendingCommand: Command | null };
-
-/** UI ports for future backend services (Stages 6-10). */
-export interface ServiceExtensions {
-  subscribe?(houseId: string, invalidate: () => void): () => void;
-  list(kind: 'persons' | 'members', houseId: string, filters: Filters): Promise<Page>;
-  detail(kind: 'persons' | 'members', houseId: string, id: string): Promise<Entry>;
-  enroll(houseId: string, input: { name: string; method: 'face' | 'fingerprint'; validUntilUtc: string }): Promise<Enrollment>;
-  enrollment(id: string): Promise<Enrollment>;
-  captureEnrollment(id: string): Promise<Enrollment>;
-  cancelEnrollment(id: string): Promise<Enrollment>;
-  revoke(id: string): Promise<Entry>;
-  location(houseId: string): Promise<Location>;
-  preferences(houseId: string): Promise<Preferences>;
-  savePreferences(houseId: string, value: Preferences): Promise<Preferences>;
-  testEmail(houseId: string): Promise<{ id: string; status: string }>;
-  invite(houseId: string, email: string, role: Role): Promise<Entry>;
-}

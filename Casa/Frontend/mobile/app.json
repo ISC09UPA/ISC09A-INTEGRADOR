@@ -15,7 +15,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F8F6EF"
       },
-      "package": "com.casadomotica.app"
+      "package": "com.casadomotica.app",
+      "versionCode": 1
     },
     "web": {
       "bundler": "metro"
