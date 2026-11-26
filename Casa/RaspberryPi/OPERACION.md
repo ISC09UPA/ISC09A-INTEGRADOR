@@ -45,7 +45,7 @@ Los eventos pendientes tienen un limite configurable de 1000. Al agotarlo se des
 
 ## Conexion Azure y funciones pendientes
 
-El transporte activo es `azure`, con el dispositivo `raspberry-sim` del hub `i9n-karma-iothub`. El SDK 2.14.0 y sus dependencias estan instalados en `/opt/casa-pi/vendor`; el inventario de versiones y hashes esta en `deploy/azure-dependencies.json`. La credencial de dispositivo se carga desde `/etc/casa-pi/secrets.env` (root, 600); no esta incluida en los fuentes.
+El transporte activo es `azure`, con el dispositivo `raspberry-sim` del hub `iothub-casa-example`. El SDK 2.14.0 y sus dependencias estan instalados en `/opt/casa-pi/vendor`; el inventario de versiones y hashes esta en `deploy/azure-dependencies.json`. La credencial de dispositivo se carga desde `/etc/casa-pi/secrets.env` (root, 600); no esta incluida en los fuentes.
 
 El agente recibe SetLight, SetSecurityMode, SetLightingMode y OpenDoor como metodos directos. HTTP 202 confirma que la orden entro en la cola; el evento CommandResult y las propiedades reportadas `casaPi.lastCommand` comunican la ejecucion o el rechazo posterior. El estado reportado incluye lightOn, lightingMode, securityModeApplied y doorPulseActive. No debe interpretarse doorPulseActive como posicion fisica medida de una puerta.
 
@@ -58,10 +58,10 @@ Quedan por implementar cargas autorizadas a Blob, captura real/CSI, reconocimien
 ## Pruebas
 
 ```bash
-./scripts/verify-agent.sh
+./Casa/Scripts/verify-agent.sh
 ```
 
-Ejecuta 54 pruebas unitarias del agente y la validación formal offline de los schemas y fixtures del contrato v1. También se puede correr manualmente:
+Ejecuta 78 pruebas unitarias del agente y la validación formal offline de los schemas y fixtures del contrato v1. También se puede correr manualmente:
 
 ```bash
 cd /opt/casa-pi

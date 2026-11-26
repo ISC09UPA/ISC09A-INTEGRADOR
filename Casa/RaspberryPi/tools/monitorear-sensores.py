@@ -53,7 +53,7 @@ def main():
     args = parser.parse_args()
     if args.cantidad is not None and args.cantidad < 1:
         parser.error("la cantidad debe ser positiva")
-    cmd = ["az", "iot", "hub", "monitor-events", "--hub-name", "i9n-karma-iothub",
+    cmd = ["az", "iot", "hub", "monitor-events", "--hub-name", "iothub-casa-example",
            "--device-id", "raspberry-sim", "--transport", "amqp_ws", "--yes"]
     if args.cantidad:
         cmd += ["--message-count", str(args.cantidad), "--timeout", "60"]

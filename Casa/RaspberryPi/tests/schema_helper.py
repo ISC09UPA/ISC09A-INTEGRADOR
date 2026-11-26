@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 
 
-_REPO_ROOT = Path(__file__).resolve().parents[4]
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 _VENV_PYTHON = _REPO_ROOT / "contracts" / ".venv" / "bin" / "python"
 
 

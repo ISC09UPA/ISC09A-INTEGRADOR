@@ -1,0 +1,25 @@
+[Unit]
+Description=Casa Domotica device agent (controlador de E/S + Azure IoT)
+Documentation=file:///opt/casa-pi/Documentacion/DISPOSITIVO.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=casa
+Group=casa
+SupplementaryGroups=dialout video
+EnvironmentFile=/etc/casa-pi/agent.env
+WorkingDirectory=/opt/casa-pi
+ExecStart=/opt/casa-pi/venv/bin/python /opt/casa-pi/Device/agent/casa_agent.py --transport iot
+Restart=always
+RestartSec=5
+StateDirectory=casa-pi
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/casa-pi
+
+[Install]
+WantedBy=multi-user.target

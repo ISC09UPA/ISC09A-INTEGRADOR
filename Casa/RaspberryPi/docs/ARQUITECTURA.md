@@ -20,7 +20,7 @@ El lector de huellas entrega un identificador de plantilla o resultado de coinci
 `casa-pi` será un único proceso Python 3 iniciado por `systemd`. El proceso organiza tareas de lectura, publicación y recepción de órdenes. Un propietario único controla la cámara para evitar que dos tareas intenten usarla a la vez. Los controladores físicos quedan detrás de interfaces, de modo que QEMU use controladores simulados.
 
 ```text
-device/raspberry-agent/
+RaspberryPi/
 ├── README.md                         diseño y pasos de operación
 ├── pyproject.toml                    paquete Python y dependencias
 ├── .env.example                      nombres de variables; sin credenciales reales

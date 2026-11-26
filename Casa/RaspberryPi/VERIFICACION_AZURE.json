@@ -1,6 +1,6 @@
 {
   "utc": "2026-10-27T00:42:47.645990+00:00",
-  "hub": "i9n-karma-iothub",
+  "hub": "iothub-casa-example",
   "device": "raspberry-sim",
   "checks": [
     {
