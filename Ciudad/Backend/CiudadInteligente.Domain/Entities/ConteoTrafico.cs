@@ -5,7 +5,7 @@ namespace CiudadInteligente.Domain.Entities;
 /// <summary>
 /// Vehiculos detectados por la camara en cada acceso en un momento dado.
 /// Lo manda el script Embebidos/RaspberryPi/vision y se guarda en la tabla
-/// ConteosTrafico (SQLite).
+/// ConteosTrafico (Azure SQL).
 /// </summary>
 public class ConteoTrafico
 {

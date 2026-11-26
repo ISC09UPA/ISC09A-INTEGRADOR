@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpLogging;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -58,13 +59,18 @@ builder.Services.AddAuthorizationBuilder()
         .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, AutenticacionDispositivo.Esquema)
         .RequireRole(RolesUsuario.Dispositivo, RolesUsuario.Administrador));
 
-// Maximo 10 intentos de login por minuto desde la misma IP (429 despues)
+// Maximo 10 intentos de login por minuto desde la misma IP (429 despues).
+// Lo publico (usuarios sin cuenta) tiene su propio limite: 300 peticiones por
+// minuto por IP (la app pide el estado cada segundo = 60 por minuto).
 builder.Services.AddRateLimiter(opciones =>
 {
     opciones.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     opciones.AddPolicy(Politicas.LimiteLogin, contexto => RateLimitPartition.GetFixedWindowLimiter(
         contexto.Connection.RemoteIpAddress?.ToString() ?? "desconocida",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    opciones.AddPolicy(Politicas.LimitePublico, contexto => RateLimitPartition.GetFixedWindowLimiter(
+        contexto.Connection.RemoteIpAddress?.ToString() ?? "desconocida",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 300, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
 });
 
 // Registro de peticiones: metodo, ruta, codigo y duracion. No guarda
@@ -81,15 +87,36 @@ builder.Services.AddHttpLogging(opciones =>
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ManejadorErrores>();
 
-// La app del celular llama desde otra IP de la misma red WiFi
+// Detras del proxy de Azure (Container Apps / App Service) la IP real del cliente
+// llega en X-Forwarded-For; sin esto el limite por IP vería una sola IP para todos.
+builder.Services.Configure<ForwardedHeadersOptions>(opciones =>
+{
+    opciones.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // el proxy de Azure no es una IP fija conocida: se confia en el unico salto que hay delante
+    opciones.KnownIPNetworks.Clear();
+    opciones.KnownProxies.Clear();
+    opciones.ForwardLimit = 1;
+});
+
+// CORS: Cors:Origenes = lista separada por comas (Cors__Origenes). La app movil nativa
+// no usa CORS; solo importa para la version web. Vacio = cualquier origen (desarrollo).
+var origenes = (builder.Configuration["Cors:Origenes"] ?? string.Empty)
+    .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 builder.Services.AddCors(opciones =>
 {
-    opciones.AddDefaultPolicy(politica => politica.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+    opciones.AddDefaultPolicy(politica =>
+    {
+        if (origenes.Length == 0) politica.AllowAnyOrigin();
+        else politica.WithOrigins(origenes);
+        politica.AllowAnyMethod().AllowAnyHeader();
+    });
 });
+
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
-// Crea las tablas SQLite si no existen (y los usuarios iniciales) y abre la conexion con el ESP32
+// Crea las tablas en Azure SQL si no existen (y los usuarios iniciales) y abre la conexion con el ESP32
 app.Services.IniciarInfraestructura();
 
 if (jwt.ClaveGenerada)
@@ -106,6 +133,7 @@ if (string.IsNullOrWhiteSpace(builder.Configuration["Dispositivos:ApiKey"]))
         "Configurala con: dotnet user-secrets set \"Dispositivos:ApiKey\" \"<llave>\"");
 }
 
+app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseHttpLogging();
 
@@ -125,5 +153,8 @@ app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Sondeo de salud para Azure (sin sesion)
+app.MapHealthChecks("/health").AllowAnonymous();
 
 app.Run();

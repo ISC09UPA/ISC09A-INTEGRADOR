@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CiudadInteligente.Infrastructure.Persistence.Repositories;
 
-/// <summary>Tabla ConteosTrafico con Entity Framework Core (SQLite).</summary>
+/// <summary>Tabla ConteosTrafico con Entity Framework Core (SQL Server).</summary>
 public sealed class ConteoTraficoRepository(AppDbContext db) : IConteoTraficoRepository
 {
     public async Task GuardarAsync(ConteoTrafico conteo)
@@ -29,7 +29,6 @@ public sealed class ConteoTraficoRepository(AppDbContext db) : IConteoTraficoRep
             .ToListAsync();
 
     public async Task<IReadOnlyList<ConteoTrafico>> ObtenerDesdeAsync(DateTimeOffset desde) =>
-        // las fechas se guardan como texto ISO en UTC: comparar texto = comparar fechas
         await db.ConteosTrafico.AsNoTracking()
             .Where(c => c.RegistradoEn >= desde)
             .OrderBy(c => c.RegistradoEn)

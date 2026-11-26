@@ -1,0 +1,9 @@
+# Llaves locales: nunca al repo
+.env
+# Compilacion y bases locales
+bin/
+obj/
+.vs/
+*.db
+*.db-shm
+*.db-wal
