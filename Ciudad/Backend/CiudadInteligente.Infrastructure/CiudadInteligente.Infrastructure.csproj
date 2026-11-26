@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\CiudadInteligente.Application\CiudadInteligente.Application.csproj" />
@@ -6,12 +6,21 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- ORM: Entity Framework Core con el proveedor de SQLite -->
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
+    <!-- ORM: Entity Framework Core con SQL Server (Azure SQL Database) -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.9" />
+    <!-- HttpClient para la prediccion de Custom Vision -->
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.9" />
     <!-- ESP32 por USB (transporte "Serial") -->
     <PackageReference Include="System.IO.Ports" Version="10.0.9" />
     <!-- Transporte "IoTHub": lectura de la telemetria de la Raspberry -->
     <PackageReference Include="Azure.Messaging.EventHubs" Version="5.11.5" />
+    <!-- Cola de eventos: Azure Service Bus -->
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.20.1" />
+    <!-- Correo: Azure Communication Services Email -->
+    <PackageReference Include="Azure.Communication.Email" Version="1.0.1" />
+    <!-- Version corregida: la 9.0.4 que traen los paquetes de Azure tiene vulnerabilidades conocidas -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
     <!-- AddInfrastructure(IConfiguration) -->
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.9" />

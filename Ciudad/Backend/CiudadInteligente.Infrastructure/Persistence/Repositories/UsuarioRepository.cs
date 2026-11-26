@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CiudadInteligente.Infrastructure.Persistence.Repositories;
 
-/// <summary>Tabla Usuarios con Entity Framework Core (SQLite).</summary>
+/// <summary>Tabla Usuarios con Entity Framework Core (SQL Server).</summary>
 public sealed class UsuarioRepository(AppDbContext db) : IUsuarioRepository
 {
     public Task<Usuario?> ObtenerPorNombreAsync(string nombreUsuario) =>
-        // la columna es COLLATE NOCASE: "Admin" y "admin" son el mismo usuario
+        // el collation de la base no distingue mayusculas: "Admin" y "admin" son el mismo usuario
         db.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.NombreUsuario == nombreUsuario);
 
     public Task<Usuario?> ObtenerPorIdAsync(long id) =>

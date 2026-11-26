@@ -1,9 +1,9 @@
 namespace CiudadInteligente.Infrastructure.Persistence;
 
 /// <summary>
-/// Crea las tablas si no existen (al arrancar la API). No hace falta correr
-/// ningun script a mano: el archivo .db aparece solo junto al proyecto API.
-/// Si el archivo ya trae las tablas (de la version anterior) no se toca.
+/// Crea las tablas si no existen (al arrancar la API) en la base configurada
+/// en ConnectionStrings:CiudadInteligente (Azure SQL). La base de datos ya debe
+/// existir en el servidor; si ya trae las tablas no se toca.
 /// </summary>
 public static class InicializadorBaseDeDatos
 {

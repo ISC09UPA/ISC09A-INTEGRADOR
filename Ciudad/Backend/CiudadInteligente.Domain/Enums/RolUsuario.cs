@@ -4,6 +4,10 @@ namespace CiudadInteligente.Domain.Enums;
 /// Quien usa la app:
 ///   Administrador: todo, incluido el control manual del cruce y los usuarios.
 ///   Operador:      monitorea el cruce y las estadisticas, y atiende emergencias.
+///
+/// Ciudadano (usuario normal) NO es una cuenta: es cualquier persona que abre
+/// la app sin iniciar sesion. Por eso no esta en este enum ni en la base de datos;
+/// solo puede ver el estado del cruce y el trafico (api/publico/...).
 /// </summary>
 public enum RolUsuario
 {
@@ -16,6 +20,12 @@ public static class RolesUsuario
 {
     public const string Administrador = "administrador";
     public const string Operador = "operador";
+
+    /// <summary>
+    /// Usuario normal: sin cuenta ni contrasena. Solo lectura de api/publico/*.
+    /// Es el rol que la app asume cuando no hay sesion iniciada.
+    /// </summary>
+    public const string Ciudadano = "ciudadano";
 
     /// <summary>No es una persona: la camara o el simulador, con la llave X-Api-Key.</summary>
     public const string Dispositivo = "dispositivo";

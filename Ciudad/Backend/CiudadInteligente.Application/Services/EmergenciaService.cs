@@ -11,6 +11,8 @@ namespace CiudadInteligente.Application.Services;
 public class EmergenciaService(
     ISemaforoController semaforo,
     IEmergenciaRepository repositorio,
+    IPublicadorEventos eventos,
+    IServicioCorreo correo,
     ILogger<EmergenciaService> logger) : IEmergenciaService
 {
     private const int LargoMaximoUnidad = 80;
@@ -47,6 +49,18 @@ public class EmergenciaService(
         // Seguridad primero: el corredor se activa ANTES de intentar guardar.
         // Si la base de datos falla, la ambulancia igual tiene paso.
         await semaforo.ActivarAmbulanciaAsync(dto.Acceso);
+        await eventos.PublicarAsync(new EventoCruce("emergencia.solicitada", DateTimeOffset.UtcNow,
+            new Dictionary<string, object?>
+            {
+                ["unidad"] = unidad,
+                ["acceso"] = dto.Acceso,
+                ["tipo"] = tipo.ToString(),
+                ["etaMinutos"] = dto.EtaMinutos
+            }));
+        // sin await: el aviso por correo no debe retrasar la respuesta; el servicio nunca lanza.
+        _ = correo.NotificarAsync(
+            $"Emergencia: {unidad}",
+            $"Se activó el corredor de emergencia.\nUnidad: {unidad}\nTipo: {tipo}\nAcceso: {dto.Acceso}\nLlegada estimada: {dto.EtaMinutos} min");
 
         var emergencia = new Emergencia
         {
@@ -72,6 +86,8 @@ public class EmergenciaService(
     public async Task FinalizarAsync()
     {
         await semaforo.FinalizarAmbulanciaAsync();
+        await eventos.PublicarAsync(new EventoCruce("emergencia.finalizada", DateTimeOffset.UtcNow,
+            new Dictionary<string, object?>()));
 
         try
         {

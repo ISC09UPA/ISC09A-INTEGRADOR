@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CiudadInteligente.Infrastructure.Persistence.Repositories;
 
-/// <summary>Tabla Emergencias con Entity Framework Core (SQLite).</summary>
+/// <summary>Tabla Emergencias con Entity Framework Core (SQL Server).</summary>
 public sealed class EmergenciaRepository(AppDbContext db) : IEmergenciaRepository
 {
     public async Task<int> RegistrarAsync(Emergencia emergencia)
