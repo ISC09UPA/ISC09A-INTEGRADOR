@@ -1,0 +1,215 @@
+@page "/existencias"
+@attribute [Authorize(Policy = Permisos.Almacenes.VerExistencias)]
+@using AlmacenInteligente.Application.Almacenes
+@using AlmacenInteligente.Application.Consultas
+@inherits PaginaBase
+
+<PageTitle>Existencias · Almacén inteligente</PageTitle>
+
+<Encabezado Titulo="Existencias" Descripcion="Lo que hay de cada producto en cada almacén, con su costo promedio ponderado.">
+    <Acciones>
+        @if (Puede(Permisos.Almacenes.Gestionar))
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AbrirStockInicial">Stock inicial</MudButton>
+        }
+    </Acciones>
+</Encabezado>
+
+<MudPaper Outlined="true" Elevation="0">
+    <MudTable @ref="_tabla" T="ExistenciaDto" ServerData="CargarAsync" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm"
+              RowsPerPage="50" Elevation="0" LoadingProgressColor="Color.Primary">
+        <ToolBarContent>
+            <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="3" AlignItems="AlignItems.Center" Class="flex-grow-1">
+                <MudSelect T="Guid?" Value="_almacenId" ValueChanged="CambiarAlmacenAsync" Label="Almacén" Clearable="true" Dense="true" Style="max-width:240px">
+                    @foreach (var a in _almacenes)
+                    {
+                        <MudSelectItem T="Guid?" Value="@a.Id">@a.Nombre</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField T="string" Value="_busqueda" ValueChanged="BuscarAsync" Placeholder="Buscar producto"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" DebounceInterval="350"
+                              Clearable="true" Immediate="true" Class="mt-0" Style="max-width:300px" />
+                <MudSpacer />
+                <MudSwitch T="bool" Value="_soloBajo" ValueChanged="CambiarBajoAsync" Color="Color.Warning" Label="Solo bajo mínimo" />
+            </MudStack>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Almacén</MudTh>
+            <MudTh>Producto</MudTh>
+            <MudTh Style="text-align:right">Existencia</MudTh>
+            <MudTh Style="text-align:right">Mínimo</MudTh>
+            <MudTh Style="text-align:right">Costo promedio</MudTh>
+            <MudTh Style="text-align:right">Valor</MudTh>
+            <MudTh Style="text-align:right">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Almacén">@context.Almacen</MudTd>
+            <MudTd DataLabel="Producto">
+                <b>@context.Referencia</b> <span class="tabla-celda-secundaria">@context.Descripcion</span>
+            </MudTd>
+            <MudTd DataLabel="Existencia" Class="numero">
+                @if (context.BajoMinimo)
+                {
+                    <MudTooltip Text="En o por debajo del mínimo">
+                        <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Warning" Size="Size.Small" Class="mr-1" Style="vertical-align:middle" />
+                    </MudTooltip>
+                }
+                @Formato.Cantidad(context.Cantidad) @context.Unidad
+            </MudTd>
+            <MudTd DataLabel="Mínimo" Class="numero">@(context.StockMinimo > 0 ? Formato.Cantidad(context.StockMinimo) : "—")</MudTd>
+            <MudTd DataLabel="Costo promedio" Class="numero">@Formato.Costo(context.CostoPromedio)</MudTd>
+            <MudTd DataLabel="Valor" Class="numero">@Formato.Dinero(context.Valor)</MudTd>
+            <MudTd DataLabel="Acciones" Style="text-align:right; white-space:nowrap">
+                <MudTooltip Text="Kardex">
+                    <MudIconButton Icon="@Icons.Material.Outlined.ReceiptLong" Size="Size.Small"
+                                   Href="@($"kardex?almacen={context.AlmacenId}&producto={context.ProductoId}")" aria-label="Kardex" />
+                </MudTooltip>
+                @if (Puede(Permisos.Almacenes.Gestionar))
+                {
+                    <MudTooltip Text="Definir mínimo">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Tune" Size="Size.Small" OnClick="() => AbrirMinimo(context)" aria-label="Definir mínimo" />
+                    </MudTooltip>
+                }
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-6" Color="Color.Secondary">
+                No hay existencias que coincidan. Se crean al recibir mercancía o al capturar stock inicial.
+            </MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager RowsPerPageString="Filas por página:" InfoFormat="{first_item}–{last_item} de {all_items}" PageSizeOptions="new[] { 25, 50, 100 }" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@* Stock mínimo *@
+<MudDialog @bind-Visible="_minimoVisible" Options="new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true }">
+    <TitleContent>Stock mínimo</TitleContent>
+    <DialogContent>
+        @if (_seleccion is not null)
+        {
+            <MudText Typo="Typo.body2" Class="mb-3"><b>@_seleccion.Referencia</b> en @_seleccion.Almacen. Al llegar a este nivel se avisa por correo al encargado y al gerente.</MudText>
+        }
+        <MudNumericField T="decimal" @bind-Value="_minimo" Label="Mínimo" Min="0" Format="0.###" HelperText="0 para no avisar" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _minimoVisible = false">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="GuardarMinimoAsync">Guardar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* Stock inicial *@
+<MudDialog @bind-Visible="_inicialVisible" Options="new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true }">
+    <TitleContent>Capturar stock inicial</TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">Para existencias que ya había antes de usar el sistema. Queda en el kardex como movimiento de stock inicial y no genera movimiento financiero.</MudText>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3">@_error</MudAlert>
+        }
+        <MudStack Spacing="3">
+            <MudSelect T="Guid?" @bind-Value="_inicialAlmacen" Label="Almacén" AnchorOrigin="Origin.BottomCenter">
+                @foreach (var a in _almacenes)
+                {
+                    <MudSelectItem T="Guid?" Value="@a.Id">@a.Nombre</MudSelectItem>
+                }
+            </MudSelect>
+            <SelectorProducto @bind-Value="_inicialProducto" />
+            <MudStack Row="true" Spacing="3">
+                <MudNumericField T="decimal" @bind-Value="_inicialCantidad" Label="Cantidad" Min="0" Format="0.###" />
+                <MudNumericField T="decimal" @bind-Value="_inicialCosto" Label="Costo unitario" Min="0" Format="0.####" Adornment="Adornment.Start" AdornmentText="$" />
+            </MudStack>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => _inicialVisible = false">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="GuardarInicialAsync" Disabled="_guardando">Registrar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [SupplyParameterFromQuery(Name = "almacen")] public Guid? AlmacenInicial { get; set; }
+    [SupplyParameterFromQuery(Name = "busqueda")] public string? BusquedaInicial { get; set; }
+    [SupplyParameterFromQuery(Name = "bajo")] public bool BajoInicial { get; set; }
+
+    private MudTable<ExistenciaDto> _tabla = default!;
+    private IReadOnlyList<AlmacenDto> _almacenes = [];
+    private Guid? _almacenId;
+    private string? _busqueda;
+    private bool _soloBajo;
+
+    private bool _minimoVisible;
+    private ExistenciaDto? _seleccion;
+    private decimal _minimo;
+
+    private bool _inicialVisible;
+    private Guid? _inicialAlmacen;
+    private ProductoOpcionDto? _inicialProducto;
+    private decimal _inicialCantidad;
+    private decimal _inicialCosto;
+    private string? _error;
+    private bool _guardando;
+
+    protected override async Task AlIniciarAsync()
+    {
+        (_almacenId, _busqueda, _soloBajo) = (AlmacenInicial, BusquedaInicial, BajoInicial);
+        var (_, almacenes) = await IntentarAsync(new ListarAlmacenes());
+        _almacenes = almacenes ?? [];
+    }
+
+    private async Task<TableData<ExistenciaDto>> CargarAsync(TableState estado, CancellationToken ct)
+    {
+        var filtro = new FiltroExistencias(_almacenId, _busqueda, _soloBajo, estado.Page + 1, estado.PageSize);
+        var (exito, pagina) = await IntentarAsync(new ListarExistencias(filtro));
+        return exito && pagina is not null
+            ? new TableData<ExistenciaDto> { Items = pagina.Elementos, TotalItems = pagina.Total }
+            : new TableData<ExistenciaDto> { Items = [], TotalItems = 0 };
+    }
+
+    private async Task CambiarAlmacenAsync(Guid? id) { _almacenId = id; await _tabla.ReloadServerData(); }
+    private async Task BuscarAsync(string? texto) { _busqueda = texto; await _tabla.ReloadServerData(); }
+    private async Task CambiarBajoAsync(bool valor) { _soloBajo = valor; await _tabla.ReloadServerData(); }
+
+    private void AbrirMinimo(ExistenciaDto e)
+    {
+        (_seleccion, _minimo, _minimoVisible) = (e, e.StockMinimo, true);
+    }
+
+    private async Task GuardarMinimoAsync()
+    {
+        if (_seleccion is null)
+            return;
+        var (exito, _) = await IntentarAsync(new DefinirStockMinimo(_seleccion.AlmacenId, _seleccion.ProductoId, _minimo), "Mínimo actualizado.");
+        if (!exito)
+            return;
+        _minimoVisible = false;
+        await _tabla.ReloadServerData();
+    }
+
+    private void AbrirStockInicial()
+    {
+        (_inicialAlmacen, _inicialProducto, _inicialCantidad, _inicialCosto, _error) = (_almacenId, null, 0, 0, null);
+        _inicialVisible = true;
+    }
+
+    private async Task GuardarInicialAsync()
+    {
+        if (_inicialAlmacen is not { } almacen || _inicialProducto is null)
+        {
+            _error = "Elige el almacén y el producto.";
+            return;
+        }
+        _guardando = true;
+        var (_, mensaje) = await EjecutarAsync(new RegistrarStockInicial(almacen, _inicialProducto.Id, _inicialCantidad, _inicialCosto));
+        _guardando = false;
+        if (mensaje is not null)
+        {
+            _error = mensaje;
+            return;
+        }
+        Avisos.Add($"Stock inicial de {_inicialProducto.Referencia} registrado.", Severity.Success);
+        _inicialVisible = false;
+        await _tabla.ReloadServerData();
+    }
+}

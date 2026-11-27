@@ -1,0 +1,38 @@
+@page "/ventas/{Id:guid}"
+@attribute [Authorize(Policy = Permisos.Ventas.Ver)]
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Application.Documentos
+@using AlmacenInteligente.Web.Components.Documentos
+@inherits PaginaBase
+@inject IDialogService Dialogos
+
+<PageTitle>Venta · Almacén inteligente</PageTitle>
+
+@if (_detalle is null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <DetalleDocumento Detalle="_detalle" PdfUrl="@($"pdf/ventas/{Id}")" Nombre="Venta" Prefijo="VTA" Volver="ventas" EtiquetaTercero="Cliente"
+                      AlmacenPorLinea="true" PuedeCancelar="Puede(Permisos.Ventas.Cancelar)" OnCancelar="CancelarAsync" />
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private DocumentoDetalleDto? _detalle;
+
+    protected override async Task AlIniciarAsync() => (_, _detalle) = await IntentarAsync(new ObtenerVenta(Id));
+
+    private async Task CancelarAsync()
+    {
+        var motivo = await MotivoDialog.PedirAsync(Dialogos, "Cancelar venta",
+            "La mercancía regresa a cada almacén y se revierte el ingreso.", "Cancelar venta");
+        if (motivo is null)
+            return;
+        var (exito, _) = await IntentarAsync(new CancelarVenta(Id, motivo), "Venta cancelada.");
+        if (exito)
+            (_, _detalle) = await IntentarAsync(new ObtenerVenta(Id));
+    }
+}

@@ -1,0 +1,74 @@
+@page "/iot/accesos"
+@attribute [Authorize(Policy = Permisos.Iot.VerAccesos)]
+@using AlmacenInteligente.Application.Iot
+@inherits PaginaBase
+
+<PageTitle>Accesos · Almacén inteligente</PageTitle>
+
+<Encabezado Titulo="Accesos" Descripcion="Cada intento de entrar con tarjeta NFC + reconocimiento facial que llegó del embebido." />
+
+<MudPaper Outlined="true" Elevation="0" Class="pa-4 mb-4">
+    <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="3" AlignItems="AlignItems.Center">
+        <MudDateRangePicker DateFormat="dd/MM/yyyy" DateRange="_rango" DateRangeChanged="CambiarRangoAsync" Label="Periodo" Culture="Formato.Mx"
+                            Clearable="true" Style="max-width:280px" />
+        <MudSelect T="bool?" Value="_permitido" ValueChanged="CambiarResultadoAsync" Label="Resultado" Clearable="true" Dense="true" Style="max-width:200px">
+            <MudSelectItem T="bool?" Value="true">Permitidos</MudSelectItem>
+            <MudSelectItem T="bool?" Value="false">Negados</MudSelectItem>
+        </MudSelect>
+        <MudSpacer />
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Refresh" OnClick="() => _tabla.ReloadServerData()">Actualizar</MudButton>
+    </MudStack>
+</MudPaper>
+
+<MudPaper Outlined="true" Elevation="0">
+    <MudTable @ref="_tabla" T="AccesoIotDto" ServerData="CargarAsync" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm"
+              RowsPerPage="50" Elevation="0" LoadingProgressColor="Color.Primary">
+        <HeaderContent>
+            <MudTh>Fecha</MudTh>
+            <MudTh>Resultado</MudTh>
+            <MudTh>Usuario</MudTh>
+            <MudTh>Tarjeta NFC</MudTh>
+            <MudTh Style="text-align:right">Confianza</MudTh>
+            <MudTh>Motivo</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Fecha">@Formato.FechaHora(context.Fecha)</MudTd>
+            <MudTd DataLabel="Resultado">
+                <Chip Texto="@(context.Permitido ? "Permitido" : "Negado")" Color="@(context.Permitido ? Color.Success : Color.Error)" />
+            </MudTd>
+            <MudTd DataLabel="Usuario">@(context.Usuario ?? "—")</MudTd>
+            <MudTd DataLabel="Tarjeta NFC"><span class="tabla-celda-secundaria">@(context.Nfc ?? "—")</span></MudTd>
+            <MudTd DataLabel="Confianza" Class="numero">@context.Confianza.ToString("P0", Formato.Mx)</MudTd>
+            <MudTd DataLabel="Motivo">@context.Motivo</MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-6" Color="Color.Secondary">No hay accesos registrados en ese periodo.</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager RowsPerPageString="Filas por página:" InfoFormat="{first_item}–{last_item} de {all_items}" PageSizeOptions="new[] { 25, 50, 100 }" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<AccesoIotDto> _tabla = default!;
+    private DateRange? _rango;
+    private bool? _permitido;
+
+    private async Task<TableData<AccesoIotDto>> CargarAsync(TableState estado, CancellationToken ct)
+    {
+        var filtro = new FiltroAccesosIot(
+            _permitido,
+            _rango?.Start is { } s ? DateOnly.FromDateTime(s) : null,
+            _rango?.End is { } e ? DateOnly.FromDateTime(e) : null,
+            estado.Page + 1, estado.PageSize);
+        var (exito, pagina) = await IntentarAsync(new ListarAccesosIot(filtro));
+        return exito && pagina is not null
+            ? new TableData<AccesoIotDto> { Items = pagina.Elementos, TotalItems = pagina.Total }
+            : new TableData<AccesoIotDto> { Items = [], TotalItems = 0 };
+    }
+
+    private async Task CambiarRangoAsync(DateRange? rango) { _rango = rango; await _tabla.ReloadServerData(); }
+
+    private async Task CambiarResultadoAsync(bool? permitido) { _permitido = permitido; await _tabla.ReloadServerData(); }
+}

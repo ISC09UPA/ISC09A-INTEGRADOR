@@ -78,6 +78,12 @@ public static class Permisos
         public const string Acceder = "api.acceder";
     }
 
+    public static class Iot
+    {
+        /// <summary>Ver la bitácora de accesos con tarjeta NFC + reconocimiento facial.</summary>
+        public const string VerAccesos = "iot.accesos.ver";
+    }
+
     public static class Alertas
     {
         /// <summary>Recibe el correo de bajo stock.</summary>

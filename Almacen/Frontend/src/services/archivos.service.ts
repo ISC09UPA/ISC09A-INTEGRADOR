@@ -1,28 +1,29 @@
 import { Directory, File, Paths } from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 
-import { ErrorApi, HttpClient, type Parametros } from '@/api/http-client';
+import { ErrorApi, HttpClient } from '@/api/http-client';
 import type { ArchivoLocal } from '@/models/archivo-local.model';
-import type { TipoDocumento, TipoReporte } from '@/types/enums';
+import type { TipoDocumento } from '@/types/enums';
 
-import { MovimientosService, type FiltroMovimientos } from './movimientos.service';
-import type { Periodo } from './reportes.service';
-
-const RUTA_COMPROBANTE: Record<TipoDocumento, string> = {
+const RUTAS: Record<TipoDocumento, string> = {
   Venta: '/api/pdf/ventas',
   Recepcion: '/api/pdf/recepciones',
   Traspaso: '/api/pdf/traspasos',
 };
 
+<<<<<<< HEAD
 /**
  * PDF y CSV de la API. En el navegador se abren en otra pestaña (o se descargan);
  * en el teléfono se bajan a la caché y la app los muestra en su visor, con opciones de compartir y guardar.
  */
+=======
+/** Descarga PDF de la API (con el token) a la caché del teléfono, o a un blob en el navegador. */
+>>>>>>> origin/7jaylosmolcafriends-almacen-develop
 export class ArchivosService {
   constructor(private readonly http: HttpClient) {}
 
   comprobante(tipo: TipoDocumento, id: string, nombre: string) {
+<<<<<<< HEAD
     return this.abrir(`${RUTA_COMPROBANTE[tipo]}/${id}`, undefined, nombre);
   }
 
@@ -123,6 +124,25 @@ export class ArchivosService {
     } catch (e) {
       ventana?.close();
       throw e;
+=======
+    return this.descargar(`${RUTAS[tipo]}/${id}`, nombre, 'application/pdf');
+  }
+
+  private async descargar(ruta: string, nombre: string, tipo: string): Promise<ArchivoLocal> {
+    if (Platform.OS === 'web') {
+      const blob = await this.http.blob(ruta);
+      return { uri: URL.createObjectURL(blob), nombre, tipo };
+    }
+    const carpeta = new Directory(Paths.cache, 'archivos');
+    if (!carpeta.exists) carpeta.create({ intermediates: true });
+    const destino = new File(carpeta, nombre);
+    if (destino.exists) destino.delete();
+    try {
+      const archivo = await File.downloadFileAsync(this.http.url(ruta), destino, { headers: this.http.encabezadosAutorizacion });
+      return { uri: archivo.uri, nombre, tipo };
+    } catch (e) {
+      throw new ErrorApi(e instanceof Error ? `No se pudo descargar ${nombre}: ${e.message}` : `No se pudo descargar ${nombre}.`, 0);
+>>>>>>> origin/7jaylosmolcafriends-almacen-develop
     }
   }
 }

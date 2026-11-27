@@ -1,0 +1,6 @@
+<MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color">@Texto</MudChip>
+
+@code {
+    [Parameter, EditorRequired] public string Texto { get; set; } = string.Empty;
+    [Parameter] public Color Color { get; set; } = Color.Default;
+}

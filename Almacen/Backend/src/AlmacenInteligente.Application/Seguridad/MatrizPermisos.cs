@@ -42,6 +42,7 @@ public static class MatrizPermisos
             P.Reportes.Ver,
             P.Alertas.RecibirBajoStock,
             P.Api.Acceder,
+            P.Iot.VerAccesos,
         },
     };
 }

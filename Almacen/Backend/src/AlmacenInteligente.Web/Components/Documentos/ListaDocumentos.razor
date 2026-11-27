@@ -1,0 +1,118 @@
+@using AlmacenInteligente.Application.CasosDeUso
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Application.Terceros
+@using AlmacenInteligente.Domain.Documentos
+@inherits PaginaBase
+@inject NavigationManager Navegacion
+
+@* Lista compartida de recepciones, ventas y traspasos: filtros, folio, estado e importes. *@
+
+<Encabezado Titulo="@Titulo" Descripcion="@Descripcion">
+    <Acciones>
+        @if (Puede(PermisoCrear))
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Href="@($"{RutaBase}/nueva")">@TextoNuevo</MudButton>
+        }
+    </Acciones>
+</Encabezado>
+
+<MudPaper Outlined="true" Elevation="0">
+    <MudTable @ref="_tabla" T="DocumentoResumenDto" ServerData="CargarAsync" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm"
+              RowsPerPage="20" Elevation="0" LoadingProgressColor="Color.Primary" OnRowClick="Abrir" RowStyle="cursor:pointer">
+        <ToolBarContent>
+            <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="3" AlignItems="AlignItems.Center" Class="flex-grow-1">
+                <MudTextField T="string" Value="_busqueda" ValueChanged="BuscarAsync" Placeholder="@($"Folio o {EtiquetaTercero.ToLowerInvariant()}")"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" DebounceInterval="350"
+                              Clearable="true" Immediate="true" Class="mt-0" Style="max-width:300px" />
+                <MudDateRangePicker DateFormat="dd/MM/yyyy" DateRange="_rango" DateRangeChanged="CambiarRangoAsync" Label="Periodo" Culture="Formato.Mx" Clearable="true" Style="max-width:260px" />
+                <MudSelect T="EstadoDocumento?" Value="_estado" ValueChanged="CambiarEstadoAsync" Label="Estado" Clearable="true" Dense="true" Style="max-width:180px">
+                    <MudSelectItem T="EstadoDocumento?" Value="EstadoDocumento.Confirmado">Confirmados</MudSelectItem>
+                    <MudSelectItem T="EstadoDocumento?" Value="EstadoDocumento.Cancelado">Cancelados</MudSelectItem>
+                </MudSelect>
+            </MudStack>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Folio</MudTh>
+            <MudTh>Fecha</MudTh>
+            <MudTh>@EtiquetaTercero</MudTh>
+            @if (EtiquetaAlmacen is not null)
+            {
+                <MudTh>@EtiquetaAlmacen</MudTh>
+            }
+            <MudTh Style="text-align:right">Líneas</MudTh>
+            @if (MostrarImportes)
+            {
+                <MudTh Style="text-align:right">Subtotal</MudTh>
+                <MudTh Style="text-align:right">IVA</MudTh>
+                <MudTh Style="text-align:right">Total</MudTh>
+            }
+            <MudTh>Estado</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Folio"><MudLink Href="@($"{RutaBase}/{context.Id}")"><b>@Formato.Folio(Prefijo, context.Folio)</b></MudLink></MudTd>
+            <MudTd DataLabel="Fecha">@Formato.Fecha(context.Fecha)</MudTd>
+            <MudTd DataLabel="@EtiquetaTercero">@context.Tercero</MudTd>
+            @if (EtiquetaAlmacen is not null)
+            {
+                <MudTd DataLabel="@EtiquetaAlmacen"><span class="tabla-celda-secundaria">@context.Almacen</span></MudTd>
+            }
+            <MudTd DataLabel="Líneas" Class="numero">@context.Lineas</MudTd>
+            @if (MostrarImportes)
+            {
+                <MudTd DataLabel="Subtotal" Class="numero">@Formato.Dinero(context.Subtotal)</MudTd>
+                <MudTd DataLabel="IVA" Class="numero">@Formato.Dinero(context.Iva)</MudTd>
+                <MudTd DataLabel="Total" Class="numero"><b>@Formato.Dinero(context.Total)</b></MudTd>
+            }
+            <MudTd DataLabel="Estado">
+                @{ var (texto, color) = Formato.Estado(context.Estado); }
+                <Chip Texto="@texto" Color="color" />
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-6" Color="Color.Secondary">No hay documentos que coincidan.</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager RowsPerPageString="Filas por página:" InfoFormat="{first_item}–{last_item} de {all_items}" PageSizeOptions="new[] { 10, 20, 50 }" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string Titulo { get; set; } = string.Empty;
+    [Parameter] public string? Descripcion { get; set; }
+    [Parameter, EditorRequired] public string Prefijo { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string RutaBase { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string PermisoCrear { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string TextoNuevo { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string EtiquetaTercero { get; set; } = string.Empty;
+    [Parameter] public string? EtiquetaAlmacen { get; set; }
+    [Parameter] public bool MostrarImportes { get; set; } = true;
+    [Parameter, EditorRequired] public Func<FiltroDocumentos, ISolicitud<Pagina<DocumentoResumenDto>>> Listar { get; set; } = default!;
+
+    private MudTable<DocumentoResumenDto> _tabla = default!;
+    private string? _busqueda;
+    private DateRange? _rango;
+    private EstadoDocumento? _estado;
+
+    private async Task<TableData<DocumentoResumenDto>> CargarAsync(TableState estado, CancellationToken ct)
+    {
+        var filtro = new FiltroDocumentos(_busqueda, _estado,
+            _rango?.Start is { } s ? DateOnly.FromDateTime(s) : null,
+            _rango?.End is { } e ? DateOnly.FromDateTime(e) : null,
+            estado.Page + 1, estado.PageSize);
+        var (exito, pagina) = await IntentarAsync(Listar(filtro));
+        return exito && pagina is not null
+            ? new TableData<DocumentoResumenDto> { Items = pagina.Elementos, TotalItems = pagina.Total }
+            : new TableData<DocumentoResumenDto> { Items = [], TotalItems = 0 };
+    }
+
+    private void Abrir(TableRowClickEventArgs<DocumentoResumenDto> e)
+    {
+        if (e.Item is not null)
+            Navegacion.NavigateTo($"{RutaBase}/{e.Item.Id}");
+    }
+
+    private async Task BuscarAsync(string? texto) { _busqueda = texto; await _tabla.ReloadServerData(); }
+    private async Task CambiarRangoAsync(DateRange? rango) { _rango = rango; await _tabla.ReloadServerData(); }
+    private async Task CambiarEstadoAsync(EstadoDocumento? estado) { _estado = estado; await _tabla.ReloadServerData(); }
+}

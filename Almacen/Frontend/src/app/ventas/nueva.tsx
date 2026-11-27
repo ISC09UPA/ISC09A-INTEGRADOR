@@ -1,17 +1,20 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
+import type { Almacen } from '@/models/almacen.model';
 import type { Opcion } from '@/models/opcion.model';
 import type { ProductoOpcion } from '@/models/producto-opcion.model';
 import type { Tercero } from '@/models/tercero.model';
-import { ventasService } from '@/services';
+import type { Escaneo, SesionVenta } from '@/models/venta-inteligente.model';
+import { almacenesService, ventasService } from '@/services';
 import { BotonAgregarLinea, CampoPrecio, SelectorIva, TarjetaLinea, errorCantidad, nuevaClave, type LineaBase } from '@/components/captura';
 import { CampoFecha } from '@/components/fechas';
 import { SelectorTercero } from '@/components/selectores';
 import { FormularioTercero, Terceros } from '@/components/terceros';
-import { Aviso, Boton, Encabezado, Hoja, Pantalla, Selector, Tarjeta, Totales, avisar, mensajeDe } from '@/components/ui';
+import { Aviso, Boton, Encabezado, Hoja, Interruptor, Pantalla, Selector, Tarjeta, Texto, Totales, avisar, mensajeDe } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
+import { useVentaInteligente } from '@/hooks/use-venta-inteligente';
 import { Fechas, Formato, importeLinea, leerNumero, redondear } from '@/lib/formato';
 import { Permisos } from '@/lib/permisos';
 import { useSesion } from '@/lib/sesion';
@@ -27,6 +30,26 @@ const lineaVacia = (): Linea => ({ clave: nuevaClave(), producto: null, almacenI
 const disponible = (l: Linea) => l.producto?.existencias.find((e) => e.almacenId === l.almacenId)?.cantidad ?? 0;
 const importe = (l: Linea) => importeLinea(leerNumero(l.cantidad), leerNumero(l.precio), l.tasa);
 
+/**
+ * Agrega los productos escaneados como en la web: suma 1 si ya hay línea del producto en el almacén por defecto;
+ * si no, usa la primera línea vacía o agrega una. El precio lo sigue capturando el usuario.
+ */
+function agregarEscaneos(lineas: Linea[], escaneos: Escaneo[], almacenId: string): Linea[] {
+  let resultado = lineas;
+  for (const { producto } of escaneos) {
+    const existente = resultado.find((l) => l.producto?.id === producto.id && l.almacenId === almacenId);
+    if (existente) {
+      const cantidad = String(redondear(leerNumero(existente.cantidad || '0') + 1));
+      resultado = resultado.map((l) => (l === existente ? { ...l, cantidad } : l));
+      continue;
+    }
+    const vacia = resultado.find((l) => !l.producto);
+    const nueva: Linea = { ...(vacia ?? lineaVacia()), producto, almacenId, cantidad: '1' };
+    resultado = vacia ? resultado.map((l) => (l === vacia ? nueva : l)) : [...resultado, nueva];
+  }
+  return resultado;
+}
+
 /** Captura de venta (Ventas/NuevaVenta.razor): cliente, fecha y por línea el almacén de salida y el precio. */
 export default function NuevaVenta() {
   const { puede } = useSesion();
@@ -36,6 +59,32 @@ export default function NuevaVenta() {
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [altaCliente, setAltaCliente] = useState(false);
+  const [almacenes, setAlmacenes] = useState<Almacen[]>([]);
+  const [almacenModo, setAlmacenModo] = useState<string | null>(null);
+  const [escaneados, setEscaneados] = useState(0);
+  const puedeModo = puede(Permisos.Ventas.Crear);
+
+  const alEscanear = useCallback((escaneos: Escaneo[], s: SesionVenta) => {
+    setLineas((ls) => agregarEscaneos(ls, escaneos, s.almacenId));
+    setEscaneados((n) => n + escaneos.length);
+  }, []);
+  const modo = useVentaInteligente(alEscanear);
+
+  useEffect(() => {
+    if (!puedeModo) return;
+    almacenesService
+      .listar()
+      .then((as) => setAlmacenes(as.filter((a) => a.activo)))
+      .catch(() => setAlmacenes([]));
+  }, [puedeModo]);
+
+  const cambiarModo = (encender: boolean) => {
+    if (!encender) return void modo.desactivar();
+    if (!almacenModo) return setError('Elige el almacén por defecto para el modo inteligente.');
+    setError(null);
+    setEscaneados(0);
+    void modo.activar(almacenModo);
+  };
 
   const cambiar = (clave: number, cambios: Partial<Linea>) => setLineas((ls) => ls.map((l) => (l.clave === clave ? { ...l, ...cambios } : l)));
   const total = lineas.map(importe).reduce((t, i) => ({ subtotal: t.subtotal + i.subtotal, iva: t.iva + i.iva }), { subtotal: 0, iva: 0 });
@@ -49,6 +98,8 @@ export default function NuevaVenta() {
 
     setGuardando(true);
     try {
+      // El lector queda libre en cuanto se registra; los escaneos que no alcanzaron a llegar se descartan.
+      await modo.desactivar();
       const r = await ventasService.registrar({
         clienteId: cliente.id,
         fecha,
@@ -77,6 +128,27 @@ export default function NuevaVenta() {
           ) : null}
           <CampoFecha etiqueta="Fecha" valor={fecha} alCambiar={setFecha} />
         </Tarjeta>
+
+        {puedeModo ? (
+          <Tarjeta style={{ gap: Spacing.three }}>
+            <Interruptor etiqueta="Modo inteligente" valor={modo.activo || modo.tomando} alCambiar={cambiarModo} />
+            <Texto tipo="secundario">
+              Pasa los productos por el lector NFC del almacén y se agregan solos con cantidad 1. El precio lo capturas tú.
+            </Texto>
+            <Selector<string>
+              etiqueta="Almacén por defecto"
+              valor={modo.sesion?.almacenId ?? almacenModo ?? undefined}
+              opciones={almacenes.map((a) => ({ valor: a.id, texto: a.nombre, detalle: a.ubicacion }))}
+              alCambiar={setAlmacenModo}
+              placeholder="Elige el almacén de donde sale lo escaneado"
+              deshabilitado={modo.activo || modo.tomando}
+            />
+            {modo.error ? <Aviso tipo="error" texto={modo.error} /> : null}
+            {modo.activo && modo.sesion ? (
+              <Aviso tipo="exito" texto={`Escuchando el lector NFC · ${modo.sesion.almacen} · ${escaneados} escaneados`} />
+            ) : null}
+          </Tarjeta>
+        ) : null}
 
         {lineas.map((l, i) => (
           <TarjetaLinea

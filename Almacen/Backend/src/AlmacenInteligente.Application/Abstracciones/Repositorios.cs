@@ -37,6 +37,10 @@ public interface IUnidadRepositorio
 public interface IProductoRepositorio : IRepositorio<Producto>
 {
     Task<bool> ExisteReferenciaAsync(string referencia, CancellationToken ct = default);
+    Task<bool> ExisteCodigoNfcAsync(string codigoNfc, Guid? excepto, CancellationToken ct = default);
+
+    /// <summary>El producto con esa etiqueta NFC (UID ya normalizado).</summary>
+    Task<Producto?> ObtenerPorCodigoNfcAsync(string codigoNfc, CancellationToken ct = default);
     Task<IReadOnlyDictionary<Guid, Producto>> ObtenerVariosAsync(IEnumerable<Guid> ids, CancellationToken ct = default);
 }
 

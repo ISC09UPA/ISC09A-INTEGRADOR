@@ -1,0 +1,113 @@
+@page "/kardex"
+@attribute [Authorize(Policy = Permisos.Almacenes.VerExistencias)]
+@using AlmacenInteligente.Application.Almacenes
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Application.Productos
+@inherits PaginaBase
+
+<PageTitle>Kardex · Almacén inteligente</PageTitle>
+
+<Encabezado Titulo="Kardex" Volver="existencias" Descripcion="Historial de entradas y salidas de un producto en un almacén, con el saldo y el costo promedio después de cada movimiento." />
+
+<MudPaper Outlined="true" Elevation="0" Class="pa-4 mb-4">
+    <MudGrid Spacing="3">
+        <MudItem xs="12" sm="4">
+            <MudSelect T="Guid?" @bind-Value="_almacenId" Label="Almacén" AnchorOrigin="Origin.BottomCenter">
+                @foreach (var a in _almacenes)
+                {
+                    <MudSelectItem T="Guid?" Value="@a.Id">@a.Nombre</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="5">
+            <SelectorProducto @bind-Value="_producto" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudDateRangePicker DateFormat="dd/MM/yyyy" @bind-DateRange="_rango" Label="Periodo (opcional)" Culture="Formato.Mx" Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" Class="d-flex justify-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ConsultarAsync" Disabled="_almacenId is null || _producto is null">Consultar</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_movimientos is not null)
+{
+    <MudPaper Outlined="true" Elevation="0">
+        <MudTable T="KardexDto" Items="_movimientos" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0">
+            <HeaderContent>
+                <MudTh>Fecha</MudTh>
+                <MudTh>Movimiento</MudTh>
+                <MudTh>Documento</MudTh>
+                <MudTh Style="text-align:right">Entrada</MudTh>
+                <MudTh Style="text-align:right">Salida</MudTh>
+                <MudTh Style="text-align:right">Costo unitario</MudTh>
+                <MudTh Style="text-align:right">Saldo</MudTh>
+                <MudTh Style="text-align:right">Costo promedio</MudTh>
+                <MudTh>Usuario</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Fecha">@Formato.FechaHora(context.Fecha)</MudTd>
+                <MudTd DataLabel="Movimiento">@Formato.Movimiento(context.Tipo)</MudTd>
+                <MudTd DataLabel="Documento">
+                    @if (context.DocumentoTipo is { } tipo && context.DocumentoId is { } id)
+                    {
+                        <MudLink Href="@Formato.Ruta(tipo, id)">@Formato.Folio(Formato.Prefijo(tipo), context.Folio ?? 0)</MudLink>
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Entrada" Class="numero">@(context.Cantidad > 0 ? Formato.Cantidad(context.Cantidad) : "")</MudTd>
+                <MudTd DataLabel="Salida" Class="numero">@(context.Cantidad < 0 ? Formato.Cantidad(-context.Cantidad) : "")</MudTd>
+                <MudTd DataLabel="Costo unitario" Class="numero">@Formato.Costo(context.CostoUnitario)</MudTd>
+                <MudTd DataLabel="Saldo" Class="numero"><b>@Formato.Cantidad(context.Saldo)</b></MudTd>
+                <MudTd DataLabel="Costo promedio" Class="numero">@Formato.Costo(context.CostoPromedio)</MudTd>
+                <MudTd DataLabel="Usuario"><span class="tabla-celda-secundaria">@context.Usuario</span></MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-6" Color="Color.Secondary">No hay movimientos en ese periodo.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "almacen")] public Guid? AlmacenInicial { get; set; }
+    [SupplyParameterFromQuery(Name = "producto")] public Guid? ProductoInicial { get; set; }
+
+    private IReadOnlyList<AlmacenDto> _almacenes = [];
+    private Guid? _almacenId;
+    private ProductoOpcionDto? _producto;
+    private DateRange? _rango;
+    private IReadOnlyList<KardexDto>? _movimientos;
+
+    protected override async Task AlIniciarAsync()
+    {
+        var (_, almacenes) = await IntentarAsync(new ListarAlmacenes(IncluirInactivos: true));
+        _almacenes = almacenes ?? [];
+        _almacenId = AlmacenInicial;
+
+        if (ProductoInicial is { } productoId)
+        {
+            var (_, producto) = await IntentarAsync(new ObtenerProducto(productoId));
+            if (producto is not null)
+            {
+                _producto = new ProductoOpcionDto(producto.Id, producto.Referencia, producto.Descripcion, producto.Unidad, producto.PermiteFracciones, []);
+                if (_almacenId is not null)
+                    await ConsultarAsync();
+            }
+        }
+    }
+
+    private async Task ConsultarAsync()
+    {
+        if (_almacenId is not { } almacen || _producto is null)
+            return;
+        var desde = _rango?.Start is { } s ? DateOnly.FromDateTime(s) : (DateOnly?)null;
+        var hasta = _rango?.End is { } e ? DateOnly.FromDateTime(e) : (DateOnly?)null;
+        var (_, movimientos) = await IntentarAsync(new ConsultarKardex(almacen, _producto.Id, desde, hasta));
+        _movimientos = movimientos ?? [];
+    }
+}

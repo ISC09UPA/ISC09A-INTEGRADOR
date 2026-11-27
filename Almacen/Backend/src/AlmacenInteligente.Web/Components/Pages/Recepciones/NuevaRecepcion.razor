@@ -1,0 +1,140 @@
+@page "/recepciones/nueva"
+@attribute [Authorize(Policy = Permisos.Recepciones.Crear)]
+@using AlmacenInteligente.Application.Almacenes
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Application.Documentos
+@using AlmacenInteligente.Domain.ValueObjects
+@inherits PaginaBase
+@inject NavigationManager Navegacion
+
+<PageTitle>Nueva recepción · Almacén inteligente</PageTitle>
+
+<Encabezado Titulo="Nueva recepción" Volver="recepciones" Descripcion="Al registrarla se suman las existencias, se recalcula el costo promedio y se registra el egreso." />
+
+<MudPaper Outlined="true" Elevation="0" Class="pa-4 mb-4">
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="5">
+            <SelectorTercero @bind-Value="_proveedor" Clientes="false" Label="Proveedor" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudSelect T="Guid?" @bind-Value="_almacenId" Label="Almacén de destino" AnchorOrigin="Origin.BottomCenter">
+                @foreach (var a in _almacenes)
+                {
+                    <MudSelectItem T="Guid?" Value="@a.Id">@a.Nombre</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudDatePicker DateFormat="dd/MM/yyyy" @bind-Date="_fecha" Label="Fecha" Culture="Formato.Mx" MaxDate="DateTime.Today" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudPaper Outlined="true" Elevation="0" Class="pa-4">
+    <MudText Typo="Typo.h6" Class="mb-2">Productos recibidos</MudText>
+    @foreach (var linea in _lineas)
+    {
+        <MudGrid Spacing="2" Class="mb-1 align-center">
+            <MudItem xs="12" md="5">
+                <SelectorProducto @bind-Value="linea.Producto" Dense="true" />
+            </MudItem>
+            <MudItem xs="4" md="2">
+                <MudNumericField T="decimal" @bind-Value="linea.Cantidad" Label="@($"Cantidad{(linea.Producto is null ? "" : " (" + linea.Producto.Unidad + ")")}")" Min="0" Format="0.###" Immediate="true" />
+            </MudItem>
+            <MudItem xs="4" md="2">
+                <MudNumericField T="decimal" @bind-Value="linea.Costo" Label="Costo unitario" Min="0" Format="0.####" Adornment="Adornment.Start" AdornmentText="$" Immediate="true" />
+            </MudItem>
+            <MudItem xs="4" md="1">
+                <MudSelect T="decimal" @bind-Value="linea.Tasa" Label="IVA" Dense="true">
+                    @foreach (var (valor, texto) in Formato.TasasIva)
+                    {
+                        <MudSelectItem T="decimal" Value="valor">@texto</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="10" md="1" Class="numero">@Formato.Dinero(linea.Importe.Subtotal.Monto)</MudItem>
+            <MudItem xs="2" md="1" Class="d-flex justify-end">
+                <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small" OnClick="() => _lineas.Remove(linea)" Disabled="_lineas.Count == 1" aria-label="Quitar línea" />
+            </MudItem>
+        </MudGrid>
+    }
+    <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Text" Color="Color.Primary" OnClick="() => _lineas.Add(new Linea())" Class="mt-2">Agregar producto</MudButton>
+
+    <MudDivider Class="my-4" />
+    <div class="d-flex flex-wrap justify-space-between align-end gap-4">
+        <div>
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@_error</MudAlert>
+            }
+        </div>
+        <MudStack AlignItems="AlignItems.End" Spacing="3">
+            <div class="totales">
+                <div class="fila"><span>Subtotal</span><span>@Formato.Dinero(Total.Subtotal.Monto)</span></div>
+                <div class="fila"><span>IVA</span><span>@Formato.Dinero(Total.Iva.Monto)</span></div>
+                <div class="fila total"><span>Total</span><span>@Formato.Dinero(Total.Total.Monto)</span></div>
+            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="RegistrarAsync" Disabled="_guardando">
+                @(_guardando ? "Registrando…" : "Registrar recepción")
+            </MudButton>
+        </MudStack>
+    </div>
+</MudPaper>
+
+@code {
+    private sealed class Linea
+    {
+        public ProductoOpcionDto? Producto { get; set; }
+        public decimal Cantidad { get; set; }
+        public decimal Costo { get; set; }
+        public decimal Tasa { get; set; } = 0.16m;
+        public Importe Importe => Cantidad > 0 && Costo >= 0 ? Importe.DeLinea(Cantidad, Costo, new TasaIva(Tasa)) : Importe.Cero;
+    }
+
+    private IReadOnlyList<AlmacenDto> _almacenes = [];
+    private OpcionDto? _proveedor;
+    private Guid? _almacenId;
+    private DateTime? _fecha = DateTime.Today;
+    private readonly List<Linea> _lineas = [new()];
+    private string? _error;
+    private bool _guardando;
+
+    private Importe Total => _lineas.Aggregate(Importe.Cero, (t, l) => t + l.Importe);
+
+    protected override async Task AlIniciarAsync()
+    {
+        var (_, almacenes) = await IntentarAsync(new ListarAlmacenes());
+        _almacenes = almacenes ?? [];
+        if (_almacenes.Count == 1)
+            _almacenId = _almacenes[0].Id;
+    }
+
+    private async Task RegistrarAsync()
+    {
+        _error = null;
+        if (_proveedor is null || _almacenId is null || _fecha is null)
+        {
+            _error = "Elige proveedor, almacén y fecha.";
+            return;
+        }
+        if (_lineas.Any(l => l.Producto is null || l.Cantidad <= 0))
+        {
+            _error = "Cada línea necesita producto y cantidad mayor que cero.";
+            return;
+        }
+
+        _guardando = true;
+        var solicitud = new RegistrarRecepcion(_proveedor.Id, _almacenId.Value, DateOnly.FromDateTime(_fecha.Value),
+            _lineas.Select(l => new LineaRecepcionDto(l.Producto!.Id, l.Cantidad, l.Costo, l.Tasa)).ToList());
+        var (registrada, mensaje) = await EjecutarAsync(solicitud);
+        _guardando = false;
+
+        if (mensaje is not null)
+        {
+            _error = mensaje;
+            return;
+        }
+        Avisos.Add($"Recepción {Formato.Folio("REC", registrada!.Folio)} registrada.", Severity.Success);
+        Navegacion.NavigateTo($"recepciones/{registrada.Id}");
+    }
+}

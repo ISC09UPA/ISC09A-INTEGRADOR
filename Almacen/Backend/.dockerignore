@@ -5,3 +5,5 @@
 **/*.user
 .git/
 tests/
+# Configuración local: en Docker todo llega por variables de entorno (docker-compose.yml)
+**/appsettings*.json

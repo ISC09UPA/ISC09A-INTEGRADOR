@@ -1,0 +1,189 @@
+@page "/productos"
+@attribute [Authorize(Policy = Permisos.Productos.Ver)]
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Application.Productos
+@using AlmacenInteligente.Application.Terceros
+@using AlmacenInteligente.Domain.Productos
+@using AlmacenInteligente.Web.Components.Productos
+@inherits PaginaBase
+@inject IDialogService Dialogos
+
+<PageTitle>Productos · Almacén inteligente</PageTitle>
+
+<Encabezado Titulo="Productos" Descripcion="Catálogo de productos. Solo los aprobados se pueden recibir, vender o traspasar.">
+    <Acciones>
+        @if (Puede(Permisos.Productos.Aprobar))
+        {
+            <MudButton Href="productos/aprobaciones" Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.FactCheck">Aprobaciones</MudButton>
+        }
+        @if (Puede(Permisos.Productos.Crear))
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="NuevoAsync">Nuevo producto</MudButton>
+        }
+    </Acciones>
+</Encabezado>
+
+<MudPaper Outlined="true" Elevation="0">
+    <MudTable @ref="_tabla" T="ProductoDto" ServerData="CargarAsync" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm"
+              RowsPerPage="20" Elevation="0" LoadingProgressColor="Color.Primary">
+        <ToolBarContent>
+            <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="3" AlignItems="AlignItems.Center" Class="flex-grow-1">
+                <MudTextField T="string" Value="_busqueda" ValueChanged="BuscarAsync" Placeholder="Buscar por referencia o descripción"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" DebounceInterval="350"
+                              Clearable="true" Immediate="true" Class="mt-0" Style="max-width:360px" />
+                <MudSelect T="EstadoAprobacion?" Value="_estado" ValueChanged="CambiarEstadoFiltroAsync" Label="Aprobación" Clearable="true" Dense="true" Style="max-width:200px">
+                    <MudSelectItem T="EstadoAprobacion?" Value="EstadoAprobacion.Aprobado">Aprobados</MudSelectItem>
+                    <MudSelectItem T="EstadoAprobacion?" Value="EstadoAprobacion.Pendiente">Pendientes</MudSelectItem>
+                    <MudSelectItem T="EstadoAprobacion?" Value="EstadoAprobacion.Rechazado">Rechazados</MudSelectItem>
+                </MudSelect>
+                <MudSpacer />
+                <MudSwitch T="bool" Value="_inactivos" ValueChanged="CambiarInactivosAsync" Color="Color.Primary" Label="Mostrar inactivos" />
+            </MudStack>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh Style="width:56px"></MudTh>
+            <MudTh>Referencia</MudTh>
+            <MudTh>Descripción</MudTh>
+            <MudTh>Unidad</MudTh>
+            <MudTh Style="text-align:right">Existencia</MudTh>
+            <MudTh>Aprobación</MudTh>
+            <MudTh>Estado</MudTh>
+            <MudTh Style="text-align:right">Acciones</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                @if (context.ImagenRuta is { } ruta)
+                {
+                    <img src="archivos/@ruta" alt="" class="producto-miniatura" loading="lazy" />
+                }
+                else
+                {
+                    <div class="producto-miniatura producto-sin-imagen"><MudIcon Icon="@Icons.Material.Outlined.Inventory2" Size="Size.Small" /></div>
+                }
+            </MudTd>
+            <MudTd DataLabel="Referencia"><b>@context.Referencia</b></MudTd>
+            <MudTd DataLabel="Descripción">@context.Descripcion</MudTd>
+            <MudTd DataLabel="Unidad">@context.Unidad</MudTd>
+            <MudTd DataLabel="Existencia" Style="text-align:right">@Formato.Cantidad(context.Existencia)</MudTd>
+            <MudTd DataLabel="Aprobación">
+                @{ var (texto, color) = Formato.Estado(context.Estado); }
+                <MudTooltip Text="@TooltipAprobacion(context)">
+                    <Chip Texto="@texto" Color="color" />
+                </MudTooltip>
+            </MudTd>
+            <MudTd DataLabel="Estado"><Chip Texto="@(context.Activo ? "Activo" : "Inactivo")" Color="@(context.Activo ? Color.Success : Color.Default)" /></MudTd>
+            <MudTd DataLabel="Acciones" Style="text-align:right; white-space:nowrap">
+                @if (Puede(Permisos.Productos.Editar))
+                {
+                    <MudTooltip Text="Editar">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" OnClick="() => EditarAsync(context)" aria-label="Editar" />
+                    </MudTooltip>
+                    <MudTooltip Text="@(context.Activo ? "Desactivar" : "Activar")">
+                        <MudIconButton Icon="@(context.Activo ? Icons.Material.Outlined.Block : Icons.Material.Outlined.CheckCircle)" Size="Size.Small"
+                                       OnClick="() => CambiarEstadoAsync(context)" aria-label="@(context.Activo ? "Desactivar" : "Activar")" />
+                    </MudTooltip>
+                }
+                @if (Puede(Permisos.Almacenes.VerExistencias) && context.Estado == EstadoAprobacion.Aprobado)
+                {
+                    <MudTooltip Text="Ver existencias">
+                        <MudIconButton Icon="@Icons.Material.Outlined.Warehouse" Size="Size.Small" Href="@($"existencias?busqueda={Uri.EscapeDataString(context.Referencia)}")" aria-label="Ver existencias" />
+                    </MudTooltip>
+                }
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-6" Color="Color.Secondary">No hay productos que coincidan.</MudText>
+        </NoRecordsContent>
+        <PagerContent>
+            <MudTablePager RowsPerPageString="Filas por página:" InfoFormat="{first_item}–{last_item} de {all_items}" PageSizeOptions="new[] { 10, 20, 50 }" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    [SupplyParameterFromQuery(Name = "estado")] public string? EstadoInicial { get; set; }
+
+    private MudTable<ProductoDto> _tabla = default!;
+    private string? _busqueda;
+    private EstadoAprobacion? _estado;
+    private bool _inactivos;
+
+    private static readonly DialogOptions Opciones = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+
+    protected override Task AlIniciarAsync()
+    {
+        if (Enum.TryParse<EstadoAprobacion>(EstadoInicial, true, out var estado))
+            _estado = estado;
+        return Task.CompletedTask;
+    }
+
+    private async Task<TableData<ProductoDto>> CargarAsync(TableState estado, CancellationToken ct)
+    {
+        var filtro = new FiltroProductos(_busqueda, _estado, _inactivos, NumeroPagina: estado.Page + 1, Tamano: estado.PageSize);
+        var (exito, pagina) = await IntentarAsync(new ListarProductos(filtro));
+        return exito && pagina is not null
+            ? new TableData<ProductoDto> { Items = pagina.Elementos, TotalItems = pagina.Total }
+            : new TableData<ProductoDto> { Items = [], TotalItems = 0 };
+    }
+
+    private static string TooltipAprobacion(ProductoDto p) => p.Estado switch
+    {
+        EstadoAprobacion.Pendiente => $"Esperando a {p.GerenteAprobador ?? "gerente"} · alta de {p.CreadoPor}",
+        EstadoAprobacion.Rechazado => $"Motivo: {p.MotivoRechazo}",
+        _ => $"Alta de {p.CreadoPor} el {Formato.FechaHora(p.CreadoEn)}",
+    };
+
+    private async Task BuscarAsync(string? texto)
+    {
+        _busqueda = texto;
+        await _tabla.ReloadServerData();
+    }
+
+    private async Task CambiarEstadoFiltroAsync(EstadoAprobacion? estado)
+    {
+        _estado = estado;
+        await _tabla.ReloadServerData();
+    }
+
+    private async Task CambiarInactivosAsync(bool valor)
+    {
+        _inactivos = valor;
+        await _tabla.ReloadServerData();
+    }
+
+    private async Task NuevoAsync()
+    {
+        var dialogo = await Dialogos.ShowAsync<ProductoDialog>("Nuevo producto", Opciones);
+        if (await dialogo.Result is { Canceled: false, Data: ProductoDto creado })
+        {
+            Avisos.Add(creado.Estado == EstadoAprobacion.Pendiente
+                ? $"{creado.Referencia} quedó pendiente de aprobación de {creado.GerenteAprobador}."
+                : $"{creado.Referencia} se dio de alta.", Severity.Success);
+            await _tabla.ReloadServerData();
+        }
+    }
+
+    private async Task EditarAsync(ProductoDto actual)
+    {
+        var parametros = new DialogParameters<ProductoDialog> { { d => d.Actual, actual } };
+        var dialogo = await Dialogos.ShowAsync<ProductoDialog>($"Editar {actual.Referencia}", parametros, Opciones);
+        if (await dialogo.Result is { Canceled: false })
+        {
+            Avisos.Add("Cambios guardados.", Severity.Success);
+            await _tabla.ReloadServerData();
+        }
+    }
+
+    private async Task CambiarEstadoAsync(ProductoDto actual)
+    {
+        if (actual.Activo && await Dialogos.ShowMessageBoxAsync("Desactivar producto",
+                $"{actual.Referencia} ya no se podrá usar en nuevos documentos. Su historial se conserva.",
+                yesText: "Desactivar", cancelText: "Cancelar") != true)
+            return;
+
+        var (exito, _) = await IntentarAsync(new CambiarEstadoProducto(actual.Id, !actual.Activo),
+            actual.Activo ? $"{actual.Referencia} se desactivó." : $"{actual.Referencia} se activó.");
+        if (exito)
+            await _tabla.ReloadServerData();
+    }
+}

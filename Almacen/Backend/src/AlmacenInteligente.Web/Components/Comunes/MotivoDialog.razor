@@ -1,0 +1,30 @@
+@* Pide un motivo (cancelación, rechazo) antes de una acción que no se puede deshacer. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">@Mensaje</MudText>
+        <MudTextField @bind-Value="_motivo" Label="Motivo" Lines="3" MaxLength="500" Required="true" RequiredError="Escribe el motivo" Immediate="true" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialogo.Cancel()">Volver</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" Disabled="string.IsNullOrWhiteSpace(_motivo)"
+                   OnClick="() => Dialogo.Close(DialogResult.Ok(_motivo!.Trim()))">@Confirmar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+
+    [Parameter] public string Mensaje { get; set; } = string.Empty;
+    [Parameter] public string Confirmar { get; set; } = "Confirmar";
+
+    private string? _motivo;
+
+    /// <summary>Muestra el diálogo y devuelve el motivo, o null si se canceló.</summary>
+    public static async Task<string?> PedirAsync(IDialogService dialogos, string titulo, string mensaje, string confirmar)
+    {
+        var parametros = new DialogParameters<MotivoDialog> { { d => d.Mensaje, mensaje }, { d => d.Confirmar, confirmar } };
+        var dialogo = await dialogos.ShowAsync<MotivoDialog>(titulo, parametros, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
+        return await dialogo.Result is { Canceled: false, Data: string motivo } ? motivo : null;
+    }
+}
