@@ -1,0 +1,57 @@
+%% Diagrama vigente al 27 de noviembre de 2026.
+flowchart TB
+    APP["App móvil\nReact Native + Expo"]
+    ID["Identity\nAPI .NET"]
+    HOME["Home\nAPI .NET"]
+    SEC["Security\nAPI .NET"]
+    NOTIF["Notifications\nAzure Functions .NET"]
+    AI["Assistant\nAPI .NET"]
+    BUS["Azure Service Bus\nhouse-events-v1"]
+    DBS[("Azure SQL\nuna base por servicio")]
+    HUB["Azure IoT Hub"]
+    FN["Home.Functions\nEvent Hub trigger"]
+    RT["Azure SignalR\n/hubs/home"]
+    BLOB[("Blob privado\ncapturas, video y cuarentena")]
+    VISION["Azure Vision"]
+    FACE["Azure Face\nsujeto a aprobación"]
+    MAIL["ACS Email"]
+    OPENAI["Azure OpenAI"]
+    AGENT["Agente Python\nRaspberry Pi o laptop"]
+    IO["Controlador de E/S\npuerto serie"]
+    HW["Luces, PIR, LDR, DHT11,\nservo, R307 y cámara"]
+    APIM["Azure API Management\nrecurso creado, sin APIs importadas"]
+
+    APP -->|"HTTPS + Bearer"| ID
+    APP -->|"HTTPS + Bearer"| HOME
+    APP -->|"HTTPS + Bearer"| SEC
+    APP -->|"HTTPS + Bearer"| NOTIF
+    APP -->|"HTTPS + Bearer"| AI
+    APP <-->|"SignalR"| RT
+    HOME --> RT
+
+    HOME -->|"método directo"| HUB
+    AGENT <-->|"MQTT sobre TLS"| HUB
+    AGENT <-->|"USB serie"| IO
+    IO --> HW
+    HUB -->|"eventos"| FN
+    FN -->|"POST interno"| HOME
+
+    HOME -->|"eventos de dominio"| BUS
+    BUS --> SEC
+    BUS --> NOTIF
+
+    HOME --> BLOB
+    SEC --> BLOB
+    SEC --> VISION
+    SEC --> FACE
+    NOTIF --> MAIL
+    AI --> OPENAI
+    AI -->|"lecturas autorizadas"| HOME
+    AI -->|"lecturas autorizadas"| SEC
+
+    ID --> DBS
+    HOME --> DBS
+    SEC --> DBS
+    NOTIF --> DBS
+
+    APIM -.- APP

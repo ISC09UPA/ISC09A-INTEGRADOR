@@ -1,0 +1,123 @@
+{
+  "version": "v1",
+  "gatewayName": "apim-casa-example",
+  "blockedInternalPrefixes": [
+    "/api/v1/identity/internal/",
+    "/api/v1/internal/",
+    "/internal/"
+  ],
+  "services": {
+    "identity": {
+      "backendUrl": "https://identity-api.example.com",
+      "openapi": "contracts/v1/openapi/identity-api.json",
+      "publicPrefix": "/api/v1",
+      "rateLimitPerMinute": 60,
+      "excludedInternalPaths": [
+        "/identity/internal/token",
+        "/identity/internal/authz/check"
+      ],
+      "publicOperations": [
+        { "method": "POST", "path": "/identity/auth/login" },
+        { "method": "POST", "path": "/identity/auth/refresh" },
+        { "method": "POST", "path": "/identity/auth/logout" },
+        { "method": "GET", "path": "/identity/me" },
+        { "method": "GET", "path": "/identity/.well-known/jwks.json" },
+        { "method": "GET", "path": "/identity/houses/{houseId}/members" },
+        { "method": "DELETE", "path": "/identity/houses/{houseId}/members/{memberUserId}" },
+        { "method": "POST", "path": "/identity/houses/{houseId}/invitations" },
+        { "method": "DELETE", "path": "/identity/houses/{houseId}/invitations/{invitationId}" },
+        { "method": "POST", "path": "/identity/invitations/accept" },
+        { "method": "POST", "path": "/identity/auth/password/change" },
+        { "method": "POST", "path": "/identity/auth/password-reset/request" },
+        { "method": "POST", "path": "/identity/auth/password-reset/confirm" }
+      ]
+    },
+    "home": {
+      "backendUrl": "https://home-api.example.com",
+      "openapi": "contracts/v1/openapi/home-api.json",
+      "publicPrefix": "/api/v1",
+      "rateLimitPerMinute": 120,
+      "excludedInternalPaths": [
+        "/internal/captures/{captureId}/upload",
+        "/internal/video/{sessionId}/segments/{sequence}",
+        "/internal/video/{sessionId}/playlist"
+      ],
+      "publicOperations": [
+        { "method": "GET", "path": "/houses/{houseId}/status" },
+        { "method": "POST", "path": "/houses/{houseId}/lights/{lightId}/commands" },
+        { "method": "GET", "path": "/commands/{commandId}" },
+        { "method": "GET", "path": "/houses/{houseId}/resources" },
+        { "method": "POST", "path": "/houses/{houseId}/resources/{resourceId}/commands" },
+        { "method": "GET", "path": "/houses/{houseId}/commands/by-key/{key}" },
+        { "method": "GET", "path": "/houses/{houseId}/telemetry" },
+        { "method": "GET", "path": "/houses/{houseId}/security" },
+        { "method": "POST", "path": "/houses/{houseId}/video/sessions" },
+        { "method": "GET", "path": "/houses/{houseId}/video/sessions/by-key/{key}" },
+        { "method": "GET", "path": "/houses/{houseId}/video/sessions/{sessionId}" },
+        { "method": "DELETE", "path": "/houses/{houseId}/video/sessions/{sessionId}" },
+        { "method": "GET", "path": "/houses/{houseId}/video/sessions/{sessionId}/playlist.m3u8" },
+        { "method": "GET", "path": "/houses/{houseId}/video/sessions/{sessionId}/segments/{sequence}.ts" },
+        { "method": "GET", "path": "/houses/{houseId}/location" },
+        { "method": "PUT", "path": "/houses/{houseId}/location" }
+      ],
+      "realtimeNegotiatePath": "/hubs/home/negotiate"
+    },
+    "security": {
+      "backendUrl": "https://security-api.example.com",
+      "openapi": "contracts/v1/openapi/security-api.json",
+      "publicPrefix": "/api/v1",
+      "rateLimitPerMinute": 120,
+      "excludedInternalPaths": [],
+      "publicOperations": [
+        { "method": "GET", "path": "/security/houses/{houseId}/mode" },
+        { "method": "GET", "path": "/security/houses/{houseId}/activity" },
+        { "method": "GET", "path": "/security/houses/{houseId}/activity/{eventId}" },
+        { "method": "GET", "path": "/security/houses/{houseId}/incidents" },
+        { "method": "GET", "path": "/security/houses/{houseId}/incidents/{eventId}" },
+        { "method": "GET", "path": "/security/houses/{houseId}/captures" },
+        { "method": "GET", "path": "/security/houses/{houseId}/captures/{captureId}" },
+        { "method": "DELETE", "path": "/security/houses/{houseId}/captures/{captureId}" },
+        { "method": "GET", "path": "/security/houses/{houseId}/captures/{captureId}/content" },
+        { "method": "POST", "path": "/security/houses/{houseId}/captures/{captureId}/analysis" },
+        { "method": "GET", "path": "/security/houses/{houseId}/capture-retention" },
+        { "method": "PUT", "path": "/security/houses/{houseId}/capture-retention" },
+        { "method": "GET", "path": "/security/houses/{houseId}/captures/{captureId}/deletion" },
+        { "method": "GET", "path": "/security/houses/{houseId}/preferences" },
+        { "method": "PUT", "path": "/security/houses/{houseId}/preferences" },
+        { "method": "GET", "path": "/security/houses/{houseId}/persons" },
+        { "method": "POST", "path": "/security/houses/{houseId}/persons" },
+        { "method": "GET", "path": "/security/houses/{houseId}/persons/{personId}" },
+        { "method": "DELETE", "path": "/security/houses/{houseId}/persons/{personId}" },
+        { "method": "GET", "path": "/security/houses/{houseId}/enrollments/{enrollmentId}" },
+        { "method": "POST", "path": "/security/houses/{houseId}/enrollments/{enrollmentId}/capture" },
+        { "method": "POST", "path": "/security/houses/{houseId}/enrollments/{enrollmentId}/cancel" }
+      ]
+    },
+    "notifications": {
+      "backendUrl": "https://notifications-api.example.com",
+      "openapi": "contracts/v1/openapi/notifications-api.json",
+      "publicPrefix": "/api/v1",
+      "rateLimitPerMinute": 60,
+      "excludedInternalPaths": [],
+      "publicOperations": [
+        { "method": "GET", "path": "/notifications/houses/{houseId}/preferences" },
+        { "method": "PUT", "path": "/notifications/houses/{houseId}/preferences" },
+        { "method": "POST", "path": "/notifications/houses/{houseId}/recipient/verify" },
+        { "method": "POST", "path": "/notifications/houses/{houseId}/recipient/confirm" },
+        { "method": "POST", "path": "/notifications/houses/{houseId}/test-email" },
+        { "method": "GET", "path": "/notifications/houses/{houseId}/deliveries/{deliveryId}" }
+      ]
+    },
+    "assistant": {
+      "backendUrl": "https://assistant-api.example.com",
+      "openapi": "contracts/v1/openapi/assistant-api.json",
+      "publicPrefix": "/api/v1",
+      "rateLimitPerMinute": 20,
+      "excludedInternalPaths": [],
+      "publicOperations": [
+        { "method": "POST", "path": "/assistant/houses/{houseId}/ask" },
+        { "method": "GET", "path": "/assistant/houses/{houseId}/diagnostics/model" }
+      ]
+    }
+  }
+}
