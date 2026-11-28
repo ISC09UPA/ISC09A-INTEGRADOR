@@ -1,5 +1,6 @@
 using AlmacenInteligente.Application.CasosDeUso;
 using AlmacenInteligente.Application.Iot;
+using AlmacenInteligente.Domain.Inventario;
 
 namespace AlmacenInteligente.Api;
 
@@ -55,6 +56,17 @@ internal static class EndpointsIot
                 m.EnviarAsync(new ListarAccesosIot(new FiltroAccesosIot(permitido, desde, hasta, pagina ?? 1, tamano ?? 50)), ct))
             .WithName("ListarAccesosIot")
             .WithSummary("Bitácora de accesos con tarjeta NFC + rostro, del más reciente al más antiguo.");
+        iot.MapGet("/consultas-stock", (int? pagina, int? tamano, IMediador m, CancellationToken ct) =>
+                m.EnviarAsync(new ListarConsultasStockIot(new FiltroConsultasStockIot(pagina ?? 1, tamano ?? 50)), ct))
+            .WithName("ListarConsultasStockIot")
+            .WithSummary("Bitácora de comprobaciones de stock hechas desde el lector del embebido, de la más reciente a la más antigua.");
+
+        app.MapGet("/api/stock/semaforo", (string? busqueda, NivelStock? nivel, int? pagina, int? tamano, IMediador m, CancellationToken ct) =>
+                m.EnviarAsync(new ConsultarSemaforoStock(new FiltroSemaforoStock(busqueda, nivel, pagina ?? 1, tamano ?? 50)), ct))
+            .RequireAuthorization()
+            .WithTags("Comprobar stock")
+            .WithName("ConsultarSemaforoStock")
+            .WithSummary("Semáforo por producto (total de los almacenes activos): Rojo sin existencia, Amarillo en o bajo el mínimo, Verde arriba. Primero los rojos. nivel filtra por color.");
 
         var venta = iot.MapGroup("/venta").WithTags("IoT · Modo inteligente de venta");
         venta.MapGet("", async (IMediador m, CancellationToken ct) =>

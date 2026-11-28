@@ -16,6 +16,7 @@ public static class DependencyInjection
         services.AddScoped<Iot.ServicioAccesoIot>();
         services.AddScoped<Iot.ServicioEscaneosIot>();
         services.AddScoped<Iot.ServicioInicioSesionIot>();
+        services.AddScoped<Iot.ServicioConsultaStockIot>();
         services.AddValidatorsFromAssembly(ensamblado, ServiceLifetime.Scoped, includeInternalTypes: true);
 
         var manejadores = ensamblado.GetTypes()

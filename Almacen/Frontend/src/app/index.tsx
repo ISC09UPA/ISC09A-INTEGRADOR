@@ -38,6 +38,7 @@ const SECCIONES: { titulo: string; accesos: Acceso[] }[] = [
     titulo: 'Inventario',
     accesos: [
       { titulo: 'Existencias', descripcion: 'Qué hay en cada almacén y qué está bajo mínimo', ruta: '/existencias', icono: 'inventory', permiso: Permisos.Almacenes.VerExistencias },
+      { titulo: 'Comprobar stock', descripcion: 'Semáforo verde, amarillo y rojo por producto', ruta: '/stock', icono: 'traffic', permiso: Permisos.Almacenes.VerExistencias },
       { titulo: 'Movimientos', ruta: '/movimientos', icono: 'swap-vert', permiso: Permisos.Almacenes.VerExistencias },
       { titulo: 'Kardex', ruta: '/kardex', icono: 'receipt-long', permiso: Permisos.Almacenes.VerExistencias },
     ],

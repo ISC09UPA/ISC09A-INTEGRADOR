@@ -14,3 +14,5 @@ export type TipoMovimientoInventario =
   | 'CancelacionRecepcion'
   | 'CancelacionVenta';
 export type TipoReporte = 'General' | 'Ventas' | 'Compras' | 'Inventario' | 'Financiero' | 'Margen';
+/** Semáforo de stock: Rojo sin existencia, Amarillo en o bajo el mínimo, Verde arriba del mínimo. */
+export type NivelStock = 'Verde' | 'Amarillo' | 'Rojo';

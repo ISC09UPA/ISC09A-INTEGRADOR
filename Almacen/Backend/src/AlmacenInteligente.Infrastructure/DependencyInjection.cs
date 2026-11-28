@@ -97,6 +97,7 @@ public static class DependencyInjection
         services.AddScoped<Application.Iot.IAccesosIotRepositorio, AccesosIotRepositorio>();
         services.AddScoped<Application.Iot.ICandadoVentaInteligente, CandadoVentaInteligente>();
         services.AddScoped<Application.Iot.ISolicitudesInicioSesionIot, SolicitudesInicioSesionIot>();
+        services.AddScoped<Application.Iot.IConsultasStock, ConsultasStockEf>();
     }
 
     /// <summary>Workers que procesan las colas del embebido. Solo los registra la API.</summary>
