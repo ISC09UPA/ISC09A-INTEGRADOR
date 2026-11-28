@@ -8,53 +8,76 @@ using AlmacenInteligente.Domain.Iot;
 
 namespace AlmacenInteligente.Application.Iot;
 
-// Modo inteligente de venta: mientras un agente lo tiene, cada producto que pasa por el lector NFC
-// se agrega como línea de su venta. Los mismos casos de uso sirven a Blazor y a la API.
+// Modo inteligente: mientras un agente lo tiene, lo que pasa por el lector NFC se agrega a su documento.
+// En venta son piezas (UID + familia); en recepción, paquetes (código proveedor) y se pregunta de cuántas piezas son.
+// Hay un solo lector, así que un solo modo y un solo usuario a la vez. Los mismos casos de uso sirven a Blazor y a la API.
+// Latido, liberar y recoger escaneos son [Publica] porque los usan quien vende y quien recibe: el manejador exige
+// sesión y alguno de los dos permisos, y solo actúan sobre el candado del propio usuario.
 
 /// <summary>Quién tiene el modo inteligente ahora (null si está libre o venció).</summary>
-[RequierePermiso(Permisos.Ventas.Crear)]
+[Publica]
 public sealed record ObtenerModoInteligente : ISolicitud<SesionVentaDto?>;
 
-/// <summary>Toma el lector NFC para el usuario actual. Falla si otro usuario lo tiene vigente.</summary>
+/// <summary>Toma el lector NFC para vender. Falla si otro usuario lo tiene vigente.</summary>
 [RequierePermiso(Permisos.Ventas.Crear)]
 public sealed record TomarModoInteligente(Guid AlmacenId) : ISolicitud<SesionVentaDto>;
 
+/// <summary>Toma el lector NFC para recibir paquetes. Falla si otro usuario lo tiene vigente.</summary>
+[RequierePermiso(Permisos.Recepciones.Crear)]
+public sealed record TomarModoRecepcion(Guid AlmacenId) : ISolicitud<SesionVentaDto>;
+
 /// <summary>Mantiene vivo el candado (cada ~15 s). Falla si ya no es del usuario.</summary>
-[RequierePermiso(Permisos.Ventas.Crear)]
+[Publica]
 public sealed record LatidoModoInteligente : ISolicitud<SesionVentaDto>;
 
-[RequierePermiso(Permisos.Ventas.Crear)]
+[Publica]
 public sealed record LiberarModoInteligente : ISolicitud<bool>;
 
 /// <summary>Escaneos nuevos de la sesión del usuario. Se entregan una sola vez: quedan marcados como procesados.</summary>
-[RequierePermiso(Permisos.Ventas.Crear)]
+[Publica]
 public sealed record TomarEscaneosPendientes : ISolicitud<IReadOnlyList<EscaneoDto>>;
 
 internal sealed class VentaInteligenteManejador(
     ICandadoVentaInteligente candado, IGestorUsuarios usuarios, IAlmacenRepositorio almacenes, IConsultas consultas,
-    IUsuarioActual usuario, IReloj reloj, OpcionesIot opciones) :
+    IUsuarioActual usuario, IReloj reloj, OpcionesIot opciones, AlcanceAlmacen alcance) :
     IManejador<ObtenerModoInteligente, SesionVentaDto?>,
     IManejador<TomarModoInteligente, SesionVentaDto>,
+    IManejador<TomarModoRecepcion, SesionVentaDto>,
     IManejador<LatidoModoInteligente, SesionVentaDto>,
     IManejador<LiberarModoInteligente, bool>,
     IManejador<TomarEscaneosPendientes, IReadOnlyList<EscaneoDto>>
 {
     private Guid UsuarioId => usuario.Id!.Value;
 
+    /// <summary>Para las solicitudes [Publica]: sesión y permiso de vender o de recibir.</summary>
+    private void AsegurarPermiso()
+    {
+        if (!usuario.EstaAutenticado || usuario.Id is null)
+            throw new NoAutenticadoException();
+        if (!usuario.TienePermiso(Permisos.Ventas.Crear) && !usuario.TienePermiso(Permisos.Recepciones.Crear))
+            throw new AccesoDenegadoException(Permisos.Ventas.Crear);
+    }
+
     public async Task<SesionVentaDto?> ManejarAsync(ObtenerModoInteligente s, CancellationToken ct)
     {
+        AsegurarPermiso();
         var sesion = await candado.ObtenerAsync(ct);
         return sesion is not null && sesion.EstaVigente(reloj.Ahora, opciones.TimeoutSesion) ? await DtoAsync(sesion, ct) : null;
     }
 
-    public async Task<SesionVentaDto> ManejarAsync(TomarModoInteligente s, CancellationToken ct)
+    public Task<SesionVentaDto> ManejarAsync(TomarModoInteligente s, CancellationToken ct) => TomarAsync(s.AlmacenId, ModoLector.Venta, ct);
+
+    public Task<SesionVentaDto> ManejarAsync(TomarModoRecepcion s, CancellationToken ct) => TomarAsync(s.AlmacenId, ModoLector.Recepcion, ct);
+
+    private async Task<SesionVentaDto> TomarAsync(Guid almacenId, ModoLector modo, CancellationToken ct)
     {
-        var almacen = await almacenes.ObtenerAsync(s.AlmacenId, ct);
+        await alcance.AsegurarAsync(almacenId, ct);
+        var almacen = await almacenes.ObtenerAsync(almacenId, ct);
         if (almacen is not { Activo: true })
             throw new DomainException("Elige un almacén activo para el modo inteligente.");
 
         var ahora = reloj.Ahora;
-        if (!await candado.IntentarTomarAsync(UsuarioId, s.AlmacenId, ahora, ahora - opciones.TimeoutSesion, ct))
+        if (!await candado.IntentarTomarAsync(UsuarioId, almacenId, modo, ahora, ahora - opciones.TimeoutSesion, ct))
         {
             var actual = await candado.ObtenerAsync(ct);
             var nombre = actual?.UsuarioId is { } otro ? (await usuarios.ObtenerAsync(otro, ct))?.Nombre : null;
@@ -65,6 +88,7 @@ internal sealed class VentaInteligenteManejador(
 
     public async Task<SesionVentaDto> ManejarAsync(LatidoModoInteligente s, CancellationToken ct)
     {
+        AsegurarPermiso();
         var ahora = reloj.Ahora;
         var sesion = await candado.ObtenerAsync(ct);
         // Si venció y alguien más lo tomó, el latido ya no aplica; si venció pero nadie lo tomó, se recupera.
@@ -75,17 +99,20 @@ internal sealed class VentaInteligenteManejador(
 
     public async Task<bool> ManejarAsync(LiberarModoInteligente s, CancellationToken ct)
     {
+        AsegurarPermiso();
         await candado.LiberarAsync(UsuarioId, ct);
         return true;
     }
 
     public async Task<IReadOnlyList<EscaneoDto>> ManejarAsync(TomarEscaneosPendientes s, CancellationToken ct)
     {
+        AsegurarPermiso();
         var escaneos = await candado.TomarEscaneosPendientesAsync(UsuarioId, ct);
         if (escaneos.Count == 0)
             return [];
         var ids = escaneos.Where(e => e.Aceptado && e.ProductoId is not null).Select(e => e.ProductoId!.Value).Distinct().ToList();
-        var productos = ids.Count == 0 ? [] : (await consultas.ObtenerProductosDisponiblesAsync(ids, ct)).ToDictionary(p => p.Id);
+        var mio = await alcance.AlmacenAsync(ct);
+        var productos = ids.Count == 0 ? [] : AlcanceAlmacen.Filtrar(await consultas.ObtenerProductosDisponiblesAsync(ids, ct), mio).ToDictionary(p => p.Id);
         return escaneos
             .OrderBy(e => e.Fecha)
             .Select(e =>
@@ -108,7 +135,7 @@ internal sealed class VentaInteligenteManejador(
         var nombre = (await usuarios.ObtenerAsync(usuarioId, ct))?.Nombre ?? "—";
         var almacen = (await almacenes.ObtenerAsync(almacenId, ct))?.Nombre ?? "—";
         return new SesionVentaDto(sesion.SesionId!.Value, usuarioId, nombre, almacenId, almacen,
-            sesion.Inicio!.Value, sesion.UltimoLatido!.Value, usuarioId == usuario.Id);
+            sesion.Inicio!.Value, sesion.UltimoLatido!.Value, usuarioId == usuario.Id, sesion.Modo);
     }
 }
 
@@ -160,6 +187,12 @@ public sealed class ServicioEscaneosIot(
         {
             (familia, familiaValida) = (familiaRecibida!.Trim(), false);
         }
+        // En recepción el texto grabado es el código proveedor del paquete; en venta, la familia de la pieza.
+        var ahora = reloj.Ahora;
+        var sesion = await candado.ObtenerAsync(ct);
+        if (sesion is { Modo: ModoLector.Recepcion } && sesion.EstaVigente(ahora, opciones.TimeoutSesion))
+            return await RegistrarPaqueteAsync(uid, familia, familiaValida, ahora, ct);
+
         var producto = familia is null || !familiaValida ? null : await productos.ObtenerPorCodigoNfcAsync(familia, ct);
 
         var (resultado, rechazo) =
@@ -170,13 +203,34 @@ public sealed class ServicioEscaneosIot(
             : (await ventas.PiezasVendidasAsync([uid], ct)).Count > 0 ? (ResultadoEscaneo.PiezaYaVendida, $"La pieza {uid} ({producto.Referencia}) ya se vendió.")
             : (ResultadoEscaneo.Registrado, (string?)null);
 
-        var ahora = reloj.Ahora;
-        var registro = await candado.RegistrarEscaneoAsync(uid, familia ?? string.Empty, producto?.Id, rechazo, ahora, ahora - opciones.TimeoutSesion, ct);
+        return await GuardarAsync(uid, familia, producto?.Id, resultado, rechazo, ahora, ct);
+    }
+
+    /// <summary>
+    /// Recepción: el código grabado en el paquete es el código proveedor del producto. No se revisa si "ya se vendió"
+    /// (no son piezas); un mismo paquete (UID) leído dos veces en la sesión es un duplicado.
+    /// </summary>
+    private async Task<(ResultadoEscaneo, Guid?)> RegistrarPaqueteAsync(string uid, string? codigo, bool valido, DateTimeOffset ahora, CancellationToken ct)
+    {
+        var producto = codigo is null || !valido ? null : await productos.ObtenerPorCodigoProveedorAsync(codigo, ct);
+        var (resultado, rechazo) =
+            codigo is null ? (ResultadoEscaneo.ProductoNoEncontrado, $"El paquete {uid} no trae código proveedor grabado.")
+            : !valido ? (ResultadoEscaneo.ProductoNoEncontrado, $"El código {codigo} no es un código NFC válido (hexadecimal).")
+            : producto is null ? (ResultadoEscaneo.ProductoNoEncontrado, $"El código proveedor {codigo} no está en ningún producto.")
+            : !producto.EstaDisponible ? (ResultadoEscaneo.ProductoNoDisponible, $"El producto {producto.Referencia} no está aprobado o activo.")
+            : (ResultadoEscaneo.Registrado, (string?)null);
+        return await GuardarAsync(uid, codigo, producto?.Id, resultado, rechazo, ahora, ct);
+    }
+
+    private async Task<(ResultadoEscaneo, Guid?)> GuardarAsync(
+        string uid, string? familia, Guid? productoId, ResultadoEscaneo resultado, string? rechazo, DateTimeOffset ahora, CancellationToken ct)
+    {
+        var registro = await candado.RegistrarEscaneoAsync(uid, familia ?? string.Empty, productoId, rechazo, ahora, ahora - opciones.TimeoutSesion, ct);
         return registro switch
         {
-            RegistroEscaneo.SinSesion => (ResultadoEscaneo.SinSesion, producto?.Id),
-            RegistroEscaneo.Repetido => (ResultadoEscaneo.PiezaRepetida, producto?.Id),
-            _ => (resultado, producto?.Id),
+            RegistroEscaneo.SinSesion => (ResultadoEscaneo.SinSesion, productoId),
+            RegistroEscaneo.Repetido => (ResultadoEscaneo.PiezaRepetida, productoId),
+            _ => (resultado, productoId),
         };
     }
 }

@@ -5,4 +5,5 @@ export interface CrearProductoDto {
   unidadId: string;
   gerenteAprobadorId: string | null;
   codigoNfc?: string | null;
+  codigoProveedor?: string | null;
 }

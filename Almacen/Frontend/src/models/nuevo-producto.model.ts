@@ -7,4 +7,6 @@ export interface NuevoProducto {
   gerenteAprobadorId?: string;
   /** Familia NFC (opcional). */
   codigoNfc?: string;
+  /** Código proveedor NFC (opcional). */
+  codigoProveedor?: string;
 }

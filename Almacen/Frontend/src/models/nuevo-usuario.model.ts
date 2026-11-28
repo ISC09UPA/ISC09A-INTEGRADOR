@@ -4,4 +4,6 @@ export interface NuevoUsuario {
   correo: string;
   rol: string;
   contrasena: string;
+  /** Obligatorio salvo para el superadmin. */
+  almacenId?: string;
 }

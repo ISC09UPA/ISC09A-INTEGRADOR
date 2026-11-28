@@ -2,12 +2,14 @@ import { HttpClient } from '@/api/http-client';
 import type { AlmacenDto } from '@/dtos/almacen.dto';
 import type { ExistenciaDto } from '@/dtos/existencia.dto';
 import type { KardexDto } from '@/dtos/kardex.dto';
+import type { MiAlmacenDto } from '@/dtos/mi-almacen.dto';
 import type { PaginaDto } from '@/dtos/pagina.dto';
 import { AlmacenMapper } from '@/mappers/almacen.mapper';
 import { ComunMapper } from '@/mappers/comun.mapper';
 import type { Almacen } from '@/models/almacen.model';
 import type { DatosAlmacen } from '@/models/datos-almacen.model';
 import type { Existencia } from '@/models/existencia.model';
+import type { MiAlmacen } from '@/models/mi-almacen.model';
 import type { MovimientoKardex } from '@/models/movimiento-kardex.model';
 import type { Pagina } from '@/models/pagina.model';
 import type { StockInicial } from '@/models/stock-inicial.model';
@@ -23,6 +25,12 @@ export interface FiltroExistencias {
 /** Almacenes, existencias y kardex. */
 export class AlmacenesService {
   constructor(private readonly http: HttpClient) {}
+
+  /** El almacén asignado al usuario de la sesión. */
+  async mio(): Promise<MiAlmacen> {
+    const dto = await this.http.get<MiAlmacenDto>('/api/almacenes/mio');
+    return { almacenId: dto.almacenId ?? undefined, almacen: dto.almacen ?? undefined, veTodos: dto.veTodos };
+  }
 
   async listar(inactivos = false): Promise<Almacen[]> {
     return (await this.http.get<AlmacenDto[]>('/api/almacenes', { inactivos })).map(AlmacenMapper.aModel);

@@ -23,6 +23,11 @@ export class IotService {
     return IotMapper.sesion(await this.http.post<SesionVentaDto>('/api/iot/venta/tomar', { almacenId }));
   }
 
+  /** Toma el lector para recibir paquetes (código proveedor). Falla (409) si otro usuario lo tiene vigente. */
+  async tomarModoRecepcion(almacenId: string): Promise<SesionVenta> {
+    return IotMapper.sesion(await this.http.post<SesionVentaDto>('/api/iot/venta/tomar-recepcion', { almacenId }));
+  }
+
   /** Cada ~15 s. Falla si el candado venció o lo tomó otro usuario. */
   latido() {
     return this.http.post<SesionVentaDto>('/api/iot/venta/latido');

@@ -32,7 +32,8 @@ public sealed class Venta : Documento
 
     /// <param name="piezas">
     /// UID de fábrica de la etiqueta NFC de cada pieza física que sale en esta línea (modo inteligente).
-    /// Puede haber menos piezas que la cantidad si parte se capturó a mano, nunca más, y no se repiten en la venta.
+    /// Si el producto se vende por pieza (sin fracciones) debe haber exactamente un UID por unidad: los que no se
+    /// escanearon se capturan a mano. Los productos por peso o volumen no llevan UID. Un UID no se repite en la venta.
     /// </param>
     public LineaVenta AgregarLinea(Producto producto, Guid almacenId, decimal cantidad, decimal precioUnitario, TasaIva tasaIva,
         IEnumerable<string>? piezas = null)
@@ -48,8 +49,12 @@ public sealed class Venta : Documento
                 throw new DomainException($"La pieza {uid} aparece dos veces en la venta.");
             uids.Add(uid);
         }
-        if (uids.Count > cantidad)
-            throw new DomainException($"La línea de {producto.Referencia} tiene {uids.Count} piezas escaneadas y cantidad {cantidad:0.###}: la cantidad no puede ser menor.");
+        if (producto.PermiteFracciones && uids.Count > 0)
+            throw new DomainException($"{producto.Referencia} se vende por peso o volumen: no lleva UID por pieza.");
+        if (!producto.PermiteFracciones && uids.Count != cantidad)
+            throw new DomainException(uids.Count < cantidad
+                ? $"A la línea de {producto.Referencia} le faltan {cantidad - uids.Count:0} UID: cada pieza vendida necesita el de su etiqueta NFC."
+                : $"La línea de {producto.Referencia} tiene {uids.Count} UID y cantidad {cantidad:0.###}: deben coincidir.");
 
         var linea = new LineaVenta(producto.Id, Guard.Id(almacenId, "El almacén de salida"), cantidad,
             Guard.NoNegativo(precioUnitario, "El precio unitario"), tasaIva, uids);

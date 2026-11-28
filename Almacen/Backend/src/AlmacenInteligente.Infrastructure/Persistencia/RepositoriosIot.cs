@@ -77,19 +77,21 @@ internal sealed class CandadoVentaInteligente(AlmacenDbContext db) : ICandadoVen
     public Task<SesionVentaInteligente?> ObtenerAsync(CancellationToken ct = default) =>
         db.SesionVentaInteligente.AsNoTracking().FirstOrDefaultAsync(s => s.Id == Id, ct);
 
-    public async Task<bool> IntentarTomarAsync(Guid usuarioId, Guid almacenId, DateTimeOffset ahora, DateTimeOffset venceAntesDe, CancellationToken ct = default)
+    public async Task<bool> IntentarTomarAsync(Guid usuarioId, Guid almacenId, ModoLector modo, DateTimeOffset ahora, DateTimeOffset venceAntesDe, CancellationToken ct = default)
     {
         // Npgsql solo acepta DateTimeOffset en UTC para timestamptz.
-        var (momento, limite, nueva) = (ahora.ToUniversalTime(), venceAntesDe.ToUniversalTime(), Guid.CreateVersion7());
+        var (momento, limite, nueva, texto) = (ahora.ToUniversalTime(), venceAntesDe.ToUniversalTime(), Guid.CreateVersion7(), modo.ToString());
+        // Retomarlo uno mismo en el mismo modo conserva la sesión; cambiar de modo empieza otra (otros escaneos).
         var filas = await db.Database.ExecuteSqlAsync($"""
-            INSERT INTO iot_sesion_venta AS s (id, sesion_id, usuario_id, almacen_id, inicio, ultimo_latido)
-            VALUES ({Id}, {nueva}, {usuarioId}, {almacenId}, {momento}, {momento})
+            INSERT INTO iot_sesion_venta AS s (id, sesion_id, usuario_id, almacen_id, inicio, ultimo_latido, modo)
+            VALUES ({Id}, {nueva}, {usuarioId}, {almacenId}, {momento}, {momento}, {texto})
             ON CONFLICT (id) DO UPDATE SET
-                sesion_id = CASE WHEN s.usuario_id = {usuarioId} AND s.ultimo_latido >= {limite} THEN s.sesion_id ELSE EXCLUDED.sesion_id END,
-                inicio = CASE WHEN s.usuario_id = {usuarioId} AND s.ultimo_latido >= {limite} THEN s.inicio ELSE EXCLUDED.inicio END,
+                sesion_id = CASE WHEN s.usuario_id = {usuarioId} AND s.ultimo_latido >= {limite} AND s.modo = {texto} THEN s.sesion_id ELSE EXCLUDED.sesion_id END,
+                inicio = CASE WHEN s.usuario_id = {usuarioId} AND s.ultimo_latido >= {limite} AND s.modo = {texto} THEN s.inicio ELSE EXCLUDED.inicio END,
                 usuario_id = EXCLUDED.usuario_id,
                 almacen_id = EXCLUDED.almacen_id,
-                ultimo_latido = EXCLUDED.ultimo_latido
+                ultimo_latido = EXCLUDED.ultimo_latido,
+                modo = EXCLUDED.modo
             WHERE s.usuario_id IS NULL OR s.usuario_id = {usuarioId} OR s.ultimo_latido < {limite}
             """, ct);
         return filas == 1;
@@ -126,6 +128,8 @@ internal sealed class CandadoVentaInteligente(AlmacenDbContext db) : ICandadoVen
             SELECT {e.Id}, s.sesion_id, {e.Uid}, {e.Familia}, {e.ProductoId}::uuid, {e.Rechazo}::text, {momento}, FALSE
             FROM iot_sesion_venta s
             WHERE s.id = {Id} AND s.usuario_id IS NOT NULL AND s.ultimo_latido >= {limite}
+              -- Una pieza que ya se aceptó en esta sesión (ya está en la venta) es un duplicado.
+              AND NOT EXISTS (SELECT 1 FROM iot_escaneos x WHERE x.sesion_id = s.sesion_id AND x.uid = {e.Uid} AND x.rechazo IS NULL)
             ON CONFLICT (sesion_id, uid) WHERE NOT procesado DO NOTHING
             """, ct);
         if (filas == 1)

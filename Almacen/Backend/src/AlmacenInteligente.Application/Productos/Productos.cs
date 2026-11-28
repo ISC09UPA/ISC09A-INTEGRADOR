@@ -31,12 +31,15 @@ public sealed record BuscarProductosDisponibles(string? Texto, int Maximo = 20) 
 /// que recibirá la solicitud y el producto queda pendiente.
 /// </summary>
 [RequierePermiso(Permisos.Productos.Crear)]
-public sealed record CrearProducto(string Referencia, string Descripcion, Guid UnidadId, Guid? GerenteAprobadorId, string? CodigoNfc = null)
+/// <param name="CodigoProveedor">Código NFC grabado en los paquetes del proveedor (recepción inteligente).</param>
+public sealed record CrearProducto(string Referencia, string Descripcion, Guid UnidadId, Guid? GerenteAprobadorId, string? CodigoNfc = null,
+    string? CodigoProveedor = null)
     : ISolicitud<ProductoDto>;
 
-/// <param name="CodigoNfc">UID de la etiqueta NFC del producto: null conserva la actual; "" la quita.</param>
+/// <param name="CodigoNfc">Familia NFC del producto: null conserva la actual; "" la quita.</param>
+/// <param name="CodigoProveedor">Código NFC de los paquetes del proveedor: null conserva el actual; "" lo quita.</param>
 [RequierePermiso(Permisos.Productos.Editar)]
-public sealed record EditarProducto(Guid Id, string Descripcion, Guid UnidadId, string? CodigoNfc = null) : ISolicitud<ProductoDto>;
+public sealed record EditarProducto(Guid Id, string Descripcion, Guid UnidadId, string? CodigoNfc = null, string? CodigoProveedor = null) : ISolicitud<ProductoDto>;
 
 [RequierePermiso(Permisos.Productos.Editar)]
 public sealed record CambiarEstadoProducto(Guid Id, bool Activo) : ISolicitud<ProductoDto>;
@@ -91,7 +94,7 @@ internal sealed class RechazarProductoValidador : AbstractValidator<RechazarProd
 
 internal sealed class ProductosManejador(
     IConsultas consultas, IProductoRepositorio productos, IUnidadRepositorio unidades, IGestorUsuarios usuarios,
-    IFileStorage archivos, IUnidadDeTrabajo unidad, IUsuarioActual usuario, IReloj reloj) :
+    IFileStorage archivos, IUnidadDeTrabajo unidad, IUsuarioActual usuario, IReloj reloj, AlcanceAlmacen alcance) :
     IManejador<ListarUnidades, IReadOnlyList<UnidadDto>>,
     IManejador<CrearUnidad, UnidadDto>,
     IManejador<ListarProductos, Pagina<ProductoDto>>,
@@ -123,8 +126,9 @@ internal sealed class ProductosManejador(
 
     public Task<ProductoDto> ManejarAsync(ObtenerProducto s, CancellationToken ct) => Dto(s.Id, ct);
 
-    public Task<IReadOnlyList<ProductoOpcionDto>> ManejarAsync(BuscarProductosDisponibles s, CancellationToken ct) =>
-        consultas.BuscarProductosDisponiblesAsync(s.Texto, Math.Clamp(s.Maximo, 1, 50), ct);
+    /// <summary>Con almacén asignado, cada producto trae solo la existencia de ese almacén.</summary>
+    public async Task<IReadOnlyList<ProductoOpcionDto>> ManejarAsync(BuscarProductosDisponibles s, CancellationToken ct) =>
+        AlcanceAlmacen.Filtrar(await consultas.BuscarProductosDisponiblesAsync(s.Texto, Math.Clamp(s.Maximo, 1, 50), ct), await alcance.AlmacenAsync(ct));
 
     public async Task<ProductoDto> ManejarAsync(CrearProducto s, CancellationToken ct)
     {
@@ -147,6 +151,7 @@ internal sealed class ProductosManejador(
             producto = Producto.CrearPendiente(s.Referencia, s.Descripcion, unidadMedida, gerenteId, Ahora);
         }
         await AsignarNfcAsync(producto, s.CodigoNfc, ct);
+        await AsignarCodigoProveedorAsync(producto, s.CodigoProveedor, ct);
 
         productos.Agregar(producto);
         await unidad.GuardarAsync(ct);
@@ -160,6 +165,8 @@ internal sealed class ProductosManejador(
         producto.Actualizar(s.Descripcion, unidadMedida);
         if (s.CodigoNfc is not null)
             await AsignarNfcAsync(producto, s.CodigoNfc, ct);
+        if (s.CodigoProveedor is not null)
+            await AsignarCodigoProveedorAsync(producto, s.CodigoProveedor, ct);
         await unidad.GuardarAsync(ct);
         return await Dto(producto.Id, ct);
     }
@@ -207,6 +214,14 @@ internal sealed class ProductosManejador(
         if (nfc is not null && await productos.ExisteCodigoNfcAsync(nfc, producto.Id, ct))
             throw new DomainException($"La etiqueta NFC {nfc} ya está asignada a otro producto.");
         producto.AsignarCodigoNfc(nfc);
+    }
+
+    private async Task AsignarCodigoProveedorAsync(Producto producto, string? codigo, CancellationToken ct)
+    {
+        var nfc = Domain.Iot.CodigoNfc.Normalizar(codigo);
+        if (nfc is not null && await productos.ExisteCodigoProveedorAsync(nfc, producto.Id, ct))
+            throw new DomainException($"El código proveedor {nfc} ya está asignado a otro producto.");
+        producto.AsignarCodigoProveedor(nfc);
     }
 
     private async Task<Producto> Cargar(Guid id, CancellationToken ct) =>

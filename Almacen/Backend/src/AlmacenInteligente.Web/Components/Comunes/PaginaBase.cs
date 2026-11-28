@@ -30,6 +30,16 @@ public abstract class PaginaBase : ComponentBase
 
     protected bool Puede(string permiso) => Usuario.HasClaim(UsuarioActualPrincipal.ClaimPermiso, permiso);
 
+    /// <summary>
+    /// El almacén asignado al usuario (null si es superadmin y ve todos). Las pantallas lo fijan en sus selectores:
+    /// el usuario solo opera y ve el stock de su almacén.
+    /// </summary>
+    protected async Task<Guid?> MiAlmacenAsync()
+    {
+        var (mio, _) = await EjecutarAsync(new Application.Seguridad.ObtenerMiAlmacen());
+        return mio is { VeTodos: false } ? mio.AlmacenId : null;
+    }
+
     /// <summary>Ejecuta el caso de uso; si falla muestra el motivo y devuelve <c>Exito = false</c>.</summary>
     protected async Task<(bool Exito, T? Valor)> IntentarAsync<T>(ISolicitud<T> solicitud, string? mensajeExito = null)
     {

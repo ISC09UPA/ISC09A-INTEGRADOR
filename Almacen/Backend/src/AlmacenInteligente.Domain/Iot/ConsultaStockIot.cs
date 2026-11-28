@@ -19,10 +19,17 @@ public sealed class ConsultaStockIot : Common.Entity
     public NivelStock? Nivel { get; private set; }
     public string Motivo { get; private set; } = null!;
 
+    /// <summary>Almacén de quien consultó (null = todos, superadmin) y el usuario con sesión en el embebido.</summary>
+    public Guid? AlmacenId { get; private set; }
+    public Guid? UsuarioId { get; private set; }
+
     private ConsultaStockIot() { }
 
-    public ConsultaStockIot(DateTimeOffset fecha, string uid, string familia, Guid? productoId, decimal? existencia, decimal? minimo, string motivo)
+    public ConsultaStockIot(DateTimeOffset fecha, string uid, string familia, Guid? productoId, decimal? existencia, decimal? minimo, string motivo,
+        Guid? almacenId = null, Guid? usuarioId = null)
     {
+        AlmacenId = almacenId;
+        UsuarioId = usuarioId;
         Fecha = fecha;
         Uid = Recortar(uid, CodigoNfc.LongitudMaxima);
         Familia = Recortar(familia, EscaneoIot.LongitudMaximaFamilia);

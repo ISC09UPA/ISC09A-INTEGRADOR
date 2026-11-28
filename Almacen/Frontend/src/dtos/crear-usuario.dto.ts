@@ -4,4 +4,5 @@ export interface CrearUsuarioDto {
   correo: string;
   rol: string;
   contrasena: string;
+  almacenId?: string | null;
 }

@@ -441,6 +441,10 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid?>("AlmacenId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("almacen_id");
+
                     b.Property<decimal?>("Existencia")
                         .HasColumnType("numeric(18,3)")
                         .HasColumnName("existencia");
@@ -480,8 +484,15 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         .HasColumnType("character varying(32)")
                         .HasColumnName("uid");
 
+                    b.Property<Guid?>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
                     b.HasKey("Id")
                         .HasName("pk_iot_consultas_stock");
+
+                    b.HasIndex("AlmacenId")
+                        .HasDatabaseName("ix_iot_consultas_stock_almacen_id");
 
                     b.HasIndex("Fecha")
                         .IsDescending()
@@ -597,6 +608,14 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("inicio");
 
+                    b.Property<string>("Modo")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("Venta")
+                        .HasColumnName("modo");
+
                     b.Property<Guid?>("SesionId")
                         .HasColumnType("uuid")
                         .HasColumnName("sesion_id");
@@ -677,6 +696,11 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         .HasColumnType("character varying(32)")
                         .HasColumnName("codigo_nfc");
 
+                    b.Property<string>("CodigoProveedor")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("codigo_proveedor");
+
                     b.Property<string>("Descripcion")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -748,6 +772,11 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         .IsUnique()
                         .HasDatabaseName("ix_productos_codigo_nfc")
                         .HasFilter("codigo_nfc IS NOT NULL");
+
+                    b.HasIndex("CodigoProveedor")
+                        .IsUnique()
+                        .HasDatabaseName("ix_productos_codigo_proveedor")
+                        .HasFilter("codigo_proveedor IS NOT NULL");
 
                     b.HasIndex("Referencia")
                         .IsUnique()
@@ -1433,6 +1462,10 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         .HasColumnType("boolean")
                         .HasColumnName("activo");
 
+                    b.Property<Guid?>("AlmacenId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("almacen_id");
+
                     b.Property<string>("CodigoNfc")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)")
@@ -1502,6 +1535,9 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
 
                     b.HasKey("Id")
                         .HasName("pk_usuarios");
+
+                    b.HasIndex("AlmacenId")
+                        .HasDatabaseName("ix_usuarios_almacen_id");
 
                     b.HasIndex("CodigoNfc")
                         .IsUnique()
@@ -1818,6 +1854,15 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_ventas_clientes_cliente_id");
+                });
+
+            modelBuilder.Entity("AlmacenInteligente.Infrastructure.Seguridad.Usuario", b =>
+                {
+                    b.HasOne("AlmacenInteligente.Domain.Almacenes.Almacen", null)
+                        .WithMany()
+                        .HasForeignKey("AlmacenId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_usuarios_almacenes_almacen_id");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>

@@ -76,6 +76,12 @@ internal sealed class ProductoRepositorio(AlmacenDbContext db) : Repositorio<Pro
     public Task<Producto?> ObtenerPorCodigoNfcAsync(string codigoNfc, CancellationToken ct = default) =>
         Db.Productos.FirstOrDefaultAsync(p => p.CodigoNfc == codigoNfc, ct);
 
+    public Task<Producto?> ObtenerPorCodigoProveedorAsync(string codigo, CancellationToken ct = default) =>
+        Db.Productos.FirstOrDefaultAsync(p => p.CodigoProveedor == codigo, ct);
+
+    public Task<bool> ExisteCodigoProveedorAsync(string codigo, Guid? excepto, CancellationToken ct = default) =>
+        Db.Productos.AnyAsync(p => p.CodigoProveedor == codigo && p.Id != excepto, ct);
+
     public async Task<IReadOnlyDictionary<Guid, Producto>> ObtenerVariosAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
     {
         var lista = ids.Distinct().ToList();

@@ -11,6 +11,7 @@ import { SelectorProducto } from '@/components/selectores';
 import { Aviso, Boton, Cargando, Encabezado, Fila, Pantalla, Selector, Separador, Tarjeta, Texto, Vacio, mensajeDe } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useColores } from '@/hooks/use-colores';
+import { useMiAlmacen } from '@/hooks/use-mi-almacen';
 import { useDatos } from '@/hooks/use-datos';
 import { Formato } from '@/lib/formato';
 
@@ -18,7 +19,9 @@ import { Formato } from '@/lib/formato';
 export default function KardexPantalla() {
   const c = useColores();
   const params = useLocalSearchParams<{ almacen?: string; producto?: string }>();
-  const [almacenId, setAlmacenId] = useState<string | undefined>(params.almacen);
+  const [almacenElegido, setAlmacenId] = useState<string | undefined>(params.almacen);
+  const mio = useMiAlmacen();
+  const almacenId = mio ?? almacenElegido;
   const [producto, setProducto] = useState<ProductoOpcion | null>(null);
   const [rango, setRango] = useState<Rango | null>(null);
   const [filas, setFilas] = useState<MovimientoKardex[] | null>(null);
@@ -57,7 +60,7 @@ export default function KardexPantalla() {
     <Pantalla>
       <Encabezado titulo="Kardex" descripcion="Historial de entradas y salidas de un producto en un almacén, con el saldo y el costo promedio después de cada movimiento." />
       <Tarjeta style={{ gap: Spacing.three, marginBottom: Spacing.three }}>
-        <Selector<string> etiqueta="Almacén" valor={almacenId} opciones={(almacenes.datos ?? []).map((a) => ({ valor: a.id, texto: a.nombre }))} alCambiar={setAlmacenId} />
+        <Selector<string> etiqueta="Almacén" valor={almacenId} opciones={(almacenes.datos ?? []).map((a) => ({ valor: a.id, texto: a.nombre }))} alCambiar={setAlmacenId} deshabilitado={!!mio} />
         <SelectorProducto valor={producto} alCambiar={setProducto} />
         <Texto tipo="secundario">Periodo (opcional)</Texto>
         <RangoFechas valor={rango} alCambiar={setRango} opcional />

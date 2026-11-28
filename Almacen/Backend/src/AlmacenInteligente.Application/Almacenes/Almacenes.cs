@@ -65,7 +65,7 @@ internal sealed class StockInicialValidador : AbstractValidator<RegistrarStockIn
 
 internal sealed class AlmacenesManejador(
     IConsultas consultas, IAlmacenRepositorio almacenes, IProductoRepositorio productos, IExistenciaRepositorio existencias,
-    IUnidadDeTrabajo unidad, IUsuarioActual usuario, IReloj reloj) :
+    IUnidadDeTrabajo unidad, IUsuarioActual usuario, IReloj reloj, AlcanceAlmacen alcance) :
     IManejador<ListarAlmacenes, IReadOnlyList<AlmacenDto>>,
     IManejador<CrearAlmacen, AlmacenDto>,
     IManejador<EditarAlmacen, AlmacenDto>,
@@ -106,14 +106,22 @@ internal sealed class AlmacenesManejador(
         return await Dto(almacen.Id, ct);
     }
 
-    public Task<Pagina<ExistenciaDto>> ManejarAsync(ListarExistencias s, CancellationToken ct) =>
-        consultas.ListarExistenciasAsync(s.Filtro, ct);
+    /// <summary>Quien tiene almacén asignado solo ve el suyo.</summary>
+    public async Task<Pagina<ExistenciaDto>> ManejarAsync(ListarExistencias s, CancellationToken ct)
+    {
+        var mio = await alcance.AlmacenAsync(ct);
+        return await consultas.ListarExistenciasAsync(mio is { } a ? s.Filtro with { AlmacenId = a } : s.Filtro, ct);
+    }
 
-    public Task<IReadOnlyList<KardexDto>> ManejarAsync(ConsultarKardex s, CancellationToken ct) =>
-        consultas.KardexAsync(s.AlmacenId, s.ProductoId, s.Desde, s.Hasta, ct);
+    public async Task<IReadOnlyList<KardexDto>> ManejarAsync(ConsultarKardex s, CancellationToken ct)
+    {
+        await alcance.AsegurarAsync(s.AlmacenId, ct);
+        return await consultas.KardexAsync(s.AlmacenId, s.ProductoId, s.Desde, s.Hasta, ct);
+    }
 
     public async Task<bool> ManejarAsync(DefinirStockMinimo s, CancellationToken ct)
     {
+        await alcance.AsegurarAsync(s.AlmacenId, ct);
         var lote = await existencias.CargarLoteAsync([(s.AlmacenId, s.ProductoId)], ct);
         await AsegurarAlmacenYProducto(s.AlmacenId, s.ProductoId, ct);
         lote.ParaEntrada(s.AlmacenId, s.ProductoId).DefinirStockMinimo(s.Minimo, reloj.Ahora);
@@ -124,6 +132,7 @@ internal sealed class AlmacenesManejador(
 
     public async Task<bool> ManejarAsync(RegistrarStockInicial s, CancellationToken ct)
     {
+        await alcance.AsegurarAsync(s.AlmacenId, ct);
         await AsegurarAlmacenYProducto(s.AlmacenId, s.ProductoId, ct);
         var lote = await existencias.CargarLoteAsync([(s.AlmacenId, s.ProductoId)], ct);
         var resultado = ServicioInventario.RegistrarStockInicial(

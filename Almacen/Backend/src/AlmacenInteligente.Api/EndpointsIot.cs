@@ -76,6 +76,9 @@ internal static class EndpointsIot
         venta.MapPost("/tomar", (DatosModoInteligente d, IMediador m, CancellationToken ct) => m.EnviarAsync(new TomarModoInteligente(d.AlmacenId), ct))
             .WithName("TomarModoInteligente")
             .WithSummary("Toma el lector para el usuario actual con un almacén por defecto. 409 si otro usuario lo tiene vigente.");
+        venta.MapPost("/tomar-recepcion", (DatosModoInteligente d, IMediador m, CancellationToken ct) => m.EnviarAsync(new TomarModoRecepcion(d.AlmacenId), ct))
+            .WithName("TomarModoRecepcion")
+            .WithSummary("Toma el lector para recibir paquetes (código proveedor). Latido, liberar y escaneos son los mismos que en venta; cada escaneo aceptado es un paquete: pregunta de cuántas piezas es.");
         venta.MapPost("/latido", (IMediador m, CancellationToken ct) => m.EnviarAsync(new LatidoModoInteligente(), ct))
             .WithName("LatidoModoInteligente")
             .WithSummary("Mantiene el candado; envíalo cada ~15 s. Vence sin latidos tras Iot:TimeoutSesionMinutos.");

@@ -11,10 +11,11 @@ import { BotonAgregarLinea, CampoPrecio, SelectorIva, TarjetaLinea, errorCantida
 import { CampoFecha } from '@/components/fechas';
 import { SelectorTercero } from '@/components/selectores';
 import { FormularioTercero, Terceros } from '@/components/terceros';
-import { Aviso, Boton, Chip, Encabezado, Fila, Hoja, Icono, Interruptor, Pantalla, Selector, Tarjeta, Texto, Totales, avisar, mensajeDe } from '@/components/ui';
+import { Aviso, Boton, Campo, Chip, Encabezado, Fila, Hoja, Icono, Interruptor, Pantalla, Selector, Tarjeta, Texto, Totales, avisar, mensajeDe } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useColores } from '@/hooks/use-colores';
 import { useDatos } from '@/hooks/use-datos';
+import { useMiAlmacen } from '@/hooks/use-mi-almacen';
 import { Fechas, Formato, importeLinea, leerNumero, redondear } from '@/lib/formato';
 import { Permisos } from '@/lib/permisos';
 import { useSesion } from '@/lib/sesion';
@@ -25,9 +26,32 @@ interface Linea extends LineaBase {
   tasa: number;
   /** UID de la etiqueta NFC de cada pieza que llegó del lector; la cantidad nunca es menor. */
   piezas: string[];
+  /** UID que se está capturando a mano. */
+  nuevoUid: string;
 }
 
-const lineaVacia = (): Linea => ({ clave: nuevaClave(), producto: null, almacenId: null, cantidad: '', precio: '', tasa: 0.16, piezas: [] });
+const lineaVacia = (): Linea => ({ clave: nuevaClave(), producto: null, almacenId: null, cantidad: '', precio: '', tasa: 0.16, piezas: [], nuevoUid: '' });
+
+/** Productos por pieza llevan un UID por unidad; los de peso o volumen no. */
+const llevaUid = (l: Linea) => l.producto?.permiteFracciones === false;
+const faltanUid = (l: Linea) => {
+  const n = leerNumero(l.cantidad);
+  return llevaUid(l) && !Number.isNaN(n) ? Math.max(Math.ceil(n) - l.piezas.length, 0) : 0;
+};
+/** UID en hexadecimal, mayúsculas y sin separadores, como lo guarda la API; null si no es válido. */
+const normalizarUid = (texto: string) => {
+  const limpio = texto.replace(/[:\-\s]/g, '').toUpperCase();
+  return /^[0-9A-F]{1,32}$/.test(limpio) ? limpio : null;
+};
+
+/** Alertas del lector: las amarillas (duplicados) se quitan solas; las rojas se quedan hasta cerrarlas. */
+interface AlertaLector {
+  id: number;
+  texto: string;
+  tipo: 'alerta' | 'error';
+}
+let siguienteAlerta = 1;
+const DURACION_ALERTA_MS = 4000;
 const sumar = (cantidad: string, delta: number) => {
   const n = leerNumero(cantidad);
   return String(Math.max((Number.isNaN(n) ? 0 : n) + delta, 0));
@@ -43,16 +67,16 @@ const INTERVALO_LATIDO_MS = 15000;
  */
 function aplicarEscaneos(lineas: Linea[], escaneos: Escaneo[], almacenId: string) {
   let resultado = lineas;
-  const avisos: string[] = [];
+  const avisos: AlertaLector[] = [];
   let agregados = 0;
   for (const e of escaneos) {
     const producto = e.producto;
     if (e.rechazo || !producto) {
-      avisos.push(e.rechazo ?? `No se reconoció la pieza ${e.uid}.`);
+      avisos.push({ id: siguienteAlerta++, tipo: 'error', texto: e.rechazo ?? `No se reconoció la pieza ${e.uid}.` });
       continue;
     }
     if (resultado.some((l) => l.piezas.includes(e.uid))) {
-      avisos.push(`La pieza ${e.uid} ya está en esta venta.`);
+      avisos.push({ id: siguienteAlerta++, tipo: 'alerta', texto: `La pieza ${e.uid} ya está en esta venta.` });
       continue;
     }
     agregados++;
@@ -90,7 +114,13 @@ export default function NuevaVenta() {
   const [modo, setModo] = useState(false);
   const [cambiandoModo, setCambiandoModo] = useState(false);
   const [avisoModo, setAvisoModo] = useState<string | null>(null);
-  const [rechazos, setRechazos] = useState<string[]>([]);
+  const [rechazos, setRechazos] = useState<AlertaLector[]>([]);
+  const mostrarAlertas = useCallback((nuevas: AlertaLector[]) => {
+    if (!nuevas.length) return;
+    setRechazos((ant) => [...[...nuevas].reverse(), ...ant].slice(0, 6));
+    for (const a of nuevas)
+      if (a.tipo === 'alerta') setTimeout(() => setRechazos((ant) => ant.filter((x) => x.id !== a.id)), DURACION_ALERTA_MS);
+  }, []);
   const [escaneados, setEscaneados] = useState(0);
   const lineasRef = useRef(lineas);
   useEffect(() => {
@@ -100,7 +130,8 @@ export default function NuevaVenta() {
 
   const opcionesAlmacen = (almacenes.datos ?? []).filter((a) => a.activo).map((a) => ({ valor: a.id, texto: a.nombre }));
   // Con un solo almacén se propone ese.
-  const almacenModo = almacenElegido ?? (opcionesAlmacen.length === 1 ? opcionesAlmacen[0].valor : undefined);
+  const mio = useMiAlmacen();
+  const almacenModo = mio ?? almacenElegido ?? (opcionesAlmacen.length === 1 ? opcionesAlmacen[0].valor : undefined);
 
   useEffect(() => {
     iotService
@@ -155,7 +186,7 @@ export default function NuevaVenta() {
           const r = aplicarEscaneos(lineasRef.current, escaneos, almacenModo);
           setLineas(r.lineas);
           setEscaneados((n) => n + r.agregados);
-          if (r.avisos.length) setRechazos((ant) => [...r.avisos.reverse(), ...ant].slice(0, 5));
+          mostrarAlertas(r.avisos);
         }
       } catch {
         // Falla de red pasajera: se reintenta en el siguiente segundo.
@@ -164,7 +195,7 @@ export default function NuevaVenta() {
       }
     }, INTERVALO_LECTOR_MS);
     return () => clearInterval(reloj);
-  }, [modo, almacenModo]);
+  }, [modo, almacenModo, mostrarAlertas]);
 
   const cambiarModo = async (activar: boolean) => {
     setAvisoModo(null);
@@ -183,6 +214,14 @@ export default function NuevaVenta() {
     }
   };
 
+  const agregarUid = (l: Linea) => {
+    const uid = normalizarUid(l.nuevoUid);
+    if (!uid) return mostrarAlertas([{ id: siguienteAlerta++, tipo: 'alerta', texto: 'El UID debe ser hexadecimal, por ejemplo 53:2B:84:E5.' }]);
+    if (lineas.some((x) => x.piezas.includes(uid)))
+      return mostrarAlertas([{ id: siguienteAlerta++, tipo: 'alerta', texto: `La pieza ${uid} ya está en esta venta.` }]);
+    cambiar(l.clave, { piezas: [...l.piezas, uid], nuevoUid: '' });
+  };
+
   const quitarPieza = (clave: number, uid: string) =>
     setLineas((ls) => ls.map((l) => (l.clave === clave && l.piezas.includes(uid) ? { ...l, piezas: l.piezas.filter((p) => p !== uid), cantidad: sumar(l.cantidad, -1) } : l)));
 
@@ -195,6 +234,8 @@ export default function NuevaVenta() {
     if (lineas.some((l) => !l.producto || !l.almacenId || !(leerNumero(l.cantidad) > 0))) return setError('Cada línea necesita producto, almacén y cantidad mayor que cero.');
     if (lineas.some((l) => leerNumero(l.cantidad) < l.piezas.length))
       return setError('La cantidad de una línea no puede ser menor que sus piezas escaneadas. Quita las piezas que no salen.');
+    const incompleta = lineas.find((l) => faltanUid(l) > 0);
+    if (incompleta) return setError(`A ${incompleta.producto!.referencia} le faltan ${faltanUid(incompleta)} UID: escanea las piezas o captura su UID.`);
     if (lineas.some((l) => leerNumero(l.cantidad) > disponible(l))) return setError('Hay líneas con más cantidad de la que hay en el almacén.');
     if (lineas.some((l) => Number.isNaN(leerNumero(l.precio)) || leerNumero(l.precio) < 0)) return setError('Captura el precio unitario de cada línea.');
 
@@ -244,7 +285,7 @@ export default function NuevaVenta() {
             valor={almacenModo}
             opciones={opcionesAlmacen}
             alCambiar={setAlmacenModo}
-            deshabilitado={modo || cambiandoModo}
+            deshabilitado={modo || cambiandoModo || !!mio}
           />
           {modo ? (
             <Fila style={{ flexWrap: 'wrap' }}>
@@ -256,8 +297,17 @@ export default function NuevaVenta() {
             </Texto>
           )}
           {avisoModo ? <Aviso tipo="alerta" texto={avisoModo} /> : null}
-          {rechazos.map((t, i) => (
-            <Aviso key={`${i}-${t}`} tipo="alerta" texto={t} />
+          {rechazos.map((a) => (
+            <View key={a.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <View style={{ flex: 1 }}>
+                <Aviso tipo={a.tipo} texto={a.texto} />
+              </View>
+              {a.tipo === 'error' ? (
+                <Pressable accessibilityRole="button" accessibilityLabel="Cerrar alerta" onPress={() => setRechazos((ant) => ant.filter((x) => x.id !== a.id))} style={{ padding: 6 }}>
+                  <Icono nombre="close" tamano={18} />
+                </Pressable>
+              ) : null}
+            </View>
           ))}
         </Tarjeta>
 
@@ -282,9 +332,11 @@ export default function NuevaVenta() {
                   placeholder="Sin existencias en ningún almacén"
                   deshabilitado={!l.producto.existencias.length}
                 />
-                {l.piezas.length ? (
+                {llevaUid(l) ? (
                   <View style={{ gap: 4 }}>
-                    <Texto tipo="pequeno">Piezas escaneadas (toca una para quitarla):</Texto>
+                    <Texto tipo="pequeno" color={faltanUid(l) > 0 ? c.warning : undefined}>
+                      UID de las piezas ({l.piezas.length} de {Formato.cantidad(leerNumero(l.cantidad) || 0)}){l.piezas.length ? ', toca una para quitarla' : ''}:
+                    </Texto>
                     <Fila style={{ flexWrap: 'wrap' }} gap={6}>
                       {l.piezas.map((uid) => (
                         <Pressable
@@ -298,6 +350,21 @@ export default function NuevaVenta() {
                         </Pressable>
                       ))}
                     </Fila>
+                    {faltanUid(l) > 0 ? (
+                      <Fila style={{ alignItems: 'flex-end' }}>
+                        <Campo
+                          etiqueta={`Faltan ${faltanUid(l)} UID`}
+                          value={l.nuevoUid}
+                          onChangeText={(t) => cambiar(l.clave, { nuevoUid: t })}
+                          onSubmitEditing={() => agregarUid(l)}
+                          autoCapitalize="characters"
+                          autoCorrect={false}
+                          placeholder="UID de la etiqueta"
+                          style={{ flex: 1 }}
+                        />
+                        <Boton texto="Agregar" icono="add" variante="contorno" alPresionar={() => agregarUid(l)} />
+                      </Fila>
+                    ) : null}
                   </View>
                 ) : null}
                 </View>

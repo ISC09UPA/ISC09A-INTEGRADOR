@@ -48,6 +48,7 @@
             <MudTh>Nombre</MudTh>
             <MudTh>Correo</MudTh>
             <MudTh>Rol</MudTh>
+            <MudTh>Almacén</MudTh>
             <MudTh>Estado</MudTh>
             <MudTh>Tarjeta NFC</MudTh>
             <MudTh>Reconocimiento</MudTh>
@@ -57,6 +58,7 @@
             <MudTd DataLabel="Nombre"><b>@context.Nombre</b></MudTd>
             <MudTd DataLabel="Correo"><span class="tabla-celda-secundaria">@context.Correo</span></MudTd>
             <MudTd DataLabel="Rol">@Roles.Nombre(context.Rol)</MudTd>
+            <MudTd DataLabel="Almacén">@(context.Rol == Roles.Superadmin ? "Todos" : context.Almacen ?? "Sin asignar")</MudTd>
             <MudTd DataLabel="Estado">
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@(context.Activo ? Color.Success : Color.Default)">
                     @(context.Activo ? "Activo" : "Inactivo")

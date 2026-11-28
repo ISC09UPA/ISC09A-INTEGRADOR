@@ -20,7 +20,7 @@
               RowsPerPage="50" Elevation="0" LoadingProgressColor="Color.Primary">
         <ToolBarContent>
             <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="3" AlignItems="AlignItems.Center" Class="flex-grow-1">
-                <MudSelect T="Guid?" Value="_almacenId" ValueChanged="CambiarAlmacenAsync" Label="Almacén" Clearable="true" Dense="true" Style="max-width:240px">
+                <MudSelect T="Guid?" Value="_almacenId" ValueChanged="CambiarAlmacenAsync" Label="Almacén" Clearable="@(!_almacenFijo)" Disabled="_almacenFijo" Dense="true" Style="max-width:240px">
                     @foreach (var a in _almacenes)
                     {
                         <MudSelectItem T="Guid?" Value="@a.Id">@a.Nombre</MudSelectItem>
@@ -136,6 +136,7 @@
     private MudTable<ExistenciaDto> _tabla = default!;
     private IReadOnlyList<AlmacenDto> _almacenes = [];
     private Guid? _almacenId;
+    private bool _almacenFijo;
     private string? _busqueda;
     private bool _soloBajo;
 
@@ -156,6 +157,8 @@
         (_almacenId, _busqueda, _soloBajo) = (AlmacenInicial, BusquedaInicial, BajoInicial);
         var (_, almacenes) = await IntentarAsync(new ListarAlmacenes());
         _almacenes = almacenes ?? [];
+        if (await MiAlmacenAsync() is { } mio)
+            (_almacenId, _almacenFijo) = (mio, true);
     }
 
     private async Task<TableData<ExistenciaDto>> CargarAsync(TableState estado, CancellationToken ct)

@@ -4,4 +4,6 @@ export interface DatosProductoDto {
   unidadId: string;
   /** Familia NFC: null la conserva, "" la quita. */
   codigoNfc?: string | null;
+  /** null lo conserva, "" lo quita. */
+  codigoProveedor?: string | null;
 }

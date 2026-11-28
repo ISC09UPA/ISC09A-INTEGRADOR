@@ -65,7 +65,7 @@ internal sealed class ConsultasEf(AlmacenDbContext db) : IConsultas
             var p = f.Producto;
             return new ProductoDto(p.Id, p.Referencia, p.Descripcion, p.UnidadId, f.Unidad, p.PermiteFracciones, p.ImagenRuta,
                 p.Activo, p.Estado, p.GerenteAprobadorId, p.GerenteAprobadorId is { } g ? nombres.GetValueOrDefault(g) : null,
-                nombres.GetValueOrDefault(p.Creado.UsuarioId, "—"), p.Creado.Fecha, p.MotivoRechazo, f.Existencia, p.CodigoNfc);
+                nombres.GetValueOrDefault(p.Creado.UsuarioId, "—"), p.Creado.Fecha, p.MotivoRechazo, f.Existencia, p.CodigoNfc, p.CodigoProveedor);
         }).ToList();
     }
 
@@ -76,7 +76,7 @@ internal sealed class ConsultasEf(AlmacenDbContext db) : IConsultas
         {
             var patron = $"%{texto.Trim()}%";
             var nfc = texto.Trim().Replace(":", "").Replace("-", "").ToUpperInvariant();
-            q = q.Where(p => EF.Functions.ILike(p.Referencia, patron) || EF.Functions.ILike(p.Descripcion, patron) || p.CodigoNfc == nfc);
+            q = q.Where(p => EF.Functions.ILike(p.Referencia, patron) || EF.Functions.ILike(p.Descripcion, patron) || p.CodigoNfc == nfc || p.CodigoProveedor == nfc);
         }
         return ProyectarOpciones(q.OrderBy(p => p.Referencia).Take(maximo), ct);
     }
