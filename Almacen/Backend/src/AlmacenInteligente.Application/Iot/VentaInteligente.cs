@@ -120,7 +120,7 @@ internal sealed class VentaInteligenteManejador(
                 var producto = e.ProductoId is { } id ? productos.GetValueOrDefault(id) : null;
                 // Pudo desactivarse entre el escaneo y ahora.
                 var rechazo = e.Rechazo ?? (producto is null ? $"El producto de la familia {e.Familia} ya no está disponible." : null);
-                return new EscaneoDto(e.Id, e.Fecha, e.Uid, e.Familia, producto, rechazo);
+                return new EscaneoDto(e.Id, e.Fecha, e.Uid, e.Familia, producto, rechazo, e.Duplicado);
             })
             .ToList();
     }
@@ -219,13 +219,21 @@ public sealed class ServicioEscaneosIot(
             : producto is null ? (ResultadoEscaneo.ProductoNoEncontrado, $"El código proveedor {codigo} no está en ningún producto.")
             : !producto.EstaDisponible ? (ResultadoEscaneo.ProductoNoDisponible, $"El producto {producto.Referencia} no está aprobado o activo.")
             : (ResultadoEscaneo.Registrado, (string?)null);
-        return await GuardarAsync(uid, codigo, producto?.Id, resultado, rechazo, ahora, ct);
+        return await GuardarAsync(uid, codigo, producto?.Id, resultado, rechazo, ahora, ct, paquete: true);
     }
 
     private async Task<(ResultadoEscaneo, Guid?)> GuardarAsync(
-        string uid, string? familia, Guid? productoId, ResultadoEscaneo resultado, string? rechazo, DateTimeOffset ahora, CancellationToken ct)
+        string uid, string? familia, Guid? productoId, ResultadoEscaneo resultado, string? rechazo, DateTimeOffset ahora, CancellationToken ct,
+        bool paquete = false)
     {
-        var registro = await candado.RegistrarEscaneoAsync(uid, familia ?? string.Empty, productoId, rechazo, ahora, ahora - opciones.TimeoutSesion, ct);
+        var limite = ahora - opciones.TimeoutSesion;
+        var registro = await candado.RegistrarEscaneoAsync(uid, familia ?? string.Empty, productoId, rechazo, false, ahora, limite, ct);
+        if (registro == RegistroEscaneo.Repetido)
+        {
+            // Se anota como rechazo de duplicado para que el agente vea la alerta (amarilla) en la web o la app.
+            var aviso = paquete ? $"El paquete {uid} ya se leyó en esta recepción." : $"La pieza {uid} ya está en esta venta.";
+            await candado.RegistrarEscaneoAsync(uid, familia ?? string.Empty, productoId, aviso, true, ahora, limite, ct);
+        }
         return registro switch
         {
             RegistroEscaneo.SinSesion => (ResultadoEscaneo.SinSesion, productoId),

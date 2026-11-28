@@ -20,6 +20,7 @@ export class IotMapper {
       familia: dto.familia,
       producto: dto.producto ? ProductoMapper.opcion(dto.producto) : undefined,
       rechazo: opcional(dto.rechazo),
+      duplicado: dto.duplicado ?? false,
     };
   }
 }
