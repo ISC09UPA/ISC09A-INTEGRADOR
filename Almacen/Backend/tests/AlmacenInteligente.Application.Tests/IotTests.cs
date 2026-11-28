@@ -87,7 +87,7 @@ internal sealed class CandadoEnMemoria(TimeSpan limite) : ICandadoVentaInteligen
     {
         if (!Sesion.EstaVigente(ahora, limite))
             return Task.FromResult(RegistroEscaneo.SinSesion);
-        if (Escaneos.Any(e => !e.Procesado && e.SesionId == Sesion.SesionId && e.Uid == uid))
+        if (Escaneos.Any(e => e.SesionId == Sesion.SesionId && e.Uid == uid && (!e.Procesado || e.Aceptado)))
             return Task.FromResult(RegistroEscaneo.Repetido);
         Escaneos.Add(new EscaneoIot(Sesion.SesionId!.Value, uid, familia, productoId, ahora, rechazo));
         return Task.FromResult(RegistroEscaneo.Registrado);
@@ -305,6 +305,16 @@ public class ServicioEscaneosIotTests
         var (resultado, _) = await c.Servicio.RegistrarAsync("532B84E5030001", "A1B2C3");
         Assert.Equal(ResultadoEscaneo.PiezaRepetida, resultado);
         Assert.Single(c.Candado.Escaneos);
+    }
+
+    [Fact]
+    public async Task Pieza_que_ya_esta_en_la_venta_es_duplicada()
+    {
+        var c = Crear();
+        await c.Servicio.RegistrarAsync("532B84E5030001", "A1B2C3");
+        c.Candado.Escaneos.ForEach(e => e.MarcarProcesado()); // la pantalla ya la agregó a la venta
+        var (resultado, _) = await c.Servicio.RegistrarAsync("532B84E5030001", "A1B2C3");
+        Assert.Equal(ResultadoEscaneo.PiezaRepetida, resultado);
     }
 
     [Fact]

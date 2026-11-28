@@ -23,10 +23,16 @@ public class InventarioTests
         return recepcion;
     }
 
+    private static int _siguienteUid;
+
+    /// <summary>Un UID distinto por pieza, como los de las etiquetas NFC.</summary>
+    private static List<string> Uids(decimal cantidad) =>
+        Enumerable.Range(0, (int)cantidad).Select(_ => $"53{Interlocked.Increment(ref _siguienteUid):X12}").ToList();
+
     private Venta NuevaVenta(decimal cantidad, decimal precio = 20m)
     {
         var venta = new Venta(Fabrica.Cliente(), Fabrica.Hoy, Fabrica.Registro());
-        venta.AgregarLinea(_tornillo, _central.Id, cantidad, precio, TasaIva.General);
+        venta.AgregarLinea(_tornillo, _central.Id, cantidad, precio, TasaIva.General, Uids(cantidad));
         return venta;
     }
 
@@ -85,8 +91,8 @@ public class InventarioTests
         var lote = new LoteExistencias([]);
         Recibir(lote, 5, 5m);
         var venta = new Venta(Fabrica.Cliente(), Fabrica.Hoy, Fabrica.Registro());
-        venta.AgregarLinea(_tornillo, _central.Id, 3, 20, TasaIva.General);
-        venta.AgregarLinea(_tornillo, _central.Id, 3, 20, TasaIva.General);
+        venta.AgregarLinea(_tornillo, _central.Id, 3, 20, TasaIva.General, Uids(3));
+        venta.AgregarLinea(_tornillo, _central.Id, 3, 20, TasaIva.General, Uids(3));
 
         Assert.Throws<ExistenciaInsuficienteException>(() => ServicioInventario.ConfirmarVenta(venta, lote, Fabrica.Registro()));
 
@@ -125,7 +131,7 @@ public class InventarioTests
         var lote = new LoteExistencias([]);
         Recibir(lote, 10, 5m);
         var venta = new Venta(Fabrica.Cliente(), Fabrica.Hoy, Fabrica.Registro());
-        venta.AgregarLinea(_tornillo, _central.Id, 3, 20m, TasaIva.General, ["53:2b:84:e5:03:00:01", "532B84E5030002"]);
+        venta.AgregarLinea(_tornillo, _central.Id, 2, 20m, TasaIva.General, ["53:2b:84:e5:03:00:01", "532B84E5030002"]);
         ServicioInventario.ConfirmarVenta(venta, lote, Fabrica.Registro());
 
         Assert.Equal(["532B84E5030001", "532B84E5030002"], venta.UidsPiezas);
@@ -146,11 +152,24 @@ public class InventarioTests
     }
 
     [Fact]
-    public void Cantidad_menor_que_las_piezas_escaneadas_falla()
+    public void Cantidad_y_uid_de_las_piezas_deben_coincidir()
     {
         var venta = new Venta(Fabrica.Cliente(), Fabrica.Hoy, Fabrica.Registro());
         Assert.Throws<DomainException>(() =>
             venta.AgregarLinea(_tornillo, _central.Id, 1, 20m, TasaIva.General, ["532B84E5030001", "532B84E5030002"]));
+        // Se escanearon 2 y se cambió la cantidad a 4 a mano: faltan 2 UID.
+        var faltan = Assert.Throws<DomainException>(() =>
+            venta.AgregarLinea(_tornillo, _central.Id, 4, 20m, TasaIva.General, ["532B84E5030001", "532B84E5030002"]));
+        Assert.Contains("le faltan 2 UID", faltan.Message);
+    }
+
+    [Fact]
+    public void Producto_por_peso_no_lleva_uid()
+    {
+        var venta = new Venta(Fabrica.Cliente(), Fabrica.Hoy, Fabrica.Registro());
+        var arroz = Fabrica.Producto("ARR-001", Fabrica.Kilo());
+        venta.AgregarLinea(arroz, _central.Id, 2.5m, 30m, TasaIva.General);
+        Assert.Throws<DomainException>(() => venta.AgregarLinea(arroz, _central.Id, 1, 30m, TasaIva.General, ["532B84E5030009"]));
     }
 
     [Fact]

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import type { ConsultaStockIot } from '@/models/consulta-stock-iot.model';
@@ -35,6 +35,31 @@ export default function ComprobarStock() {
     [busqueda, nivel],
   );
   const consultas = usePaginado<ConsultaStockIot>((pagina) => stockService.consultasLector(pagina), []);
+  const { recargar: recargarConsultas } = consultas;
+  const { recargar: recargarProductos } = productos;
+  const primeraConsulta = consultas.elementos[0]?.id;
+
+  // Con la pestaña del lector abierta, cada 3 s revisa si llegó una consulta nueva y solo entonces recarga.
+  useEffect(() => {
+    if (vista !== 'lector') return;
+    let ocupado = false;
+    const reloj = setInterval(async () => {
+      if (ocupado) return;
+      ocupado = true;
+      try {
+        const ultima = (await stockService.consultasLector(1, 1)).elementos[0]?.id;
+        if (ultima && ultima !== primeraConsulta) {
+          recargarConsultas();
+          recargarProductos();
+        }
+      } catch {
+        // Falla de red pasajera: se reintenta en el siguiente ciclo.
+      } finally {
+        ocupado = false;
+      }
+    }, 3000);
+    return () => clearInterval(reloj);
+  }, [vista, primeraConsulta, recargarConsultas, recargarProductos]);
 
   const tono = (n: NivelStock) => (n === 'Verde' ? c.success : n === 'Amarillo' ? c.warning : c.error);
   const punto = (n: NivelStock, tamano = 14) => <View style={{ width: tamano, height: tamano, borderRadius: tamano / 2, backgroundColor: tono(n) }} />;
@@ -67,7 +92,7 @@ export default function ComprobarStock() {
         encabezado={
           <View style={{ gap: Spacing.two }}>
             {pestanas}
-            <Texto tipo="secundario">Piezas que pasaron por el lector mientras nadie tenía el modo inteligente de venta.</Texto>
+            <Texto tipo="secundario">Piezas que pasaron por el lector mientras nadie tenía el modo inteligente de venta. Se actualiza sola.</Texto>
           </View>
         }
         fila={(x) => (

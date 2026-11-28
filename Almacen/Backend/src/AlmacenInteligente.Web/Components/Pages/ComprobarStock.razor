@@ -3,6 +3,7 @@
 @using AlmacenInteligente.Application.Iot
 @using AlmacenInteligente.Domain.Inventario
 @inherits PaginaBase
+@implements IAsyncDisposable
 
 <PageTitle>Comprobar stock · Almacén inteligente</PageTitle>
 
@@ -25,7 +26,7 @@
     }
 </MudGrid>
 
-<MudTabs Elevation="0" Outlined="true" Rounded="true" TabPanelsClass="pa-0">
+<MudTabs Elevation="0" Outlined="true" Rounded="true" TabPanelsClass="pa-0" @bind-ActivePanelIndex="_pestana">
     <MudTabPanel Text="Productos" Icon="@Icons.Material.Outlined.Traffic">
         <MudTable @ref="_tabla" T="SemaforoProductoDto" ServerData="CargarAsync" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm"
                   RowsPerPage="50" Elevation="0" LoadingProgressColor="Color.Primary">
@@ -87,7 +88,7 @@
         <MudTable @ref="_consultas" T="ConsultaStockIotDto" ServerData="CargarConsultasAsync" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm"
                   RowsPerPage="50" Elevation="0" LoadingProgressColor="Color.Primary">
             <ToolBarContent>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">Piezas que pasaron por el lector mientras nadie tenía el modo inteligente de venta.</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Piezas que pasaron por el lector mientras nadie tenía el modo inteligente de venta. Se actualiza sola cada 3 s.</MudText>
                 <MudSpacer />
                 <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Refresh" OnClick="() => _consultas.ReloadServerData()">Actualizar</MudButton>
             </ToolBarContent>
@@ -132,6 +133,51 @@
     private string? _busqueda;
     private NivelStock? _nivel;
     private int _verdes, _amarillos, _rojos;
+    private int _pestana;
+    private readonly CancellationTokenSource _vida = new();
+    private Guid? _ultimaConsulta;
+
+    /// <summary>Mientras está abierta la pestaña del lector, revisa cada 3 s si llegaron consultas nuevas.</summary>
+    protected override void OnAfterRender(bool primera)
+    {
+        if (primera)
+            _ = EscucharLectorAsync(_vida.Token);
+    }
+
+    private async Task EscucharLectorAsync(CancellationToken ct)
+    {
+        using var reloj = new PeriodicTimer(TimeSpan.FromSeconds(3));
+        try
+        {
+            while (await reloj.WaitForNextTickAsync(ct))
+            {
+                if (_pestana != 1)
+                    continue;
+                await InvokeAsync(async () =>
+                {
+                    // Sin avisos en pantalla si falla: se reintenta en el siguiente ciclo.
+                    var (ultima, _) = await EjecutarAsync(new ListarConsultasStockIot(new FiltroConsultasStockIot(1, 1)));
+                    var id = ultima?.Elementos.FirstOrDefault()?.Id;
+                    if (id is not null && id != _ultimaConsulta)
+                    {
+                        // Llegó una consulta nueva: se recargan la bitácora y los contadores del semáforo.
+                        await _consultas.ReloadServerData();
+                        await _tabla.ReloadServerData();
+                    }
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        _vida.Cancel();
+        _vida.Dispose();
+        return ValueTask.CompletedTask;
+    }
 
     private async Task<TableData<SemaforoProductoDto>> CargarAsync(TableState estado, CancellationToken ct)
     {
@@ -146,6 +192,8 @@
     private async Task<TableData<ConsultaStockIotDto>> CargarConsultasAsync(TableState estado, CancellationToken ct)
     {
         var (exito, pagina) = await IntentarAsync(new ListarConsultasStockIot(new FiltroConsultasStockIot(estado.Page + 1, estado.PageSize)));
+        if (exito && estado.Page == 0)
+            _ultimaConsulta = pagina?.Elementos.FirstOrDefault()?.Id;
         return exito && pagina is not null
             ? new TableData<ConsultaStockIotDto> { Items = pagina.Elementos, TotalItems = pagina.Total }
             : new TableData<ConsultaStockIotDto> { Items = [], TotalItems = 0 };

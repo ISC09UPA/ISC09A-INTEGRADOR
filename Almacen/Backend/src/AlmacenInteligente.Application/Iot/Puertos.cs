@@ -115,7 +115,7 @@ public enum RegistroEscaneo
     Registrado = 1,
     /// <summary>Nadie tiene el modo inteligente vigente.</summary>
     SinSesion = 2,
-    /// <summary>La misma pieza ya estaba pendiente de entregarse en la sesión.</summary>
+    /// <summary>La misma pieza ya se escaneó en la sesión (pendiente o ya en la venta): es un duplicado.</summary>
     Repetido = 3,
 }
 

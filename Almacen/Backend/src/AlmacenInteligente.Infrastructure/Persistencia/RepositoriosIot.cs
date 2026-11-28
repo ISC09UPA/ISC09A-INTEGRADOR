@@ -126,6 +126,8 @@ internal sealed class CandadoVentaInteligente(AlmacenDbContext db) : ICandadoVen
             SELECT {e.Id}, s.sesion_id, {e.Uid}, {e.Familia}, {e.ProductoId}::uuid, {e.Rechazo}::text, {momento}, FALSE
             FROM iot_sesion_venta s
             WHERE s.id = {Id} AND s.usuario_id IS NOT NULL AND s.ultimo_latido >= {limite}
+              -- Una pieza que ya se aceptó en esta sesión (ya está en la venta) es un duplicado.
+              AND NOT EXISTS (SELECT 1 FROM iot_escaneos x WHERE x.sesion_id = s.sesion_id AND x.uid = {e.Uid} AND x.rechazo IS NULL)
             ON CONFLICT (sesion_id, uid) WHERE NOT procesado DO NOTHING
             """, ct);
         if (filas == 1)

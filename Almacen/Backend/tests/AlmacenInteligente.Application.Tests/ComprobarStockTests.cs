@@ -100,7 +100,20 @@ public class ServicioConsultaStockIotTests
         Assert.Equal(ServicioConsultaStockIot.ModoVenta, r.Modo);
         Assert.True(r.Aceptado);
         Assert.Equal("Agregada a la venta", r.Motivo);
-        Assert.Equal("amarillo", r.Nivel);
+        Assert.Equal("verde", r.Nivel);
+        Assert.Equal(3, r.Existencia);
         Assert.Empty(stock.Guardadas);
+    }
+
+    [Theory]
+    [InlineData(ResultadoEscaneo.PiezaRepetida, "amarillo", "Pieza duplicada")]
+    [InlineData(ResultadoEscaneo.PiezaYaVendida, "rojo", "Pieza ya vendida")]
+    public async Task En_venta_el_led_dice_que_paso(ResultadoEscaneo resultado, string led, string motivo)
+    {
+        var (servicio, _, _, tornillo) = Crear();
+        var r = await servicio.RespuestaVentaAsync(resultado, tornillo.Id);
+        Assert.False(r.Aceptado);
+        Assert.Equal(led, r.Nivel);
+        Assert.Equal(motivo, r.Motivo);
     }
 }

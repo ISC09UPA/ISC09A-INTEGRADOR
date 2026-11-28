@@ -63,7 +63,8 @@ internal sealed class ComprobarStockManejador(IConsultasStock stock) :
 /// <summary>
 /// Lo que el embebido recibe en la cola iot-escaneos-respuestas por cada pieza que pasó por el lector.
 /// <c>Modo</c> es "venta" (alguien tiene el modo inteligente) o "consulta" (comprobar stock).
-/// <c>Nivel</c> ("verde", "amarillo", "rojo") indica qué LED prender; null si no se reconoció el producto.
+/// <c>Nivel</c> ("verde", "amarillo", "rojo") indica qué LED prender. En consulta es el nivel de stock (null si no se
+/// reconoció el producto); en venta es el resultado: verde agregada, amarillo pieza duplicada, rojo rechazada.
 /// </summary>
 public sealed record RespuestaEscaneoIot(
     string Modo, bool Aceptado, string Motivo, string? Producto, decimal? Existencia, decimal? Minimo, string? Nivel);
@@ -105,7 +106,7 @@ public sealed class ServicioConsultaStockIot(
         return respuesta;
     }
 
-    /// <summary>La pieza fue al modo inteligente de venta: se le dice al embebido qué pasó y el nivel de stock del producto.</summary>
+    /// <summary>La pieza fue al modo inteligente de venta: se le dice al embebido qué pasó y la existencia del producto.</summary>
     public async Task<RespuestaEscaneoIot> RespuestaVentaAsync(ResultadoEscaneo resultado, Guid? productoId, CancellationToken ct = default)
     {
         var producto = productoId is { } id ? await productos.ObtenerAsync(id, ct) : null;
@@ -116,15 +117,22 @@ public sealed class ServicioConsultaStockIot(
         {
             ResultadoEscaneo.Registrado => "Agregada a la venta",
             ResultadoEscaneo.PiezaYaVendida => "Pieza ya vendida",
-            ResultadoEscaneo.PiezaRepetida => "Pieza ya escaneada",
+            ResultadoEscaneo.PiezaRepetida => "Pieza duplicada",
             ResultadoEscaneo.ProductoNoDisponible => "Producto no disponible",
             ResultadoEscaneo.ProductoNoEncontrado => "Familia no registrada",
             ResultadoEscaneo.CodigoInvalido => "UID inválido",
             _ => "Sin venta activa",
         };
+        // En venta el LED dice qué pasó con la pieza: verde agregada, amarillo duplicada, rojo rechazada.
+        var nivel = resultado switch
+        {
+            ResultadoEscaneo.Registrado => NivelStock.Verde,
+            ResultadoEscaneo.PiezaRepetida => NivelStock.Amarillo,
+            _ => NivelStock.Rojo,
+        };
         return new RespuestaEscaneoIot(ModoVenta, resultado == ResultadoEscaneo.Registrado, motivo,
             producto is null ? null : $"{producto.Referencia} · {producto.Descripcion}",
-            existencia, minimo, existencia is { } e ? Color(SemaforoStock.Nivel(e, minimo ?? 0)) : null);
+            existencia, minimo, Color(nivel));
     }
 
     public static string Color(NivelStock nivel) => nivel switch
