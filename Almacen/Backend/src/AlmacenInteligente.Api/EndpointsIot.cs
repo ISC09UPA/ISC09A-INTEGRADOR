@@ -55,6 +55,6 @@ internal static class EndpointsIot
         }).WithName("LiberarModoInteligente");
         venta.MapPost("/escaneos", (IMediador m, CancellationToken ct) => m.EnviarAsync(new TomarEscaneosPendientes(), ct))
             .WithName("TomarEscaneosPendientes")
-            .WithSummary("Productos escaneados desde la última consulta (cada uno se entrega una sola vez). Agrégalos como líneas de cantidad 1.");
+            .WithSummary("Piezas escaneadas desde la última consulta (cada una se entrega una sola vez). Las que traen \"rechazo\" (ya vendida, familia desconocida…) no se agregan; las demás súmalas a la línea de su producto y manda su \"uid\" en \"piezas\" al registrar la venta.");
     }
 }

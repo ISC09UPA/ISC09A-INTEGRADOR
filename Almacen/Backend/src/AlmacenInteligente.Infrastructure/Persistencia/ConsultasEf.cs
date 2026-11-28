@@ -293,7 +293,8 @@ internal sealed class ConsultasEf(AlmacenDbContext db) : IConsultas
         var productos = await Productos(v.Lineas.Select(l => l.ProductoId), ct);
         var almacenIds = v.Lineas.Select(l => l.AlmacenId).Distinct().ToList();
         var almacenes = await db.Almacenes.AsNoTracking().Where(a => almacenIds.Contains(a.Id)).ToDictionaryAsync(a => a.Id, a => a.Nombre, ct);
-        var lineas = v.Lineas.Select(l => Linea(productos[l.ProductoId], almacenes[l.AlmacenId], l.Cantidad, l.PrecioUnitario, l.TasaIva.Valor, l.Importe, l.CostoUnitario)).ToList();
+        var lineas = v.Lineas.Select(l => Linea(productos[l.ProductoId], almacenes[l.AlmacenId], l.Cantidad, l.PrecioUnitario, l.TasaIva.Valor, l.Importe, l.CostoUnitario)
+            with { Piezas = l.Piezas.Count == 0 ? null : l.Piezas.Select(p => p.Uid).ToList() }).ToList();
         return await Detalle(v, cliente.Nombre, cliente.Rfc.Valor, cliente.Correo.Valor, string.Join(", ", almacenes.Values.Order()), null, lineas, ct);
     }
 

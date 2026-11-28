@@ -83,6 +83,26 @@ internal sealed class LineaVentaConfiguracion : IEntityTypeConfiguration<LineaVe
         b.Property(l => l.CostoUnitario).HasColumnType(Conversiones.TipoCosto);
         b.Property(l => l.TasaIva).Tasa();
         b.ComplexProperty(l => l.Importe, Conversiones.Importe);
+        b.HasMany(l => l.Piezas).WithOne().HasForeignKey("LineaVentaId").IsRequired().OnDelete(DeleteBehavior.Cascade);
+        b.Navigation(l => l.Piezas).UsePropertyAccessMode(PropertyAccessMode.Field).AutoInclude();
+    }
+}
+
+/// <summary>
+/// Piezas físicas vendidas (UID de su etiqueta NFC). El índice único parcial garantiza que un UID solo puede estar
+/// en una venta vigente a la vez, aun con dos ventas registrándose al mismo tiempo; al cancelar la venta queda devuelta.
+/// </summary>
+internal sealed class PiezaVendidaConfiguracion : IEntityTypeConfiguration<PiezaVendida>
+{
+    public const string IndiceEnStock = "ux_ventas_piezas_uid_vendida";
+
+    public void Configure(EntityTypeBuilder<PiezaVendida> b)
+    {
+        b.ToTable("ventas_piezas");
+        b.HasKey(p => p.Id);
+        b.Property(p => p.Id).ValueGeneratedNever();
+        b.Property(p => p.Uid).HasMaxLength(Domain.Iot.CodigoNfc.LongitudMaxima);
+        b.HasIndex(p => p.Uid).IsUnique().HasFilter("NOT devuelta").HasDatabaseName(IndiceEnStock);
     }
 }
 

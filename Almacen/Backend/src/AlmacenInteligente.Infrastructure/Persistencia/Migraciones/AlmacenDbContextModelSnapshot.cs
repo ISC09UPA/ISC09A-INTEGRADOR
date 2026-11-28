@@ -441,6 +441,12 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<string>("Familia")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("familia");
+
                     b.Property<DateTimeOffset>("Fecha")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha");
@@ -449,13 +455,24 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         .HasColumnType("boolean")
                         .HasColumnName("procesado");
 
-                    b.Property<Guid>("ProductoId")
+                    b.Property<Guid?>("ProductoId")
                         .HasColumnType("uuid")
                         .HasColumnName("producto_id");
+
+                    b.Property<string>("Rechazo")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("rechazo");
 
                     b.Property<Guid>("SesionId")
                         .HasColumnType("uuid")
                         .HasColumnName("sesion_id");
+
+                    b.Property<string>("Uid")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("uid");
 
                     b.HasKey("Id")
                         .HasName("pk_iot_escaneos");
@@ -463,8 +480,9 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                     b.HasIndex("ProductoId")
                         .HasDatabaseName("ix_iot_escaneos_producto_id");
 
-                    b.HasIndex("SesionId")
-                        .HasDatabaseName("ix_iot_escaneos_sesion_id")
+                    b.HasIndex("SesionId", "Uid")
+                        .IsUnique()
+                        .HasDatabaseName("ux_iot_escaneos_sesion_uid_pendiente")
                         .HasFilter("NOT procesado");
 
                     b.ToTable("iot_escaneos", (string)null);
@@ -1102,6 +1120,40 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                     b.ToTable("ventas_lineas", (string)null);
                 });
 
+            modelBuilder.Entity("AlmacenInteligente.Domain.Ventas.PiezaVendida", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Devuelta")
+                        .HasColumnType("boolean")
+                        .HasColumnName("devuelta");
+
+                    b.Property<Guid>("LineaVentaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("linea_venta_id");
+
+                    b.Property<string>("Uid")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("uid");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ventas_piezas");
+
+                    b.HasIndex("LineaVentaId")
+                        .HasDatabaseName("ix_ventas_piezas_linea_venta_id");
+
+                    b.HasIndex("Uid")
+                        .IsUnique()
+                        .HasDatabaseName("ux_ventas_piezas_uid_vendida")
+                        .HasFilter("NOT devuelta");
+
+                    b.ToTable("ventas_piezas", (string)null);
+                });
+
             modelBuilder.Entity("AlmacenInteligente.Domain.Ventas.Venta", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1570,7 +1622,6 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         .WithMany()
                         .HasForeignKey("ProductoId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
                         .HasConstraintName("fk_iot_escaneos_productos_producto_id");
                 });
 
@@ -1650,6 +1701,16 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         .HasConstraintName("fk_ventas_lineas_ventas_venta_id");
                 });
 
+            modelBuilder.Entity("AlmacenInteligente.Domain.Ventas.PiezaVendida", b =>
+                {
+                    b.HasOne("AlmacenInteligente.Domain.Ventas.LineaVenta", null)
+                        .WithMany("Piezas")
+                        .HasForeignKey("LineaVentaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ventas_piezas_ventas_lineas_linea_venta_id");
+                });
+
             modelBuilder.Entity("AlmacenInteligente.Domain.Ventas.Venta", b =>
                 {
                     b.HasOne("AlmacenInteligente.Domain.Terceros.Cliente", null)
@@ -1725,6 +1786,11 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
             modelBuilder.Entity("AlmacenInteligente.Domain.Recepciones.Recepcion", b =>
                 {
                     b.Navigation("Lineas");
+                });
+
+            modelBuilder.Entity("AlmacenInteligente.Domain.Ventas.LineaVenta", b =>
+                {
+                    b.Navigation("Piezas");
                 });
 
             modelBuilder.Entity("AlmacenInteligente.Domain.Ventas.Venta", b =>

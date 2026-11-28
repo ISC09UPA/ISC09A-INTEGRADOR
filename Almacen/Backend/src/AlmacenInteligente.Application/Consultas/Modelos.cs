@@ -56,7 +56,8 @@ public sealed record DocumentoResumenDto(
 
 public sealed record LineaDocumentoDto(
     Guid ProductoId, string Referencia, string Descripcion, string Unidad, string? Almacen,
-    decimal Cantidad, decimal PrecioUnitario, decimal TasaIva, decimal Subtotal, decimal Iva, decimal CostoUnitario)
+    decimal Cantidad, decimal PrecioUnitario, decimal TasaIva, decimal Subtotal, decimal Iva, decimal CostoUnitario,
+    IReadOnlyList<string>? Piezas = null)
 {
     public decimal Total => Subtotal + Iva;
 }

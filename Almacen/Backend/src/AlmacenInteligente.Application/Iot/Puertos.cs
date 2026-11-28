@@ -83,8 +83,12 @@ public interface ICandadoVentaInteligente
 
     Task LiberarAsync(Guid usuarioId, CancellationToken ct = default);
 
-    /// <summary>Registra el escaneo en la sesión vigente. False si nadie tiene el candado vigente.</summary>
-    Task<bool> RegistrarEscaneoAsync(Guid productoId, DateTimeOffset ahora, DateTimeOffset venceAntesDe, CancellationToken ct = default);
+    /// <summary>
+    /// Registra el escaneo (aceptado o con su motivo de rechazo) en la sesión vigente. No lo duplica si la misma
+    /// pieza ya está pendiente en esa sesión.
+    /// </summary>
+    Task<RegistroEscaneo> RegistrarEscaneoAsync(string uid, string familia, Guid? productoId, string? rechazo,
+        DateTimeOffset ahora, DateTimeOffset venceAntesDe, CancellationToken ct = default);
 
     /// <summary>Devuelve los escaneos no procesados de la sesión del usuario y los marca procesados.</summary>
     Task<IReadOnlyList<EscaneoIot>> TomarEscaneosPendientesAsync(Guid usuarioId, CancellationToken ct = default);
@@ -106,4 +110,17 @@ public sealed record SesionVentaDto(
     Guid SesionId, Guid UsuarioId, string Usuario, Guid AlmacenId, string Almacen,
     DateTimeOffset Inicio, DateTimeOffset UltimoLatido, bool EsMia);
 
-public sealed record EscaneoDto(Guid Id, DateTimeOffset Fecha, Consultas.ProductoOpcionDto Producto);
+public enum RegistroEscaneo
+{
+    Registrado = 1,
+    /// <summary>Nadie tiene el modo inteligente vigente.</summary>
+    SinSesion = 2,
+    /// <summary>La misma pieza ya estaba pendiente de entregarse en la sesión.</summary>
+    Repetido = 3,
+}
+
+/// <summary>
+/// Un escaneo para la pantalla de venta. Si <see cref="Rechazo"/> trae texto la pieza no se agrega
+/// (ya vendida, familia desconocida…) y <see cref="Producto"/> puede venir vacío.
+/// </summary>
+public sealed record EscaneoDto(Guid Id, DateTimeOffset Fecha, string Uid, string Familia, Consultas.ProductoOpcionDto? Producto, string? Rechazo);

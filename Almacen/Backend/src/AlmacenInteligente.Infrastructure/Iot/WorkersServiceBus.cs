@@ -154,8 +154,9 @@ internal sealed class ProcesadorAccesosIot(IServiceProvider servicios, OpcionesS
 }
 
 /// <summary>
-/// Cola iot-venta-escaneos: JSON { "nfc": "UID de la etiqueta del producto" }. Si alguien tiene el modo inteligente
-/// vigente, el producto se agrega a su venta; si no, o el producto no existe, solo se registra en el log.
+/// Cola iot-venta-escaneos: JSON { "id": "UID de fábrica de la etiqueta", "familia": "referencia del producto" }.
+/// Cada etiqueta es una pieza física. Si alguien tiene el modo inteligente vigente, la pieza se agrega a su venta
+/// (o se le avisa por qué no: ya vendida, familia desconocida…); si nadie lo tiene, solo se registra en el log.
 /// </summary>
 internal sealed class ProcesadorEscaneosIot(IServiceProvider servicios, OpcionesServiceBusIot opciones, ILogger<ProcesadorEscaneosIot> log)
     : WorkerServiceBus(servicios, opciones, log)
@@ -172,11 +173,11 @@ internal sealed class ProcesadorEscaneosIot(IServiceProvider servicios, Opciones
             return;
         }
 
-        string? nfc;
+        string? uid, familia;
         try
         {
             using var json = JsonDocument.Parse(m.Body.ToMemory());
-            nfc = json.RootElement.TryGetProperty("nfc", out var p) && p.ValueKind == JsonValueKind.String ? p.GetString() : null;
+            (uid, familia) = (Texto(json.RootElement, "id"), Texto(json.RootElement, "familia"));
         }
         catch (JsonException)
         {
@@ -188,11 +189,22 @@ internal sealed class ProcesadorEscaneosIot(IServiceProvider servicios, Opciones
         // Si falla la base se abandona; Service Bus lo manda a dead-letter tras su MaxDeliveryCount.
         await using var scope = Scopes.CreateAsyncScope();
         var (resultado, productoId) = await scope.ServiceProvider.GetRequiredService<ServicioEscaneosIot>()
-            .RegistrarAsync(nfc, args.CancellationToken);
+            .RegistrarAsync(uid, familia, args.CancellationToken);
         if (resultado == ResultadoEscaneo.Registrado)
-            Log.LogInformation("Escaneo NFC {Nfc}: producto {Producto} agregado a la venta inteligente.", nfc, productoId);
+            Log.LogInformation("Escaneo NFC {Uid} ({Familia}): producto {Producto} agregado a la venta inteligente.", uid, familia, productoId);
         else
-            Log.LogWarning("Escaneo NFC {Nfc} ignorado: {Resultado}.", nfc, resultado);
+            Log.LogWarning("Escaneo NFC {Uid} ({Familia}) no agregado: {Resultado}.", uid, familia, resultado);
         await args.CompleteMessageAsync(m, args.CancellationToken);
     }
+
+    /// <summary>La familia puede venir como texto o como número.</summary>
+    private static string? Texto(JsonElement raiz, string propiedad) =>
+        raiz.ValueKind == JsonValueKind.Object && raiz.TryGetProperty(propiedad, out var p)
+            ? p.ValueKind switch
+            {
+                JsonValueKind.String => p.GetString(),
+                JsonValueKind.Number => p.GetRawText(),
+                _ => null,
+            }
+            : null;
 }

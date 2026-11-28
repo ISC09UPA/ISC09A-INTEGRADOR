@@ -39,7 +39,7 @@ public interface IProductoRepositorio : IRepositorio<Producto>
     Task<bool> ExisteReferenciaAsync(string referencia, CancellationToken ct = default);
     Task<bool> ExisteCodigoNfcAsync(string codigoNfc, Guid? excepto, CancellationToken ct = default);
 
-    /// <summary>El producto con esa etiqueta NFC (UID ya normalizado).</summary>
+    /// <summary>El producto con ese código NFC (ya normalizado). Es la "familia" que manda el lector NFC con cada pieza.</summary>
     Task<Producto?> ObtenerPorCodigoNfcAsync(string codigoNfc, CancellationToken ct = default);
     Task<IReadOnlyDictionary<Guid, Producto>> ObtenerVariosAsync(IEnumerable<Guid> ids, CancellationToken ct = default);
 }
@@ -51,7 +51,11 @@ public interface IAlmacenRepositorio : IRepositorio<Almacen>
 
 public interface IRecepcionRepositorio : IRepositorio<Recepcion>;
 
-public interface IVentaRepositorio : IRepositorio<Venta>;
+public interface IVentaRepositorio : IRepositorio<Venta>
+{
+    /// <summary>De los UID dados (normalizados), los de piezas que ya salieron en una venta no cancelada.</summary>
+    Task<IReadOnlyList<string>> PiezasVendidasAsync(IReadOnlyCollection<string> uids, CancellationToken ct = default);
+}
 
 public interface ITraspasoRepositorio : IRepositorio<Traspaso>;
 
