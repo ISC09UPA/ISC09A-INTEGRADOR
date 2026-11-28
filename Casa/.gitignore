@@ -15,3 +15,7 @@
 **/*.iso
 **/*.xz
 .DS_Store
+**/.venv/
+**/.venv-device/
+**/__pycache__/
+**/*.pyc

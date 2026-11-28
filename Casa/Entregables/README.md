@@ -1,5 +1,7 @@
 # Entregables de Casa Domótica
 
+> **Entrega vigente:** la rama `casa/nov27/entregable-05` consolida el código de los entregables 01–04 y el avance de la semana. Las ramas 02–04 no llegaron a integrarse por separado.
+
 | Entregable | Rama | Contenido |
 |---|---|---|
 | 01 — Backend núcleo | `casa/nov13/backend-nucleo` | Identity, Home y Home.Functions. |
