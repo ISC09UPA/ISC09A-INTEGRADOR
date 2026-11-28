@@ -36,20 +36,21 @@ internal sealed class GestorUsuarios(UserManager<Usuario> usuarios, AlmacenDbCon
         return await ADtos(lista, ct);
     }
 
-    public async Task<UsuarioDto> CrearAsync(string nombre, string correo, string rol, string contrasena, string? codigoNfc, CancellationToken ct = default)
+    public async Task<UsuarioDto> CrearAsync(string nombre, string correo, string rol, string contrasena, string? codigoNfc, Guid? almacenId, CancellationToken ct = default)
     {
-        var usuario = new Usuario { Nombre = nombre, UserName = correo, Email = correo, EmailConfirmed = true, CodigoNfc = codigoNfc };
+        var usuario = new Usuario { Nombre = nombre, UserName = correo, Email = correo, EmailConfirmed = true, CodigoNfc = codigoNfc, AlmacenId = almacenId };
         Verificar(await usuarios.CreateAsync(usuario, contrasena));
         Verificar(await usuarios.AddToRoleAsync(usuario, rol));
         return await ADto(usuario, ct);
     }
 
-    public async Task<UsuarioDto> ActualizarAsync(Guid id, string nombre, string rol, bool activo, string? codigoNfc, CancellationToken ct = default)
+    public async Task<UsuarioDto> ActualizarAsync(Guid id, string nombre, string rol, bool activo, string? codigoNfc, Guid? almacenId, CancellationToken ct = default)
     {
         var usuario = await Cargar(id);
         usuario.Nombre = nombre;
         usuario.Activo = activo;
         usuario.CodigoNfc = codigoNfc;
+        usuario.AlmacenId = almacenId;
         // Cambiar el sello invalida las cookies vigentes, así un usuario desactivado pierde la sesión.
         Verificar(await usuarios.UpdateAsync(usuario));
         Verificar(await usuarios.UpdateSecurityStampAsync(usuario));
@@ -84,6 +85,8 @@ internal sealed class GestorUsuarios(UserManager<Usuario> usuarios, AlmacenDbCon
             .GroupBy(f => f.UsuarioId)
             .Select(g => new { UsuarioId = g.Key, Total = g.Count(), Entrenadas = g.Count(f => f.EntrenadaEn != null) })
             .ToDictionaryAsync(f => f.UsuarioId, ct);
+        var almacenIds = lista.Where(u => u.AlmacenId != null).Select(u => u.AlmacenId!.Value).Distinct().ToList();
+        var almacenes = await db.Almacenes.AsNoTracking().Where(a => almacenIds.Contains(a.Id)).ToDictionaryAsync(a => a.Id, a => a.Nombre, ct);
 
         var resultado = new List<UsuarioDto>(lista.Count);
         foreach (var u in lista)
@@ -91,7 +94,8 @@ internal sealed class GestorUsuarios(UserManager<Usuario> usuarios, AlmacenDbCon
             var (total, entrenadas) = fotos.TryGetValue(u.Id, out var f) ? (f.Total, f.Entrenadas) : (0, 0);
             resultado.Add(new UsuarioDto(u.Id, u.Nombre, u.Email ?? string.Empty,
                 (await usuarios.GetRolesAsync(u)).FirstOrDefault() ?? string.Empty, u.Activo,
-                u.CodigoNfc, total, FotoRostro.Estado(total, entrenadas)));
+                u.CodigoNfc, total, FotoRostro.Estado(total, entrenadas),
+                u.AlmacenId, u.AlmacenId is { } a ? almacenes.GetValueOrDefault(a) : null));
         }
         return resultado;
     }

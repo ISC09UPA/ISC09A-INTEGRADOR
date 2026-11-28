@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import type { Usuario } from '@/models/usuario.model';
-import { usuariosService } from '@/services';
+import { almacenesService, usuariosService } from '@/services';
 import { Aviso, Boton, Busqueda, Campo, Cargando, Chip, Encabezado, Fila, Hoja, Interruptor, Pantalla, Selector, Tarjeta, Texto, Vacio, avisar, mensajeDe } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
 import { useDatos } from '@/hooks/use-datos';
@@ -42,7 +42,9 @@ export default function Usuarios() {
               <Chip texto={u.activo ? 'Activo' : 'Inactivo'} color={u.activo ? 'success' : 'default'} />
             </Fila>
             <Texto tipo="secundario">{u.correo}</Texto>
-            <Texto tipo="pequeno">{nombreRol(u.rol)}</Texto>
+            <Texto tipo="pequeno">
+              {nombreRol(u.rol)} · {u.rol === 'Superadmin' ? 'todos los almacenes' : (u.almacen ?? 'sin almacén asignado')}
+            </Texto>
             <Fila style={{ justifyContent: 'flex-end', flexWrap: 'wrap' }}>
               <Boton texto="Editar" icono="edit" variante="texto" alPresionar={() => setEditando(u)} />
               <Boton texto="Contraseña" icono="lock-reset" variante="texto" alPresionar={() => setContrasenaDe(u)} />
@@ -60,7 +62,9 @@ function DialogoUsuario({ actual, alCerrar, alGuardar }: { actual: Usuario | 'nu
   const [nombre, setNombre] = useState('');
   const [correo, setCorreo] = useState('');
   const [rol, setRol] = useState<string | undefined>();
+  const [almacenId, setAlmacenId] = useState<string | undefined>();
   const [activo, setActivo] = useState(true);
+  const almacenes = useDatos(() => almacenesService.listar());
   const [contrasena, setContrasena] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -71,6 +75,7 @@ function DialogoUsuario({ actual, alCerrar, alGuardar }: { actual: Usuario | 'nu
     setNombre(edicion?.nombre ?? '');
     setCorreo(edicion?.correo ?? '');
     setRol(edicion?.rol);
+    setAlmacenId(edicion?.almacenId);
     setActivo(edicion?.activo ?? true);
     setContrasena('');
     setError(null);
@@ -82,6 +87,15 @@ function DialogoUsuario({ actual, alCerrar, alGuardar }: { actual: Usuario | 'nu
         <Campo etiqueta="Nombre" value={nombre} onChangeText={setNombre} />
         <Campo etiqueta="Correo" value={correo} onChangeText={setCorreo} editable={!edicion} keyboardType="email-address" autoCapitalize="none" ayuda={edicion ? 'No se puede cambiar' : undefined} />
         <Selector<string> etiqueta="Rol" valor={rol} opciones={OPCIONES_ROL} alCambiar={setRol} />
+        {rol && rol !== 'Superadmin' ? (
+          <Selector<string>
+            etiqueta="Almacén"
+            valor={almacenId}
+            opciones={(almacenes.datos ?? []).filter((a) => a.activo).map((a) => ({ valor: a.id, texto: a.nombre }))}
+            alCambiar={setAlmacenId}
+          />
+        ) : null}
+        {rol && rol !== 'Superadmin' ? <Texto tipo="pequeno">Solo podrá vender, recibir, traspasar desde y ver el stock de este almacén.</Texto> : null}
         {edicion ? (
           <Interruptor etiqueta="Activo" valor={activo} alCambiar={setActivo} />
         ) : (
@@ -95,11 +109,13 @@ function DialogoUsuario({ actual, alCerrar, alGuardar }: { actual: Usuario | 'nu
             cargando={guardando}
             alPresionar={async () => {
               if (!nombre.trim() || !rol || (!edicion && (!correo.trim() || !contrasena))) return setError('Completa todos los campos.');
+              if (rol !== 'Superadmin' && !almacenId) return setError('Asigna el almacén donde trabaja.');
+              const almacen = rol === 'Superadmin' ? undefined : almacenId;
               setGuardando(true);
               setError(null);
               try {
-                if (edicion) await usuariosService.actualizar(edicion.id, { nombre, rol, activo });
-                else await usuariosService.crear({ nombre, correo, rol, contrasena });
+                if (edicion) await usuariosService.actualizar(edicion.id, { nombre, rol, activo, almacenId: almacen });
+                else await usuariosService.crear({ nombre, correo, rol, contrasena, almacenId: almacen });
                 alCerrar();
                 alGuardar();
               } catch (e) {

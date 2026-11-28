@@ -54,6 +54,7 @@ public sealed class AlmacenDbContext(DbContextOptions<AlmacenDbContext> options)
             u.ToTable("usuarios");
             u.Property(x => x.CodigoNfc).HasMaxLength(CodigoNfc.LongitudMaxima);
             u.HasIndex(x => x.CodigoNfc).IsUnique().HasFilter("codigo_nfc IS NOT NULL");
+            u.HasOne<Almacen>().WithMany().HasForeignKey(x => x.AlmacenId).OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity<Rol>().ToTable("roles");
         modelBuilder.Entity<IdentityUserRole<Guid>>().ToTable("usuarios_roles");

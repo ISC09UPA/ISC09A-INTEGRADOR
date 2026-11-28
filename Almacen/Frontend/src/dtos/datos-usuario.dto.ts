@@ -3,4 +3,6 @@ export interface DatosUsuarioDto {
   nombre: string;
   rol: string;
   activo: boolean;
+  /** null conserva el almacén actual. */
+  almacenId?: string | null;
 }

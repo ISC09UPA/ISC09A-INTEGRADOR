@@ -26,11 +26,11 @@ internal sealed class ConsultasStockEf(AlmacenDbContext db) : IConsultasStock
         public decimal Minimo { get; init; }
     }
 
-    private IQueryable<FilaSemaforo> Productos(string? busqueda)
+    private IQueryable<FilaSemaforo> Productos(string? busqueda, Guid? almacenId)
     {
         var existencias = from e in db.Existencias
                           join a in db.Almacenes on e.AlmacenId equals a.Id
-                          where a.Activo
+                          where a.Activo && (almacenId == null || e.AlmacenId == almacenId)
                           select e;
         var q = from p in db.Productos.AsNoTracking()
                 join u in db.Unidades on p.UnidadId equals u.Id
@@ -63,7 +63,7 @@ internal sealed class ConsultasStockEf(AlmacenDbContext db) : IConsultasStock
 
     public async Task<SemaforoStockDto> SemaforoAsync(FiltroSemaforoStock f, CancellationToken ct = default)
     {
-        var todos = Productos(f.Busqueda);
+        var todos = Productos(f.Busqueda, f.AlmacenId);
         var verdes = await DeNivel(todos, NivelStock.Verde).CountAsync(ct);
         var amarillos = await DeNivel(todos, NivelStock.Amarillo).CountAsync(ct);
         var rojos = await DeNivel(todos, NivelStock.Rojo).CountAsync(ct);
@@ -81,7 +81,7 @@ internal sealed class ConsultasStockEf(AlmacenDbContext db) : IConsultasStock
         var porAlmacen = (await (
                 from e in db.Existencias.AsNoTracking()
                 join a in db.Almacenes on e.AlmacenId equals a.Id
-                where a.Activo && ids.Contains(e.ProductoId)
+                where a.Activo && ids.Contains(e.ProductoId) && (f.AlmacenId == null || e.AlmacenId == f.AlmacenId)
                 orderby a.Nombre
                 select new { e.ProductoId, a.Id, a.Nombre, e.Cantidad, e.StockMinimo })
             .ToListAsync(ct))
@@ -94,19 +94,21 @@ internal sealed class ConsultasStockEf(AlmacenDbContext db) : IConsultasStock
         return new SemaforoStockDto(new Pagina<SemaforoProductoDto>(elementos, total, f.NumeroPagina, f.Tamano), verdes, amarillos, rojos);
     }
 
-    public async Task<(decimal Existencia, decimal Minimo)> TotalesAsync(Guid productoId, CancellationToken ct = default)
+    public async Task<(decimal Existencia, decimal Minimo)> TotalesAsync(Guid productoId, Guid? almacenId, CancellationToken ct = default)
     {
-        var fila = await Productos(null).Where(x => x.Id == productoId).Select(x => new { x.Existencia, x.Minimo }).FirstOrDefaultAsync(ct);
+        var fila = await Productos(null, almacenId).Where(x => x.Id == productoId).Select(x => new { x.Existencia, x.Minimo }).FirstOrDefaultAsync(ct);
         if (fila is not null)
             return (fila.Existencia, fila.Minimo);
         // Producto no aprobado o inactivo: igual se reporta lo que hay.
-        var existencias = db.Existencias.AsNoTracking().Where(e => e.ProductoId == productoId);
+        var existencias = db.Existencias.AsNoTracking().Where(e => e.ProductoId == productoId && (almacenId == null || e.AlmacenId == almacenId));
         return (await existencias.SumAsync(e => (decimal?)e.Cantidad, ct) ?? 0, await existencias.SumAsync(e => (decimal?)e.StockMinimo, ct) ?? 0);
     }
 
     public async Task<Pagina<ConsultaStockIotDto>> ListarConsultasAsync(FiltroConsultasStockIot f, CancellationToken ct = default)
     {
         var q = db.ConsultasStockIot.AsNoTracking();
+        if (f.AlmacenId is { } almacenId)
+            q = q.Where(c => c.AlmacenId == almacenId);
         var total = await q.CountAsync(ct);
         var filas = await (
             from c in q.OrderByDescending(c => c.Fecha).Skip((f.NumeroPagina - 1) * f.Tamano).Take(f.Tamano)

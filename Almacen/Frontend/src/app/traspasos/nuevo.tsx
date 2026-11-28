@@ -7,6 +7,7 @@ import { BotonAgregarLinea, TarjetaLinea, errorCantidad, nuevaClave, type LineaB
 import { CampoFecha } from '@/components/fechas';
 import { Aviso, Boton, Encabezado, Pantalla, Selector, Tarjeta, Texto, avisar, mensajeDe } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
+import { useMiAlmacen } from '@/hooks/use-mi-almacen';
 import { useDatos } from '@/hooks/use-datos';
 import { Fechas, Formato, leerNumero } from '@/lib/formato';
 
@@ -14,7 +15,10 @@ const lineaVacia = (): LineaBase => ({ clave: nuevaClave(), producto: null, cant
 
 /** Captura de traspaso entre almacenes (Traspasos/NuevoTraspaso.razor). */
 export default function NuevoTraspaso() {
-  const [origen, setOrigen] = useState<string | undefined>();
+  const [origenElegido, setOrigen] = useState<string | undefined>();
+  // Se traspasa desde el almacén propio.
+  const mio = useMiAlmacen();
+  const origen = mio ?? origenElegido;
   const [destino, setDestino] = useState<string | undefined>();
   const [fecha, setFecha] = useState(Fechas.hoy());
   const [lineas, setLineas] = useState<LineaBase[]>([lineaVacia()]);
@@ -54,7 +58,7 @@ export default function NuevoTraspaso() {
       <Encabezado titulo="Nuevo traspaso" descripcion="La mercancía sale del almacén de origen y entra al de destino con el mismo costo." />
       <View style={{ gap: Spacing.three }}>
         <Tarjeta style={{ gap: Spacing.three }}>
-          <Selector<string> etiqueta="Origen" valor={origen} opciones={opciones} alCambiar={setOrigen} />
+          <Selector<string> etiqueta="Origen" valor={origen} opciones={opciones} alCambiar={setOrigen} deshabilitado={!!mio} />
           <Selector<string> etiqueta="Destino" valor={destino} opciones={opciones.filter((o) => o.valor !== origen)} alCambiar={setDestino} />
           {almacenes.error ? <Aviso tipo="error" texto={almacenes.error} /> : null}
           <CampoFecha etiqueta="Fecha" valor={fecha} alCambiar={setFecha} />

@@ -15,6 +15,7 @@ import { Aviso, Boton, Campo, Chip, Encabezado, Fila, Hoja, Icono, Interruptor, 
 import { Spacing } from '@/constants/theme';
 import { useColores } from '@/hooks/use-colores';
 import { useDatos } from '@/hooks/use-datos';
+import { useMiAlmacen } from '@/hooks/use-mi-almacen';
 import { Fechas, Formato, importeLinea, leerNumero, redondear } from '@/lib/formato';
 import { Permisos } from '@/lib/permisos';
 import { useSesion } from '@/lib/sesion';
@@ -129,7 +130,8 @@ export default function NuevaVenta() {
 
   const opcionesAlmacen = (almacenes.datos ?? []).filter((a) => a.activo).map((a) => ({ valor: a.id, texto: a.nombre }));
   // Con un solo almacén se propone ese.
-  const almacenModo = almacenElegido ?? (opcionesAlmacen.length === 1 ? opcionesAlmacen[0].valor : undefined);
+  const mio = useMiAlmacen();
+  const almacenModo = mio ?? almacenElegido ?? (opcionesAlmacen.length === 1 ? opcionesAlmacen[0].valor : undefined);
 
   useEffect(() => {
     iotService
@@ -283,7 +285,7 @@ export default function NuevaVenta() {
             valor={almacenModo}
             opciones={opcionesAlmacen}
             alCambiar={setAlmacenModo}
-            deshabilitado={modo || cambiandoModo}
+            deshabilitado={modo || cambiandoModo || !!mio}
           />
           {modo ? (
             <Fila style={{ flexWrap: 'wrap' }}>

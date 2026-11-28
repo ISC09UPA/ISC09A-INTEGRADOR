@@ -32,7 +32,7 @@ public sealed record TomarEscaneosPendientes : ISolicitud<IReadOnlyList<EscaneoD
 
 internal sealed class VentaInteligenteManejador(
     ICandadoVentaInteligente candado, IGestorUsuarios usuarios, IAlmacenRepositorio almacenes, IConsultas consultas,
-    IUsuarioActual usuario, IReloj reloj, OpcionesIot opciones) :
+    IUsuarioActual usuario, IReloj reloj, OpcionesIot opciones, AlcanceAlmacen alcance) :
     IManejador<ObtenerModoInteligente, SesionVentaDto?>,
     IManejador<TomarModoInteligente, SesionVentaDto>,
     IManejador<LatidoModoInteligente, SesionVentaDto>,
@@ -49,6 +49,7 @@ internal sealed class VentaInteligenteManejador(
 
     public async Task<SesionVentaDto> ManejarAsync(TomarModoInteligente s, CancellationToken ct)
     {
+        await alcance.AsegurarAsync(s.AlmacenId, ct);
         var almacen = await almacenes.ObtenerAsync(s.AlmacenId, ct);
         if (almacen is not { Activo: true })
             throw new DomainException("Elige un almacén activo para el modo inteligente.");
@@ -85,7 +86,8 @@ internal sealed class VentaInteligenteManejador(
         if (escaneos.Count == 0)
             return [];
         var ids = escaneos.Where(e => e.Aceptado && e.ProductoId is not null).Select(e => e.ProductoId!.Value).Distinct().ToList();
-        var productos = ids.Count == 0 ? [] : (await consultas.ObtenerProductosDisponiblesAsync(ids, ct)).ToDictionary(p => p.Id);
+        var mio = await alcance.AlmacenAsync(ct);
+        var productos = ids.Count == 0 ? [] : AlcanceAlmacen.Filtrar(await consultas.ObtenerProductosDisponiblesAsync(ids, ct), mio).ToDictionary(p => p.Id);
         return escaneos
             .OrderBy(e => e.Fecha)
             .Select(e =>

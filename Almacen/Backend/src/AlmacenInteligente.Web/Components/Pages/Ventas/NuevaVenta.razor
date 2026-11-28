@@ -40,7 +40,7 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="3">
         <MudSwitch T="bool" Value="_modoInteligente" ValueChanged="CambiarModoAsync" Color="Color.Primary" Disabled="_cambiandoModo"
                    Label="Modo inteligente" />
-        <MudSelect T="Guid?" @bind-Value="_almacenModo" Label="Almacén por defecto" Dense="true" Disabled="_modoInteligente || _cambiandoModo"
+        <MudSelect T="Guid?" @bind-Value="_almacenModo" Label="Almacén por defecto" Dense="true" Disabled="_modoInteligente || _cambiandoModo || _almacenFijo"
                    Style="max-width:260px" ToStringFunc="NombreAlmacen" AnchorOrigin="Origin.BottomCenter">
             @foreach (var a in _almacenes)
             {
@@ -116,7 +116,7 @@
                         }
                         @if (linea.FaltanUid > 0)
                         {
-                            <MudTextField T="string" @bind-Value="linea.NuevoUid" Placeholder="UID de la etiqueta" Dense="true" Margin="Margin.Dense"
+                            <MudTextField T="string" @bind-Value="linea.NuevoUid" Placeholder="UID de la etiqueta" Margin="Margin.Dense"
                                           Variant="Variant.Outlined" Style="max-width:220px" Immediate="true"
                                           OnKeyUp="@(e => e.Key == "Enter" ? AgregarUidManual(linea) : Task.CompletedTask)" />
                             <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add" OnClick="() => AgregarUidManual(linea)">Agregar UID</MudButton>
@@ -216,6 +216,7 @@
     private static readonly TimeSpan IntervaloLatido = TimeSpan.FromSeconds(15);
     private IReadOnlyList<AlmacenDto> _almacenes = [];
     private Guid? _almacenModo;
+    private bool _almacenFijo;
     private bool _modoInteligente;
     private bool _cambiandoModo;
     private string? _avisoModo;
@@ -228,6 +229,8 @@
         _almacenes = almacenes ?? [];
         if (_almacenes.Count == 1)
             _almacenModo = _almacenes[0].Id;
+        if (await MiAlmacenAsync() is { } mio)
+            (_almacenModo, _almacenFijo) = (mio, true);
 
         var (sesion, _) = await EjecutarAsync(new ObtenerModoInteligente());
         if (sesion is { EsMia: false })

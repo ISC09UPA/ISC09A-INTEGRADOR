@@ -27,6 +27,7 @@ import {
 import { Spacing } from '@/constants/theme';
 import { useColores } from '@/hooks/use-colores';
 import { useDatos, usePaginado } from '@/hooks/use-datos';
+import { useMiAlmacen } from '@/hooks/use-mi-almacen';
 import { Formato, leerNumero } from '@/lib/formato';
 import { Permisos } from '@/lib/permisos';
 import { useSesion } from '@/lib/sesion';
@@ -36,7 +37,9 @@ export default function Existencias() {
   const c = useColores();
   const { puede } = useSesion();
   const params = useLocalSearchParams<{ busqueda?: string }>();
-  const [almacenId, setAlmacenId] = useState<string>('');
+  const [almacenElegido, setAlmacenId] = useState<string>('');
+  const mio = useMiAlmacen();
+  const almacenId = mio ?? almacenElegido;
   const [busqueda, setBusqueda] = useState(params.busqueda ?? '');
   const [soloBajo, setSoloBajo] = useState(false);
   const [minimoDe, setMinimoDe] = useState<Existencia | null>(null);
@@ -68,6 +71,7 @@ export default function Existencias() {
               valor={almacenId}
               opciones={[{ valor: '', texto: 'Todos los almacenes' }, ...(almacenes.datos ?? []).map((a) => ({ valor: a.id, texto: a.nombre }))]}
               alCambiar={setAlmacenId}
+              deshabilitado={!!mio}
             />
             <Interruptor etiqueta="Solo bajo mínimo" valor={soloBajo} alCambiar={setSoloBajo} />
           </View>

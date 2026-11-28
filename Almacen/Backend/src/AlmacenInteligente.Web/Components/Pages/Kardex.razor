@@ -12,7 +12,7 @@
 <MudPaper Outlined="true" Elevation="0" Class="pa-4 mb-4">
     <MudGrid Spacing="3">
         <MudItem xs="12" sm="4">
-            <MudSelect T="Guid?" @bind-Value="_almacenId" Label="Almacén" AnchorOrigin="Origin.BottomCenter">
+            <MudSelect T="Guid?" @bind-Value="_almacenId" Label="Almacén" AnchorOrigin="Origin.BottomCenter" Disabled="_almacenFijo">
                 @foreach (var a in _almacenes)
                 {
                     <MudSelectItem T="Guid?" Value="@a.Id">@a.Nombre</MudSelectItem>
@@ -79,6 +79,7 @@
 
     private IReadOnlyList<AlmacenDto> _almacenes = [];
     private Guid? _almacenId;
+    private bool _almacenFijo;
     private ProductoOpcionDto? _producto;
     private DateRange? _rango;
     private IReadOnlyList<KardexDto>? _movimientos;
@@ -88,6 +89,8 @@
         var (_, almacenes) = await IntentarAsync(new ListarAlmacenes(IncluirInactivos: true));
         _almacenes = almacenes ?? [];
         _almacenId = AlmacenInicial;
+        if (await MiAlmacenAsync() is { } mio)
+            (_almacenId, _almacenFijo) = (mio, true);
 
         if (ProductoInicial is { } productoId)
         {

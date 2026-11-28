@@ -196,10 +196,13 @@ internal sealed class ProcesadorEscaneosIot(IServiceProvider servicios, Opciones
         }
 
         string? uid, familia;
+        Guid? usuarioId;
         try
         {
             using var json = JsonDocument.Parse(m.Body.ToMemory());
             (uid, familia) = (Texto(json.RootElement, "id"), Texto(json.RootElement, "familia"));
+            // Quien tiene sesión en el embebido: de su almacén sale el stock al comprobar.
+            usuarioId = Guid.TryParse(Texto(json.RootElement, "usuarioId"), out var u) ? u : null;
         }
         catch (JsonException)
         {
@@ -217,7 +220,7 @@ internal sealed class ProcesadorEscaneosIot(IServiceProvider servicios, Opciones
         if (resultado == ResultadoEscaneo.SinSesion)
         {
             // Nadie está vendiendo con el lector: la pieza sirve para comprobar el stock de su producto.
-            respuesta = await stock.ConsultarAsync(uid, familia, args.CancellationToken);
+            respuesta = await stock.ConsultarAsync(uid, familia, usuarioId, args.CancellationToken);
             Log.LogInformation("Comprobación de stock {Uid} ({Familia}): {Motivo}, existencia {Existencia}, nivel {Nivel}.",
                 uid, familia, respuesta.Motivo, respuesta.Existencia, respuesta.Nivel);
         }

@@ -91,7 +91,7 @@ internal sealed class RechazarProductoValidador : AbstractValidator<RechazarProd
 
 internal sealed class ProductosManejador(
     IConsultas consultas, IProductoRepositorio productos, IUnidadRepositorio unidades, IGestorUsuarios usuarios,
-    IFileStorage archivos, IUnidadDeTrabajo unidad, IUsuarioActual usuario, IReloj reloj) :
+    IFileStorage archivos, IUnidadDeTrabajo unidad, IUsuarioActual usuario, IReloj reloj, AlcanceAlmacen alcance) :
     IManejador<ListarUnidades, IReadOnlyList<UnidadDto>>,
     IManejador<CrearUnidad, UnidadDto>,
     IManejador<ListarProductos, Pagina<ProductoDto>>,
@@ -123,8 +123,9 @@ internal sealed class ProductosManejador(
 
     public Task<ProductoDto> ManejarAsync(ObtenerProducto s, CancellationToken ct) => Dto(s.Id, ct);
 
-    public Task<IReadOnlyList<ProductoOpcionDto>> ManejarAsync(BuscarProductosDisponibles s, CancellationToken ct) =>
-        consultas.BuscarProductosDisponiblesAsync(s.Texto, Math.Clamp(s.Maximo, 1, 50), ct);
+    /// <summary>Con almacén asignado, cada producto trae solo la existencia de ese almacén.</summary>
+    public async Task<IReadOnlyList<ProductoOpcionDto>> ManejarAsync(BuscarProductosDisponibles s, CancellationToken ct) =>
+        AlcanceAlmacen.Filtrar(await consultas.BuscarProductosDisponiblesAsync(s.Texto, Math.Clamp(s.Maximo, 1, 50), ct), await alcance.AlmacenAsync(ct));
 
     public async Task<ProductoDto> ManejarAsync(CrearProducto s, CancellationToken ct)
     {

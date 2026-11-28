@@ -9,6 +9,9 @@ public sealed class Usuario : IdentityUser<Guid>
 
     /// <summary>UID normalizado de la tarjeta NFC con la que entra por el acceso IoT. Único.</summary>
     public string? CodigoNfc { get; set; }
+
+    /// <summary>Almacén donde trabaja: solo opera y ve el stock de ese almacén. Null en el superadmin.</summary>
+    public Guid? AlmacenId { get; set; }
 }
 
 public sealed class Rol : IdentityRole<Guid>

@@ -2,17 +2,20 @@ using AlmacenInteligente.Application.Abstracciones;
 using AlmacenInteligente.Application.CasosDeUso;
 using AlmacenInteligente.Application.Seguridad;
 using AlmacenInteligente.Application.Terceros;
+using AlmacenInteligente.Application.Usuarios;
 using AlmacenInteligente.Domain.Common;
 using AlmacenInteligente.Domain.Inventario;
 using AlmacenInteligente.Domain.Iot;
 
 namespace AlmacenInteligente.Application.Iot;
 
-// Comprobar stock: semáforo verde / amarillo / rojo por producto (total de todos los almacenes).
+// Comprobar stock: semáforo verde / amarillo / rojo por producto, con la existencia del almacén del usuario
+// (el superadmin ve el total de todos los almacenes).
 // Se ve en la web y en la app, y el embebido lo muestra en su pantalla y sus LEDs cuando pasa una pieza
 // por el lector y nadie tiene activo el modo inteligente de venta.
 
-public sealed record FiltroSemaforoStock(string? Busqueda = null, NivelStock? Nivel = null, int NumeroPagina = 1, int Tamano = 50);
+/// <param name="AlmacenId">Lo fija el caso de uso con el almacén del usuario; null = todos.</param>
+public sealed record FiltroSemaforoStock(string? Busqueda = null, NivelStock? Nivel = null, int NumeroPagina = 1, int Tamano = 50, Guid? AlmacenId = null);
 
 public sealed record SemaforoAlmacenDto(Guid AlmacenId, string Almacen, decimal Cantidad, decimal Minimo, NivelStock Nivel);
 
@@ -24,7 +27,7 @@ public sealed record SemaforoProductoDto(
 /// <summary>La página pedida y cuántos productos hay en cada color (con la búsqueda, sin el filtro de color).</summary>
 public sealed record SemaforoStockDto(Pagina<SemaforoProductoDto> Productos, int Verdes, int Amarillos, int Rojos);
 
-public sealed record FiltroConsultasStockIot(int NumeroPagina = 1, int Tamano = 50);
+public sealed record FiltroConsultasStockIot(int NumeroPagina = 1, int Tamano = 50, Guid? AlmacenId = null);
 
 public sealed record ConsultaStockIotDto(
     Guid Id, DateTimeOffset Fecha, string Uid, string Familia, string? Producto,
@@ -41,23 +44,33 @@ public interface IConsultasStock
 {
     Task<SemaforoStockDto> SemaforoAsync(FiltroSemaforoStock filtro, CancellationToken ct = default);
 
-    /// <summary>Existencia y mínimo del producto sumados en todos los almacenes (0 y 0 si no tiene existencias).</summary>
-    Task<(decimal Existencia, decimal Minimo)> TotalesAsync(Guid productoId, CancellationToken ct = default);
+    /// <summary>Existencia y mínimo del producto en ese almacén, o sumados en todos si es null (0 y 0 si no tiene).</summary>
+    Task<(decimal Existencia, decimal Minimo)> TotalesAsync(Guid productoId, Guid? almacenId, CancellationToken ct = default);
 
     Task<Pagina<ConsultaStockIotDto>> ListarConsultasAsync(FiltroConsultasStockIot filtro, CancellationToken ct = default);
 
     void AgregarConsulta(ConsultaStockIot consulta);
 }
 
-internal sealed class ComprobarStockManejador(IConsultasStock stock) :
+internal sealed class ComprobarStockManejador(IConsultasStock stock, AlcanceAlmacen alcance) :
     IManejador<ConsultarSemaforoStock, SemaforoStockDto>,
     IManejador<ListarConsultasStockIot, Pagina<ConsultaStockIotDto>>
 {
-    public Task<SemaforoStockDto> ManejarAsync(ConsultarSemaforoStock s, CancellationToken ct) =>
-        stock.SemaforoAsync(s.Filtro with { NumeroPagina = Math.Max(s.Filtro.NumeroPagina, 1), Tamano = Math.Clamp(s.Filtro.Tamano, 1, 200) }, ct);
+    public async Task<SemaforoStockDto> ManejarAsync(ConsultarSemaforoStock s, CancellationToken ct) =>
+        await stock.SemaforoAsync(s.Filtro with
+        {
+            NumeroPagina = Math.Max(s.Filtro.NumeroPagina, 1),
+            Tamano = Math.Clamp(s.Filtro.Tamano, 1, 200),
+            AlmacenId = await alcance.AlmacenAsync(ct),
+        }, ct);
 
-    public Task<Pagina<ConsultaStockIotDto>> ManejarAsync(ListarConsultasStockIot s, CancellationToken ct) =>
-        stock.ListarConsultasAsync(s.Filtro with { NumeroPagina = Math.Max(s.Filtro.NumeroPagina, 1), Tamano = Math.Clamp(s.Filtro.Tamano, 1, 200) }, ct);
+    public async Task<Pagina<ConsultaStockIotDto>> ManejarAsync(ListarConsultasStockIot s, CancellationToken ct) =>
+        await stock.ListarConsultasAsync(s.Filtro with
+        {
+            NumeroPagina = Math.Max(s.Filtro.NumeroPagina, 1),
+            Tamano = Math.Clamp(s.Filtro.Tamano, 1, 200),
+            AlmacenId = await alcance.AlmacenAsync(ct),
+        }, ct);
 }
 
 /// <summary>
@@ -71,27 +84,37 @@ public sealed record RespuestaEscaneoIot(
 
 /// <summary>Arma la respuesta del embebido para cada pieza. Sin usuario en sesión: lo llama el worker.</summary>
 public sealed class ServicioConsultaStockIot(
-    IProductoRepositorio productos, IVentaRepositorio ventas, IConsultasStock stock, IUnidadDeTrabajo unidad, IReloj reloj)
+    IProductoRepositorio productos, IVentaRepositorio ventas, IConsultasStock stock, IGestorUsuarios usuarios,
+    ICandadoVentaInteligente candado, IUnidadDeTrabajo unidad, IReloj reloj)
 {
     public const string ModoVenta = "venta";
     public const string ModoConsulta = "consulta";
 
-    /// <summary>Comprobar stock: responde la existencia total y el nivel, y lo anota en la bitácora.</summary>
-    public async Task<RespuestaEscaneoIot> ConsultarAsync(string? uidRecibido, string? familiaRecibida, CancellationToken ct = default)
+    /// <summary>
+    /// Comprobar stock: responde la existencia en el almacén del usuario que tiene sesión en el embebido
+    /// (<paramref name="usuarioId"/>) y el nivel, y lo anota en la bitácora. Sin usuario válido no responde stock.
+    /// </summary>
+    public async Task<RespuestaEscaneoIot> ConsultarAsync(string? uidRecibido, string? familiaRecibida, Guid? usuarioId, CancellationToken ct = default)
     {
         var uid = Normalizar(uidRecibido);
         var familia = Normalizar(familiaRecibida);
         var uidTexto = uid ?? uidRecibido?.Trim() ?? string.Empty;
         var familiaTexto = familia ?? familiaRecibida?.Trim() ?? string.Empty;
 
+        var usuario = usuarioId is { } u ? await usuarios.ObtenerAsync(u, ct) : null;
+        var almacenId = usuario is null ? null : AlcanceAlmacen.De(usuario);
         var producto = familia is null ? null : await productos.ObtenerPorCodigoNfcAsync(familia, ct);
         RespuestaEscaneoIot respuesta;
-        if (producto is null)
+        if (usuario is not { Activo: true })
+            respuesta = new RespuestaEscaneoIot(ModoConsulta, false, "Inicia sesión en el lector", null, null, null, null);
+        else if (usuario.Rol != Roles.Superadmin && usuario.AlmacenId is null)
+            respuesta = new RespuestaEscaneoIot(ModoConsulta, false, "Usuario sin almacén", null, null, null, null);
+        else if (producto is null)
             respuesta = new RespuestaEscaneoIot(ModoConsulta, false,
                 familia is null ? "Etiqueta sin familia NFC válida" : "Familia no registrada", null, null, null, null);
         else
         {
-            var (existencia, minimo) = await stock.TotalesAsync(producto.Id, ct);
+            var (existencia, minimo) = await stock.TotalesAsync(producto.Id, almacenId, ct);
             var vendida = uid is not null && (await ventas.PiezasVendidasAsync([uid], ct)).Count > 0;
             var motivo = !producto.EstaDisponible ? "Producto no disponible para venta"
                 : vendida ? "Esta pieza ya se vendió"
@@ -101,7 +124,7 @@ public sealed class ServicioConsultaStockIot(
         }
 
         stock.AgregarConsulta(new ConsultaStockIot(reloj.Ahora, uidTexto, familiaTexto, producto?.Id,
-            respuesta.Existencia, respuesta.Minimo, respuesta.Motivo));
+            respuesta.Existencia, respuesta.Minimo, respuesta.Motivo, almacenId, usuario?.Id));
         await unidad.GuardarAsync(ct);
         return respuesta;
     }
@@ -111,8 +134,9 @@ public sealed class ServicioConsultaStockIot(
     {
         var producto = productoId is { } id ? await productos.ObtenerAsync(id, ct) : null;
         decimal? existencia = null, minimo = null;
+        // La existencia es la del almacén con que vende el agente que tiene el lector.
         if (producto is not null)
-            (existencia, minimo) = await stock.TotalesAsync(producto.Id, ct);
+            (existencia, minimo) = await stock.TotalesAsync(producto.Id, (await candado.ObtenerAsync(ct))?.AlmacenId, ct);
         var motivo = resultado switch
         {
             ResultadoEscaneo.Registrado => "Agregada a la venta",

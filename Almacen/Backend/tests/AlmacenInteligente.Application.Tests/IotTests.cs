@@ -41,10 +41,10 @@ internal sealed class GestorUsuariosEnMemoria : IGestorUsuarios
 
     public Task<IReadOnlyList<UsuarioDto>> ListarConPermisoAsync(string permiso, CancellationToken ct = default) => ListarAsync(null, ct);
 
-    public Task<UsuarioDto> CrearAsync(string nombre, string correo, string rol, string contrasena, string? codigoNfc, CancellationToken ct = default) =>
+    public Task<UsuarioDto> CrearAsync(string nombre, string correo, string rol, string contrasena, string? codigoNfc, Guid? almacenId, CancellationToken ct = default) =>
         throw new NotSupportedException();
 
-    public Task<UsuarioDto> ActualizarAsync(Guid id, string nombre, string rol, bool activo, string? codigoNfc, CancellationToken ct = default) =>
+    public Task<UsuarioDto> ActualizarAsync(Guid id, string nombre, string rol, bool activo, string? codigoNfc, Guid? almacenId, CancellationToken ct = default) =>
         throw new NotSupportedException();
 
     public Task RestablecerContrasenaAsync(Guid id, string contrasena, CancellationToken ct = default) => throw new NotSupportedException();
@@ -135,8 +135,8 @@ public class VentaInteligenteTests
         var almacen = new Almacen("Central", "CDMX", new Auditoria(Ana, reloj.Ahora));
         almacenes.Agregar(almacen);
         var usuarios = new GestorUsuariosEnMemoria();
-        usuarios.Usuarios.Add(new UsuarioDto(Ana, "Ana López", "ana@x.mx", Roles.AgenteVentas, true));
-        usuarios.Usuarios.Add(new UsuarioDto(Beto, "Beto Ruiz", "beto@x.mx", Roles.Gerente, true));
+        usuarios.Usuarios.Add(new UsuarioDto(Ana, "Ana López", "ana@x.mx", Roles.AgenteVentas, true, AlmacenId: almacen.Id));
+        usuarios.Usuarios.Add(new UsuarioDto(Beto, "Beto Ruiz", "beto@x.mx", Roles.Gerente, true, AlmacenId: almacen.Id));
 
         IMediador Como(Guid id) => new ServiceCollection()
             .AddApplication()

@@ -9,6 +9,7 @@ import { CampoFecha } from '@/components/fechas';
 import { SelectorTercero } from '@/components/selectores';
 import { Aviso, Boton, Encabezado, Pantalla, Selector, Tarjeta, Totales, avisar, mensajeDe } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
+import { useMiAlmacen } from '@/hooks/use-mi-almacen';
 import { useDatos } from '@/hooks/use-datos';
 import { Fechas, Formato, importeLinea, leerNumero, redondear } from '@/lib/formato';
 
@@ -23,7 +24,9 @@ const importe = (l: Linea) => importeLinea(leerNumero(l.cantidad), leerNumero(l.
 /** Captura de recepción (Recepciones/NuevaRecepcion.razor). */
 export default function NuevaRecepcion() {
   const [proveedor, setProveedor] = useState<Opcion | null>(null);
-  const [almacenId, setAlmacenId] = useState<string | undefined>();
+  const [almacenElegido, setAlmacenId] = useState<string | undefined>();
+  const mio = useMiAlmacen();
+  const almacenId = mio ?? almacenElegido;
   const [fecha, setFecha] = useState(Fechas.hoy());
   const [lineas, setLineas] = useState<Linea[]>([lineaVacia()]);
   const [error, setError] = useState<string | null>(null);
@@ -71,6 +74,7 @@ export default function NuevaRecepcion() {
             valor={almacenId}
             opciones={(almacenes.datos ?? []).map((a) => ({ valor: a.id, texto: a.nombre, detalle: a.ubicacion }))}
             alCambiar={setAlmacenId}
+            deshabilitado={!!mio}
           />
           {almacenes.error ? <Aviso tipo="error" texto={almacenes.error} /> : null}
           <CampoFecha etiqueta="Fecha" valor={fecha} alCambiar={setFecha} />

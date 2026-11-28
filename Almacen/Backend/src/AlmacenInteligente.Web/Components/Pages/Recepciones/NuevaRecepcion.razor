@@ -17,7 +17,7 @@
             <SelectorTercero @bind-Value="_proveedor" Clientes="false" Label="Proveedor" />
         </MudItem>
         <MudItem xs="12" sm="6" md="4">
-            <MudSelect T="Guid?" @bind-Value="_almacenId" Label="Almacén de destino" AnchorOrigin="Origin.BottomCenter">
+            <MudSelect T="Guid?" @bind-Value="_almacenId" Label="Almacén de destino" AnchorOrigin="Origin.BottomCenter" Disabled="_almacenFijo">
                 @foreach (var a in _almacenes)
                 {
                     <MudSelectItem T="Guid?" Value="@a.Id">@a.Nombre</MudSelectItem>
@@ -94,6 +94,7 @@
     private IReadOnlyList<AlmacenDto> _almacenes = [];
     private OpcionDto? _proveedor;
     private Guid? _almacenId;
+    private bool _almacenFijo;
     private DateTime? _fecha = DateTime.Today;
     private readonly List<Linea> _lineas = [new()];
     private string? _error;
@@ -107,6 +108,8 @@
         _almacenes = almacenes ?? [];
         if (_almacenes.Count == 1)
             _almacenId = _almacenes[0].Id;
+        if (await MiAlmacenAsync() is { } mio)
+            (_almacenId, _almacenFijo) = (mio, true);
     }
 
     private async Task RegistrarAsync()

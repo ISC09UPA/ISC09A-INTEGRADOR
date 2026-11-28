@@ -72,6 +72,7 @@ internal sealed class ConsultaStockIotConfiguracion : IEntityTypeConfiguration<C
         b.Property(c => c.Nivel).HasConversion<string>().HasMaxLength(10);
         b.Property(c => c.Motivo).HasMaxLength(300);
         b.HasIndex(c => c.Fecha).IsDescending();
+        b.HasIndex(c => c.AlmacenId);
         // Sin FK al producto: la bitácora se conserva aunque el producto cambie.
     }
 }
