@@ -3,4 +3,5 @@ export interface CambiosUsuario {
   nombre: string;
   rol: string;
   activo: boolean;
+  almacenId?: string;
 }

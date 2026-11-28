@@ -12,4 +12,6 @@ export interface LineaDocumento {
   iva: number;
   costoUnitario: number;
   total: number;
+  /** UID de la etiqueta NFC de cada pieza vendida. */
+  piezas: string[];
 }

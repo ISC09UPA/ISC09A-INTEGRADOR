@@ -5,9 +5,11 @@ import { ArchivosService } from './archivos.service';
 import { CuentaService } from './cuenta.service';
 import { RecepcionesService, TraspasosService, VentasService } from './documentos.service';
 import { FinanzasService } from './finanzas.service';
+import { IotService } from './iot.service';
 import { MovimientosService } from './movimientos.service';
 import { ProductosService } from './productos.service';
 import { ReportesService } from './reportes.service';
+import { StockService } from './stock.service';
 import { ClientesService, ProveedoresService } from './terceros.service';
 import { UsuariosService } from './usuarios.service';
 
@@ -25,3 +27,5 @@ export const finanzasService = new FinanzasService(httpClient);
 export const reportesService = new ReportesService(httpClient);
 export const usuariosService = new UsuariosService(httpClient);
 export const archivosService = new ArchivosService(httpClient);
+export const iotService = new IotService(httpClient);
+export const stockService = new StockService(httpClient);

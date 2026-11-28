@@ -1,5 +1,6 @@
 @page "/usuarios"
 @attribute [Authorize(Policy = Permisos.Usuarios.Gestionar)]
+@using AlmacenInteligente.Application.Iot
 @using AlmacenInteligente.Application.Usuarios
 @using AlmacenInteligente.Web.Components.Usuarios
 @inherits PaginaBase
@@ -12,10 +13,22 @@
         <MudText Typo="Typo.h4">Usuarios</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">Cuentas para entrar al sistema y el rol de cada una.</MudText>
     </div>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="NuevoAsync">
-        Nuevo usuario
-    </MudButton>
+    <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap">
+        <MudTooltip Text="Entrena el reconocimiento facial con las fotos de todos los usuarios y lo publica para el acceso IoT">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Face" OnClick="EntrenarAsync" Disabled="_entrenando">
+                @(_entrenando ? "Entrenando… (puede tardar minutos)" : "Entrenar modelo")
+            </MudButton>
+        </MudTooltip>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="NuevoAsync">
+            Nuevo usuario
+        </MudButton>
+    </MudStack>
 </div>
+
+@if (_entrenando)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2" />
+}
 
 <MudPaper Outlined="true" Elevation="0">
     <MudTable T="UsuarioDto" Items="_usuarios" Filter="Coincide" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm"
@@ -35,19 +48,32 @@
             <MudTh>Nombre</MudTh>
             <MudTh>Correo</MudTh>
             <MudTh>Rol</MudTh>
+            <MudTh>Almacén</MudTh>
             <MudTh>Estado</MudTh>
+            <MudTh>Tarjeta NFC</MudTh>
+            <MudTh>Reconocimiento</MudTh>
             <MudTh Style="text-align:right">Acciones</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Nombre"><b>@context.Nombre</b></MudTd>
             <MudTd DataLabel="Correo"><span class="tabla-celda-secundaria">@context.Correo</span></MudTd>
             <MudTd DataLabel="Rol">@Roles.Nombre(context.Rol)</MudTd>
+            <MudTd DataLabel="Almacén">@(context.Rol == Roles.Superadmin ? "Todos" : context.Almacen ?? "Sin asignar")</MudTd>
             <MudTd DataLabel="Estado">
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@(context.Activo ? Color.Success : Color.Default)">
                     @(context.Activo ? "Activo" : "Inactivo")
                 </MudChip>
             </MudTd>
+            <MudTd DataLabel="Tarjeta NFC"><span class="tabla-celda-secundaria">@(context.CodigoNfc ?? "—")</span></MudTd>
+            <MudTd DataLabel="Reconocimiento">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="@FotosRostroDialog.ColorEstado(context.Reconocimiento)">
+                    @FotosRostroDialog.TextoEstado(context.Reconocimiento, context.FotosRostro)
+                </MudChip>
+            </MudTd>
             <MudTd DataLabel="Acciones" Style="text-align:right; white-space:nowrap">
+                <MudTooltip Text="Fotos de rostro">
+                    <MudIconButton Icon="@Icons.Material.Outlined.PhotoCamera" Size="Size.Small" OnClick="() => FotosAsync(context)" aria-label="Fotos de rostro" />
+                </MudTooltip>
                 <MudTooltip Text="Editar">
                     <MudIconButton Icon="@Icons.Material.Outlined.Edit" Size="Size.Small" OnClick="() => EditarAsync(context)" aria-label="Editar" />
                 </MudTooltip>
@@ -70,6 +96,7 @@
     private string? _busqueda;
     private string? _rolFiltro;
     private bool _cargando = true;
+    private bool _entrenando;
 
     private static readonly DialogOptions Opciones = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
 
@@ -107,6 +134,27 @@
         if (await dialogo.Result is { Canceled: false })
         {
             Avisos.Add("Cambios guardados.", Severity.Success);
+            await CargarAsync();
+        }
+    }
+
+    private async Task FotosAsync(UsuarioDto usuario)
+    {
+        var parametros = new DialogParameters<FotosRostroDialog> { { d => d.Usuario_, usuario } };
+        var dialogo = await Dialogos.ShowAsync<FotosRostroDialog>("Fotos de rostro", parametros,
+            new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        if (await dialogo.Result is { Canceled: false, Data: true })
+            await CargarAsync();
+    }
+
+    private async Task EntrenarAsync()
+    {
+        _entrenando = true;
+        var (exito, resultado) = await IntentarAsync(new EntrenarModeloRostros());
+        _entrenando = false;
+        if (exito && resultado is not null)
+        {
+            Avisos.Add($"Modelo entrenado y publicado ({resultado.Iteracion}): {resultado.Usuarios} usuarios, {resultado.Fotos} fotos.", Severity.Success);
             await CargarAsync();
         }
     }

@@ -21,11 +21,11 @@ internal sealed class AlmacenamientoBlob(BlobContainerClient contenedor) : IFile
 
     private volatile bool _contenedorListo;
 
-    public async Task<string> GuardarAsync(Stream contenido, string nombreArchivo, string tipoContenido, CancellationToken ct = default)
+    public async Task<string> GuardarEnAsync(string carpeta, Stream contenido, string nombreArchivo, string tipoContenido, CancellationToken ct = default)
     {
         await AsegurarContenedorAsync(ct);
         var extension = Extensiones.GetValueOrDefault(tipoContenido) ?? Path.GetExtension(nombreArchivo).ToLowerInvariant();
-        var ruta = $"productos/{Guid.CreateVersion7():N}{extension}";
+        var ruta = Validar($"{carpeta.Trim('/')}/{Guid.CreateVersion7():N}{extension}");
         await contenedor.GetBlobClient(ruta).UploadAsync(contenido, new BlobUploadOptions
         {
             HttpHeaders = new BlobHttpHeaders { ContentType = tipoContenido },

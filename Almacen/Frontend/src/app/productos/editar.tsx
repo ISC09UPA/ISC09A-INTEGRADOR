@@ -21,6 +21,8 @@ export default function EditarProducto() {
   const [referencia, setReferencia] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [unidadId, setUnidadId] = useState<string | undefined>();
+  const [codigoNfc, setCodigoNfc] = useState('');
+  const [codigoProveedor, setCodigoProveedor] = useState('');
   const [gerenteId, setGerenteId] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -40,6 +42,8 @@ export default function EditarProducto() {
           setReferencia(p.referencia);
           setDescripcion(p.descripcion);
           setUnidadId(p.unidadId);
+          setCodigoNfc(p.codigoNfc ?? '');
+          setCodigoProveedor(p.codigoProveedor ?? '');
         }
       } catch (e) {
         setError(mensajeDe(e));
@@ -56,8 +60,8 @@ export default function EditarProducto() {
     setGuardando(true);
     try {
       const p = esEdicion
-        ? await productosService.editar(id, { descripcion, unidadId })
-        : await productosService.crear({ referencia, descripcion, unidadId, gerenteAprobadorId: gerenteId });
+        ? await productosService.editar(id, { descripcion, unidadId, codigoNfc, codigoProveedor })
+        : await productosService.crear({ referencia, descripcion, unidadId, gerenteAprobadorId: gerenteId, codigoNfc, codigoProveedor });
       avisar(esEdicion ? 'Producto actualizado.' : p.estado === 'Pendiente' ? 'Producto enviado a aprobación.' : 'Producto dado de alta.');
       router.replace(`/productos/${p.id}`);
     } catch (e) {
@@ -84,6 +88,24 @@ export default function EditarProducto() {
             ayuda={esEdicion ? 'No se puede cambiar' : 'Código único del producto, por ejemplo TOR-001'}
           />
           <Campo etiqueta="Descripción" value={descripcion} onChangeText={setDescripcion} maxLength={500} multiline />
+          <Campo
+            etiqueta="Familia NFC (opcional)"
+            value={codigoNfc}
+            onChangeText={setCodigoNfc}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            maxLength={47}
+            ayuda="Código hexadecimal que el lector manda como familia de cada pieza, para el modo inteligente de venta"
+          />
+          <Campo
+            etiqueta="Código proveedor NFC (opcional)"
+            value={codigoProveedor}
+            onChangeText={setCodigoProveedor}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            maxLength={47}
+            ayuda="Código hexadecimal grabado en la etiqueta de los paquetes, para la recepción inteligente"
+          />
           <Selector<string>
             etiqueta="Unidad"
             valor={unidadId}

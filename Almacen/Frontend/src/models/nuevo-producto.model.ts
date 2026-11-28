@@ -5,4 +5,8 @@ export interface NuevoProducto {
   unidadId: string;
   /** Solo si el usuario no puede aprobar. */
   gerenteAprobadorId?: string;
+  /** Familia NFC (opcional). */
+  codigoNfc?: string;
+  /** Código proveedor NFC (opcional). */
+  codigoProveedor?: string;
 }

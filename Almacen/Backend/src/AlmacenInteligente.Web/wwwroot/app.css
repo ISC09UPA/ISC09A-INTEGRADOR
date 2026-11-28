@@ -192,6 +192,33 @@ h1:focus {
     background: var(--mud-palette-background);
 }
 
+/* Fotos de rostro para el reconocimiento facial (diálogo de usuarios) */
+.fotos-rostro {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+    gap: 12px;
+}
+
+.foto-rostro {
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.foto-rostro img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+}
+
+.foto-rostro-pie {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px 0 8px;
+}
+
 .producto-imagen-grande {
     width: 88px;
     height: 88px;

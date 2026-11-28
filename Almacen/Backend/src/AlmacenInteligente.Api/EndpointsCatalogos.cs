@@ -5,6 +5,7 @@ using AlmacenInteligente.Application.Consultas;
 using AlmacenInteligente.Application.Documentos;
 using AlmacenInteligente.Application.Productos;
 using AlmacenInteligente.Application.Proveedores;
+using AlmacenInteligente.Application.Seguridad;
 using AlmacenInteligente.Application.Terceros;
 using AlmacenInteligente.Application.Usuarios;
 using AlmacenInteligente.Domain.Productos;
@@ -14,9 +15,13 @@ namespace AlmacenInteligente.Api;
 // Cuerpos de las peticiones que no son un caso de uso completo (el id va en la ruta).
 public sealed record CambioEstado(bool Activo);
 public sealed record Motivo(string Texto);
-public sealed record DatosProducto(string Descripcion, Guid UnidadId);
+/// <param name="CodigoNfc">Código NFC de la familia del producto (lo manda el lector como "familia"): si no se envía se conserva; "" lo quita.</param>
+/// <param name="CodigoProveedor">Código NFC de los paquetes del proveedor: si no se envía se conserva; "" lo quita.</param>
+public sealed record DatosProducto(string Descripcion, Guid UnidadId, string? CodigoNfc = null, string? CodigoProveedor = null);
 public sealed record DatosAlmacen(string Nombre, string Ubicacion);
-public sealed record DatosUsuario(string Nombre, string Rol, bool Activo);
+/// <param name="CodigoNfc">UID de la tarjeta NFC: si no se envía se conserva; "" la quita.</param>
+/// <param name="AlmacenId">Almacén donde trabaja (obligatorio salvo superadmin); si no se envía se conserva.</param>
+public sealed record DatosUsuario(string Nombre, string Rol, bool Activo, string? CodigoNfc = null, Guid? AlmacenId = null);
 public sealed record NuevaContrasena(string Contrasena);
 public sealed record StockMinimo(decimal Minimo);
 public sealed record StockInicial(decimal Cantidad, decimal CostoUnitario);
@@ -91,7 +96,7 @@ internal static class EndpointsCatalogos
         }).WithName("CrearProducto")
             .WithSummary("Si el usuario no puede aprobar, envía gerenteAprobadorId y el producto queda pendiente.");
         g.MapPut("/{id:guid}", (Guid id, DatosProducto d, IMediador m, CancellationToken ct) =>
-            m.EnviarAsync(new EditarProducto(id, d.Descripcion, d.UnidadId), ct)).WithName("EditarProducto");
+            m.EnviarAsync(new EditarProducto(id, d.Descripcion, d.UnidadId, d.CodigoNfc, d.CodigoProveedor), ct)).WithName("EditarProducto");
         g.MapPatch("/{id:guid}/estado", (Guid id, CambioEstado c, IMediador m, CancellationToken ct) =>
             m.EnviarAsync(new CambiarEstadoProducto(id, c.Activo), ct)).WithName("CambiarEstadoProducto");
         g.MapPost("/{id:guid}/imagen", async (Guid id, IFormFile imagen, IMediador m, CancellationToken ct) =>
@@ -109,6 +114,8 @@ internal static class EndpointsCatalogos
     private static void MapAlmacenes(RouteGroupBuilder g)
     {
         g.MapGet("", (bool? inactivos, IMediador m, CancellationToken ct) => m.EnviarAsync(new ListarAlmacenes(inactivos ?? false), ct)).WithName("ListarAlmacenes");
+        g.MapGet("/mio", (IMediador m, CancellationToken ct) => m.EnviarAsync(new ObtenerMiAlmacen(), ct)).WithName("ObtenerMiAlmacen")
+            .WithSummary("Almacén asignado al usuario de la sesión: solo puede operar y ver el stock de ese. veTodos = true para el superadmin.");
         g.MapPost("", (DatosAlmacen d, IMediador m, CancellationToken ct) => m.EnviarAsync(new CrearAlmacen(d.Nombre, d.Ubicacion), ct)).WithName("CrearAlmacen");
         g.MapPut("/{id:guid}", (Guid id, DatosAlmacen d, IMediador m, CancellationToken ct) =>
             m.EnviarAsync(new EditarAlmacen(id, d.Nombre, d.Ubicacion), ct)).WithName("EditarAlmacen");
@@ -132,7 +139,7 @@ internal static class EndpointsCatalogos
         g.MapPost("", (CrearUsuario s, IMediador m, CancellationToken ct) => m.EnviarAsync(s, ct)).WithName("CrearUsuario")
             .WithSummary("rol: Superadmin, AgenteVentas, EncargadoRecepciones o Gerente.");
         g.MapPut("/{id:guid}", (Guid id, DatosUsuario d, IMediador m, CancellationToken ct) =>
-            m.EnviarAsync(new ActualizarUsuario(id, d.Nombre, d.Rol, d.Activo), ct)).WithName("ActualizarUsuario");
+            m.EnviarAsync(new ActualizarUsuario(id, d.Nombre, d.Rol, d.Activo, d.CodigoNfc, d.AlmacenId), ct)).WithName("ActualizarUsuario");
         g.MapPost("/{id:guid}/contrasena", async (Guid id, NuevaContrasena c, IMediador m, CancellationToken ct) =>
         {
             await m.EnviarAsync(new RestablecerContrasena(id, c.Contrasena), ct);

@@ -1,7 +1,17 @@
 # Almacén inteligente · app móvil
 
 App Expo (React Native, SDK 58) que consume la API REST de `api-web/` y replica la web de Blazor:
-mismo inicio de sesión, menú según el rol y los mismos módulos y PDF.
+mismos usuarios y roles, menú según el rol y los mismos módulos y PDF.
+
+**Inicio de sesión con el lector.** La app no pide correo ni contraseña: al tocar *Iniciar sesión con el lector*
+crea una solicitud (`POST /api/iot/login`, dura 60 s) y la persona acerca su tarjeta NFC y mira a la cámara del
+embebido. La app sondea `GET /api/iot/login/{id}` cada segundo hasta recibir el token (una sola vez) o el motivo
+del rechazo. Solo una persona puede estar iniciando sesión a la vez (hay un solo lector).
+
+**Modo inteligente de venta.** En *Nueva venta*, quien puede crear ventas elige un almacén por defecto y activa
+el interruptor: cada pieza que pasa por el lector NFC (UID de su etiqueta + familia NFC del producto) se suma a la
+línea de su producto, y al registrar la venta se guarda el UID de cada pieza. Una pieza ya vendida se rechaza con aviso.
+El lector se libera al registrar, al apagar el interruptor, al salir de la pantalla y al pasar la app a segundo plano.
 
 | Sección | Pantallas |
 | --- | --- |
@@ -11,7 +21,7 @@ mismo inicio de sesión, menú según el rol y los mismos módulos y PDF.
 | Análisis | Reportes (ventas, compras, inventario, flujo, margen; PDF por pestaña y general), Movimientos financieros y reporte mensual (PDF) |
 | Administración | Usuarios (alta, rol, activo, restablecer contraseña) |
 
-El menú y los botones se muestran con los permisos que trae el token (`/api/cuenta/token`);
+El menú y los botones se muestran con los permisos que trae el token;
 la API vuelve a validarlos en cada llamada, igual que en la web.
 
 ## Requisitos

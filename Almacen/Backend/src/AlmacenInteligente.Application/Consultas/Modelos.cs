@@ -12,7 +12,7 @@ public sealed record UnidadDto(Guid Id, string Clave, string Nombre, bool Permit
 public sealed record ProductoDto(
     Guid Id, string Referencia, string Descripcion, Guid UnidadId, string Unidad, bool PermiteFracciones,
     string? ImagenRuta, bool Activo, EstadoAprobacion Estado, Guid? GerenteAprobadorId, string? GerenteAprobador,
-    string CreadoPor, DateTimeOffset CreadoEn, string? MotivoRechazo, decimal Existencia);
+    string CreadoPor, DateTimeOffset CreadoEn, string? MotivoRechazo, decimal Existencia, string? CodigoNfc = null, string? CodigoProveedor = null);
 
 public sealed record FiltroProductos(
     string? Busqueda = null, EstadoAprobacion? Estado = null, bool IncluirInactivos = false,
@@ -56,7 +56,8 @@ public sealed record DocumentoResumenDto(
 
 public sealed record LineaDocumentoDto(
     Guid ProductoId, string Referencia, string Descripcion, string Unidad, string? Almacen,
-    decimal Cantidad, decimal PrecioUnitario, decimal TasaIva, decimal Subtotal, decimal Iva, decimal CostoUnitario)
+    decimal Cantidad, decimal PrecioUnitario, decimal TasaIva, decimal Subtotal, decimal Iva, decimal CostoUnitario,
+    IReadOnlyList<string>? Piezas = null)
 {
     public decimal Total => Subtotal + Iva;
 }

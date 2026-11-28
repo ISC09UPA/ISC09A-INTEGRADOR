@@ -62,6 +62,8 @@ export default function DetalleProducto() {
             <Datos>
               <Dato etiqueta="Unidad" valor={`${p.unidad}${p.permiteFracciones ? '' : ' · solo enteros'}`} />
               <Dato etiqueta="Existencia total" valor={`${Formato.cantidad(p.existencia)} ${p.unidad}`} />
+              {p.codigoNfc ? <Dato etiqueta="Familia NFC" valor={p.codigoNfc} /> : null}
+              {p.codigoProveedor ? <Dato etiqueta="Código proveedor NFC" valor={p.codigoProveedor} /> : null}
               <Dato etiqueta="Dio de alta" valor={p.creadoPor} detalle={Formato.fechaHora(p.creadoEn)} />
               {p.gerenteAprobador ? <Dato etiqueta="Gerente aprobador" valor={p.gerenteAprobador} /> : null}
             </Datos>

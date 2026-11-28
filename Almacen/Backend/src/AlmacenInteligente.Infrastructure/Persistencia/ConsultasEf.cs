@@ -65,20 +65,30 @@ internal sealed class ConsultasEf(AlmacenDbContext db) : IConsultas
             var p = f.Producto;
             return new ProductoDto(p.Id, p.Referencia, p.Descripcion, p.UnidadId, f.Unidad, p.PermiteFracciones, p.ImagenRuta,
                 p.Activo, p.Estado, p.GerenteAprobadorId, p.GerenteAprobadorId is { } g ? nombres.GetValueOrDefault(g) : null,
-                nombres.GetValueOrDefault(p.Creado.UsuarioId, "—"), p.Creado.Fecha, p.MotivoRechazo, f.Existencia);
+                nombres.GetValueOrDefault(p.Creado.UsuarioId, "—"), p.Creado.Fecha, p.MotivoRechazo, f.Existencia, p.CodigoNfc, p.CodigoProveedor);
         }).ToList();
     }
 
-    public async Task<IReadOnlyList<ProductoOpcionDto>> BuscarProductosDisponiblesAsync(string? texto, int maximo, CancellationToken ct)
+    public Task<IReadOnlyList<ProductoOpcionDto>> BuscarProductosDisponiblesAsync(string? texto, int maximo, CancellationToken ct)
     {
         var q = db.Productos.AsNoTracking().Where(p => p.Activo && p.Estado == EstadoAprobacion.Aprobado);
         if (!string.IsNullOrWhiteSpace(texto))
         {
             var patron = $"%{texto.Trim()}%";
-            q = q.Where(p => EF.Functions.ILike(p.Referencia, patron) || EF.Functions.ILike(p.Descripcion, patron));
+            var nfc = texto.Trim().Replace(":", "").Replace("-", "").ToUpperInvariant();
+            q = q.Where(p => EF.Functions.ILike(p.Referencia, patron) || EF.Functions.ILike(p.Descripcion, patron) || p.CodigoNfc == nfc || p.CodigoProveedor == nfc);
         }
+        return ProyectarOpciones(q.OrderBy(p => p.Referencia).Take(maximo), ct);
+    }
 
-        var productos = await q.OrderBy(p => p.Referencia).Take(maximo)
+    public Task<IReadOnlyList<ProductoOpcionDto>> ObtenerProductosDisponiblesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
+        ProyectarOpciones(db.Productos.AsNoTracking()
+            .Where(p => ids.Contains(p.Id) && p.Activo && p.Estado == EstadoAprobacion.Aprobado)
+            .OrderBy(p => p.Referencia), ct);
+
+    private async Task<IReadOnlyList<ProductoOpcionDto>> ProyectarOpciones(IQueryable<Producto> q, CancellationToken ct)
+    {
+        var productos = await q
             .Select(p => new
             {
                 p.Id, p.Referencia, p.Descripcion, p.PermiteFracciones,
@@ -283,7 +293,8 @@ internal sealed class ConsultasEf(AlmacenDbContext db) : IConsultas
         var productos = await Productos(v.Lineas.Select(l => l.ProductoId), ct);
         var almacenIds = v.Lineas.Select(l => l.AlmacenId).Distinct().ToList();
         var almacenes = await db.Almacenes.AsNoTracking().Where(a => almacenIds.Contains(a.Id)).ToDictionaryAsync(a => a.Id, a => a.Nombre, ct);
-        var lineas = v.Lineas.Select(l => Linea(productos[l.ProductoId], almacenes[l.AlmacenId], l.Cantidad, l.PrecioUnitario, l.TasaIva.Valor, l.Importe, l.CostoUnitario)).ToList();
+        var lineas = v.Lineas.Select(l => Linea(productos[l.ProductoId], almacenes[l.AlmacenId], l.Cantidad, l.PrecioUnitario, l.TasaIva.Valor, l.Importe, l.CostoUnitario)
+            with { Piezas = l.Piezas.Count == 0 ? null : l.Piezas.Select(p => p.Uid).ToList() }).ToList();
         return await Detalle(v, cliente.Nombre, cliente.Rfc.Valor, cliente.Correo.Valor, string.Join(", ", almacenes.Values.Order()), null, lineas, ct);
     }
 

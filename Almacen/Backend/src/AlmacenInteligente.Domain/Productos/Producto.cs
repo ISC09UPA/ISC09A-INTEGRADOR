@@ -20,6 +20,18 @@ public sealed class Producto : AggregateRoot
     public Guid UnidadId { get; private set; }
     public bool PermiteFracciones { get; private set; }
     public string? ImagenRuta { get; private set; }
+
+    /// <summary>
+    /// Código NFC de la familia del producto (hexadecimal, único). En el modo inteligente de venta el lector manda este
+    /// código como "familia" junto con el UID de cada pieza.
+    /// </summary>
+    public string? CodigoNfc { get; private set; }
+
+    /// <summary>
+    /// Código grabado en la etiqueta NFC de los paquetes del proveedor (hexadecimal, único). En la recepción inteligente
+    /// el lector lo manda como "familia" y se pregunta de cuántas piezas es el paquete.
+    /// </summary>
+    public string? CodigoProveedor { get; private set; }
     public bool Activo { get; private set; } = true;
 
     public EstadoAprobacion Estado { get; private set; }
@@ -68,6 +80,10 @@ public sealed class Producto : AggregateRoot
         UnidadId = unidad.Id;
         PermiteFracciones = unidad.PermiteFracciones;
     }
+
+    public void AsignarCodigoNfc(string? codigo) => CodigoNfc = Iot.CodigoNfc.Normalizar(codigo);
+
+    public void AsignarCodigoProveedor(string? codigo) => CodigoProveedor = Iot.CodigoNfc.Normalizar(codigo);
 
     public void AsignarImagen(string? ruta) => ImagenRuta = Guard.Opcional(ruta, "La ruta de la imagen", 400);
 

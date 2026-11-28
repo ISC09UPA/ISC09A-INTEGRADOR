@@ -5,4 +5,7 @@ export interface UsuarioDto {
   correo: string;
   rol: string;
   activo: boolean;
+  /** Almacén donde trabaja; null en el superadmin. */
+  almacenId?: string | null;
+  almacen?: string | null;
 }

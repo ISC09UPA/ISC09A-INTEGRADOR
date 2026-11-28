@@ -14,7 +14,7 @@
 <MudPaper Outlined="true" Elevation="0" Class="pa-4 mb-4">
     <MudGrid Spacing="3">
         <MudItem xs="12" sm="6" md="4">
-            <MudSelect T="Guid?" @bind-Value="_origen" Label="Almacén de origen" AnchorOrigin="Origin.BottomCenter">
+            <MudSelect T="Guid?" @bind-Value="_origen" Label="Almacén de origen" AnchorOrigin="Origin.BottomCenter" Disabled="_origenFijo">
                 @foreach (var a in _almacenes)
                 {
                     <MudSelectItem T="Guid?" Value="@a.Id">@a.Nombre</MudSelectItem>
@@ -86,6 +86,7 @@
 
     private IReadOnlyList<AlmacenDto> _almacenes = [];
     private Guid? _origen;
+    private bool _origenFijo;
     private Guid? _destino;
     private DateTime? _fecha = DateTime.Today;
     private readonly List<Linea> _lineas = [new()];
@@ -96,6 +97,9 @@
     {
         var (_, almacenes) = await IntentarAsync(new ListarAlmacenes());
         _almacenes = almacenes ?? [];
+        // Se traspasa desde el almacén propio.
+        if (await MiAlmacenAsync() is { } mio)
+            (_origen, _origenFijo) = (mio, true);
     }
 
     private decimal Disponible(Linea l) =>

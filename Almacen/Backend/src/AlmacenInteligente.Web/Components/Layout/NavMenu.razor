@@ -25,6 +25,7 @@
         {
             <Seccion Titulo="Inventario" />
             <MudNavLink Href="existencias" Icon="@Icons.Material.Outlined.Inventory">Existencias</MudNavLink>
+            <MudNavLink Href="stock" Icon="@Icons.Material.Outlined.Traffic">Comprobar stock</MudNavLink>
             <MudNavLink Href="movimientos" Icon="@Icons.Material.Outlined.SwapVert">Movimientos</MudNavLink>
             <MudNavLink Href="kardex" Icon="@Icons.Material.Outlined.ReceiptLong">Kardex</MudNavLink>
         }
@@ -62,6 +63,12 @@
             {
                 <MudNavLink Href="finanzas" Icon="@Icons.Material.Outlined.AccountBalance">Movimientos financieros</MudNavLink>
             }
+        }
+
+        @if (Puede(u, Permisos.Iot.VerAccesos))
+        {
+            <Seccion Titulo="IoT" />
+            <MudNavLink Href="iot/accesos" Icon="@Icons.Material.Outlined.SensorDoor">Accesos</MudNavLink>
         }
 
         @if (Puede(u, Permisos.Usuarios.Gestionar) || Puede(u, Permisos.Api.Acceder))

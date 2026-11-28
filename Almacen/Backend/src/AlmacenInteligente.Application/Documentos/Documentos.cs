@@ -18,7 +18,9 @@ namespace AlmacenInteligente.Application.Documentos;
 
 public sealed record LineaRecepcionDto(Guid ProductoId, decimal Cantidad, decimal CostoUnitario, decimal TasaIva);
 
-public sealed record LineaVentaDto(Guid ProductoId, Guid AlmacenId, decimal Cantidad, decimal PrecioUnitario, decimal TasaIva);
+/// <param name="Piezas">UID de la etiqueta NFC de cada pieza escaneada en el modo inteligente (opcional, a lo más la cantidad).</param>
+public sealed record LineaVentaDto(Guid ProductoId, Guid AlmacenId, decimal Cantidad, decimal PrecioUnitario, decimal TasaIva,
+    IReadOnlyList<string>? Piezas = null);
 
 public sealed record LineaTraspasoDto(Guid ProductoId, decimal Cantidad);
 
@@ -95,6 +97,7 @@ internal sealed class RegistrarVentaValidador : AbstractValidator<RegistrarVenta
             l.RuleFor(x => x.AlmacenId).NotEmpty().WithMessage("Elige el almacén de salida de cada línea.");
             l.RuleFor(x => x.Cantidad).GreaterThan(0).WithMessage("Las cantidades deben ser mayores que cero.");
             l.RuleFor(x => x.PrecioUnitario).GreaterThanOrEqualTo(0).WithMessage("Los precios no pueden ser negativos.");
+            l.RuleForEach(x => x.Piezas).NotEmpty().WithMessage("Hay una pieza sin UID de etiqueta NFC.");
         });
     }
 }
@@ -129,7 +132,7 @@ internal sealed class DocumentosManejador(
     IClienteRepositorio clientes, IProveedorRepositorio proveedores, IAlmacenRepositorio almacenes,
     IProductoRepositorio productos, IExistenciaRepositorio existencias,
     IRecepcionRepositorio recepciones, IVentaRepositorio ventas, ITraspasoRepositorio traspasos,
-    IUnidadDeTrabajo unidad, IUsuarioActual usuario, IReloj reloj) :
+    IUnidadDeTrabajo unidad, IUsuarioActual usuario, IReloj reloj, AlcanceAlmacen alcance) :
     IManejador<BuscarProveedoresActivos, IReadOnlyList<OpcionDto>>,
     IManejador<BuscarClientesActivos, IReadOnlyList<OpcionDto>>,
     IManejador<ListarRecepciones, Pagina<DocumentoResumenDto>>,
@@ -162,6 +165,7 @@ internal sealed class DocumentosManejador(
 
     public async Task<DocumentoRegistradoDto> ManejarAsync(RegistrarRecepcion s, CancellationToken ct)
     {
+        await alcance.AsegurarAsync(s.AlmacenId, ct);
         var proveedor = await proveedores.ObtenerAsync(s.ProveedorId, ct) ?? throw new NoEncontradoException("el proveedor", s.ProveedorId);
         var almacen = await almacenes.ObtenerAsync(s.AlmacenId, ct) ?? throw new NoEncontradoException("el almacén", s.AlmacenId);
         var catalogo = await Productos(s.Lineas.Select(l => l.ProductoId), ct);
@@ -181,6 +185,7 @@ internal sealed class DocumentosManejador(
     public async Task<bool> ManejarAsync(CancelarRecepcion s, CancellationToken ct)
     {
         var recepcion = await recepciones.ObtenerAsync(s.Id, ct) ?? throw new NoEncontradoException("la recepción", s.Id);
+        await alcance.AsegurarAsync(recepcion.AlmacenId, ct);
         var lote = await existencias.CargarLoteAsync(recepcion.Lineas.Select(l => (recepcion.AlmacenId, l.ProductoId)), ct);
         var resultado = ServicioInventario.CancelarRecepcion(recepcion, lote, Ahora, s.Motivo);
         existencias.Registrar(lote, resultado);
@@ -198,6 +203,8 @@ internal sealed class DocumentosManejador(
 
     public async Task<DocumentoRegistradoDto> ManejarAsync(RegistrarVenta s, CancellationToken ct)
     {
+        foreach (var almacenId in s.Lineas.Select(l => l.AlmacenId).Distinct())
+            await alcance.AsegurarAsync(almacenId, ct);
         var cliente = await clientes.ObtenerAsync(s.ClienteId, ct) ?? throw new NoEncontradoException("el cliente", s.ClienteId);
         var catalogo = await Productos(s.Lineas.Select(l => l.ProductoId), ct);
         foreach (var almacenId in s.Lineas.Select(l => l.AlmacenId).Distinct())
@@ -205,7 +212,15 @@ internal sealed class DocumentosManejador(
 
         var venta = new Venta(cliente, s.Fecha, Ahora);
         foreach (var l in s.Lineas)
-            venta.AgregarLinea(catalogo[l.ProductoId], l.AlmacenId, l.Cantidad, l.PrecioUnitario, new TasaIva(l.TasaIva));
+            venta.AgregarLinea(catalogo[l.ProductoId], l.AlmacenId, l.Cantidad, l.PrecioUnitario, new TasaIva(l.TasaIva), l.Piezas);
+
+        // Cada UID es una pieza física: si ya salió en otra venta no está en stock. El índice único de la base
+        // cubre la carrera entre dos ventas simultáneas; esta revisión da el mensaje con los UID.
+        var uids = venta.UidsPiezas.ToList();
+        if (uids.Count > 0 && await ventas.PiezasVendidasAsync(uids, ct) is { Count: > 0 } vendidas)
+            throw new DomainException(vendidas.Count == 1
+                ? $"La pieza {vendidas[0]} ya se vendió. Quítala de la venta."
+                : $"Estas piezas ya se vendieron: {string.Join(", ", vendidas)}. Quítalas de la venta.");
 
         var lote = await existencias.CargarLoteAsync(s.Lineas.Select(l => (l.AlmacenId, l.ProductoId)), ct);
         var resultado = ServicioInventario.ConfirmarVenta(venta, lote, Ahora);
@@ -218,6 +233,8 @@ internal sealed class DocumentosManejador(
     public async Task<bool> ManejarAsync(CancelarVenta s, CancellationToken ct)
     {
         var venta = await ventas.ObtenerAsync(s.Id, ct) ?? throw new NoEncontradoException("la venta", s.Id);
+        foreach (var almacenId in venta.Lineas.Select(l => l.AlmacenId).Distinct())
+            await alcance.AsegurarAsync(almacenId, ct);
         var lote = await existencias.CargarLoteAsync(venta.Lineas.Select(l => (l.AlmacenId, l.ProductoId)), ct);
         var resultado = ServicioInventario.CancelarVenta(venta, lote, Ahora, s.Motivo);
         existencias.Registrar(lote, resultado);
@@ -235,6 +252,8 @@ internal sealed class DocumentosManejador(
 
     public async Task<DocumentoRegistradoDto> ManejarAsync(RegistrarTraspaso s, CancellationToken ct)
     {
+        // Se traspasa desde el almacén propio hacia otro.
+        await alcance.AsegurarAsync(s.AlmacenOrigenId, ct);
         var origen = await almacenes.ObtenerAsync(s.AlmacenOrigenId, ct) ?? throw new NoEncontradoException("el almacén", s.AlmacenOrigenId);
         var destino = await almacenes.ObtenerAsync(s.AlmacenDestinoId, ct) ?? throw new NoEncontradoException("el almacén", s.AlmacenDestinoId);
         var catalogo = await Productos(s.Lineas.Select(l => l.ProductoId), ct);

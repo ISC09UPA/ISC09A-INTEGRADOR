@@ -4,6 +4,7 @@ using AlmacenInteligente.Domain.Common;
 using AlmacenInteligente.Domain.Documentos;
 using AlmacenInteligente.Domain.Finanzas;
 using AlmacenInteligente.Domain.Inventario;
+using AlmacenInteligente.Domain.Iot;
 using AlmacenInteligente.Domain.Productos;
 using AlmacenInteligente.Domain.Recepciones;
 using AlmacenInteligente.Domain.Terceros;
@@ -32,6 +33,13 @@ public sealed class AlmacenDbContext(DbContextOptions<AlmacenDbContext> options)
     public DbSet<Venta> Ventas => Set<Venta>();
     public DbSet<Traspaso> Traspasos => Set<Traspaso>();
     public DbSet<MensajeOutbox> Outbox => Set<MensajeOutbox>();
+    public DbSet<FotoRostro> FotosRostro => Set<FotoRostro>();
+    public DbSet<AccesoIot> AccesosIot => Set<AccesoIot>();
+    public DbSet<SesionVentaInteligente> SesionVentaInteligente => Set<SesionVentaInteligente>();
+    public DbSet<EscaneoIot> EscaneosIot => Set<EscaneoIot>();
+    public DbSet<SolicitudInicioSesionIot> SolicitudesInicioSesionIot => Set<SolicitudInicioSesionIot>();
+    public DbSet<PiezaVendida> PiezasVendidas => Set<PiezaVendida>();
+    public DbSet<ConsultaStockIot> ConsultasStockIot => Set<ConsultaStockIot>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -41,7 +49,13 @@ public sealed class AlmacenDbContext(DbContextOptions<AlmacenDbContext> options)
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AlmacenDbContext).Assembly);
 
         // Tablas de Identity con el mismo estilo snake_case que el resto.
-        modelBuilder.Entity<Usuario>().ToTable("usuarios");
+        modelBuilder.Entity<Usuario>(u =>
+        {
+            u.ToTable("usuarios");
+            u.Property(x => x.CodigoNfc).HasMaxLength(CodigoNfc.LongitudMaxima);
+            u.HasIndex(x => x.CodigoNfc).IsUnique().HasFilter("codigo_nfc IS NOT NULL");
+            u.HasOne<Almacen>().WithMany().HasForeignKey(x => x.AlmacenId).OnDelete(DeleteBehavior.Restrict);
+        });
         modelBuilder.Entity<Rol>().ToTable("roles");
         modelBuilder.Entity<IdentityUserRole<Guid>>().ToTable("usuarios_roles");
         modelBuilder.Entity<IdentityUserClaim<Guid>>().ToTable("usuarios_claims");
@@ -86,6 +100,11 @@ public sealed class AlmacenDbContext(DbContextOptions<AlmacenDbContext> options)
         catch (DbUpdateConcurrencyException)
         {
             throw new DomainException("Otra persona modificó las existencias al mismo tiempo. Revisa y vuelve a intentarlo.");
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException
+            { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation, ConstraintName: Configuraciones.PiezaVendidaConfiguracion.IndiceEnStock })
+        {
+            throw new DomainException("Una de las piezas escaneadas se acaba de vender en otra venta. Revisa y vuelve a intentarlo.");
         }
         catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
         {

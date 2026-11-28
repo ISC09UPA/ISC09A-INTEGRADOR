@@ -15,6 +15,12 @@
                 <MudTextField @bind-Value="_referencia" Label="Referencia interna" Required="true" RequiredError="Obligatorio"
                               MaxLength="50" Disabled="EsEdicion" HelperText="@(EsEdicion ? "No se puede cambiar" : "Código único del producto, por ejemplo TOR-001")" />
                 <MudTextField @bind-Value="_descripcion" Label="Descripción" Required="true" RequiredError="Obligatorio" MaxLength="500" Lines="2" />
+                <MudTextField @bind-Value="_codigoNfc" Label="Familia NFC (opcional)" MaxLength="47" Clearable="true"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Nfc"
+                              HelperText="Código hexadecimal que el lector manda como familia de cada pieza, para el modo inteligente de venta" />
+                <MudTextField @bind-Value="_codigoProveedor" Label="Código proveedor NFC (opcional)" MaxLength="47" Clearable="true"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Inventory2"
+                              HelperText="Código hexadecimal grabado en la etiqueta de los paquetes, para la recepción inteligente" />
                 <MudSelect T="Guid?" @bind-Value="_unidadId" Label="Unidad" Required="true" RequiredError="Elige la unidad" AnchorOrigin="Origin.BottomCenter"
                            ToStringFunc="@(id => _unidades.FirstOrDefault(u => u.Id == id) is { } u ? $"{u.Nombre} ({u.Clave})" : null)">
                     @foreach (var u in _unidades)
@@ -86,6 +92,8 @@
     private string _referencia = string.Empty;
     private string _descripcion = string.Empty;
     private Guid? _unidadId;
+    private string? _codigoNfc;
+    private string? _codigoProveedor;
     private Guid? _gerenteId;
     private (string Nombre, string Tipo, byte[] Contenido)? _imagen;
     private string? _vistaPrevia;
@@ -104,7 +112,8 @@
                 _gerenteId = _gerentes[0].Id;
         }
         if (Actual is not null)
-            (_referencia, _descripcion, _unidadId) = (Actual.Referencia, Actual.Descripcion, Actual.UnidadId);
+            (_referencia, _descripcion, _unidadId, _codigoNfc, _codigoProveedor) =
+                (Actual.Referencia, Actual.Descripcion, Actual.UnidadId, Actual.CodigoNfc, Actual.CodigoProveedor);
     }
 
     private async Task ElegirImagenAsync(IBrowserFile? archivo)
@@ -134,8 +143,8 @@
         _guardando = true;
         _error = null;
         var (producto, mensaje) = Actual is null
-            ? await EjecutarAsync(new CrearProducto(_referencia, _descripcion, _unidadId!.Value, _gerenteId))
-            : await EjecutarAsync(new EditarProducto(Actual.Id, _descripcion, _unidadId!.Value));
+            ? await EjecutarAsync(new CrearProducto(_referencia, _descripcion, _unidadId!.Value, _gerenteId, _codigoNfc, _codigoProveedor))
+            : await EjecutarAsync(new EditarProducto(Actual.Id, _descripcion, _unidadId!.Value, _codigoNfc ?? string.Empty, _codigoProveedor ?? string.Empty));
 
         if (mensaje is not null)
         {

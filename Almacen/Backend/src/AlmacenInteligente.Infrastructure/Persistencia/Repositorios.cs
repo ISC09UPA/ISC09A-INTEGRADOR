@@ -70,6 +70,18 @@ internal sealed class ProductoRepositorio(AlmacenDbContext db) : Repositorio<Pro
     public Task<bool> ExisteReferenciaAsync(string referencia, CancellationToken ct = default) =>
         Db.Productos.AnyAsync(p => p.Referencia == referencia, ct);
 
+    public Task<bool> ExisteCodigoNfcAsync(string codigoNfc, Guid? excepto, CancellationToken ct = default) =>
+        Db.Productos.AnyAsync(p => p.CodigoNfc == codigoNfc && p.Id != excepto, ct);
+
+    public Task<Producto?> ObtenerPorCodigoNfcAsync(string codigoNfc, CancellationToken ct = default) =>
+        Db.Productos.FirstOrDefaultAsync(p => p.CodigoNfc == codigoNfc, ct);
+
+    public Task<Producto?> ObtenerPorCodigoProveedorAsync(string codigo, CancellationToken ct = default) =>
+        Db.Productos.FirstOrDefaultAsync(p => p.CodigoProveedor == codigo, ct);
+
+    public Task<bool> ExisteCodigoProveedorAsync(string codigo, Guid? excepto, CancellationToken ct = default) =>
+        Db.Productos.AnyAsync(p => p.CodigoProveedor == codigo && p.Id != excepto, ct);
+
     public async Task<IReadOnlyDictionary<Guid, Producto>> ObtenerVariosAsync(IEnumerable<Guid> ids, CancellationToken ct = default)
     {
         var lista = ids.Distinct().ToList();
@@ -85,7 +97,12 @@ internal sealed class AlmacenRepositorio(AlmacenDbContext db) : Repositorio<Alma
 
 internal sealed class RecepcionRepositorio(AlmacenDbContext db) : Repositorio<Recepcion>(db), IRecepcionRepositorio;
 
-internal sealed class VentaRepositorio(AlmacenDbContext db) : Repositorio<Venta>(db), IVentaRepositorio;
+internal sealed class VentaRepositorio(AlmacenDbContext db) : Repositorio<Venta>(db), IVentaRepositorio
+{
+    public async Task<IReadOnlyList<string>> PiezasVendidasAsync(IReadOnlyCollection<string> uids, CancellationToken ct = default) =>
+        await Db.PiezasVendidas.AsNoTracking().Where(p => !p.Devuelta && uids.Contains(p.Uid))
+            .Select(p => p.Uid).Distinct().OrderBy(u => u).ToListAsync(ct);
+}
 
 internal sealed class TraspasoRepositorio(AlmacenDbContext db) : Repositorio<Traspaso>(db), ITraspasoRepositorio;
 

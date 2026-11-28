@@ -28,6 +28,10 @@ internal sealed class ProductoConfiguracion : IEntityTypeConfiguration<Producto>
         b.Property(p => p.Referencia).HasMaxLength(50);
         b.Property(p => p.Descripcion).HasMaxLength(500);
         b.Property(p => p.ImagenRuta).HasMaxLength(400);
+        b.Property(p => p.CodigoNfc).HasMaxLength(Domain.Iot.CodigoNfc.LongitudMaxima);
+        b.HasIndex(p => p.CodigoNfc).IsUnique().HasFilter("codigo_nfc IS NOT NULL");
+        b.Property(p => p.CodigoProveedor).HasMaxLength(Domain.Iot.CodigoNfc.LongitudMaxima);
+        b.HasIndex(p => p.CodigoProveedor).IsUnique().HasFilter("codigo_proveedor IS NOT NULL");
         b.Property(p => p.MotivoRechazo).HasMaxLength(500);
         b.Property(p => p.Estado).HasConversion<string>().HasMaxLength(20);
         b.HasOne<Unidad>().WithMany().HasForeignKey(p => p.UnidadId).OnDelete(DeleteBehavior.Restrict);

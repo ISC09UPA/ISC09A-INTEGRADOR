@@ -3,7 +3,7 @@ name: Almacén - Deploy a Azure
 
 on:
   push:
-    branches: [7jaylosmolcafriends-almacen-main, 7jaylosmolcafriends-almacen-develop]
+    branches: [main, 7jaylosmolcafriends-almacen-main, 7jaylosmolcafriends-almacen-develop]
     paths:
       - "Almacen/Backend/**"
       - ".github/workflows/7jaylosmolcafriends-almacen-deploy.yml"

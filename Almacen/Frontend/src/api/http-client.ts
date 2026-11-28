@@ -79,6 +79,10 @@ export class HttpClient {
     return this.enviar<TDto>('PATCH', ruta, { cuerpo });
   }
 
+  delete<TDto = void>(ruta: string) {
+    return this.enviar<TDto>('DELETE', ruta, {});
+  }
+
   subir<TDto>(ruta: string, formulario: FormData) {
     return this.enviar<TDto>('POST', ruta, { formulario });
   }
