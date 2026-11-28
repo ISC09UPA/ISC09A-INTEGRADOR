@@ -325,7 +325,7 @@
     {
         if (escaneo.Rechazo is not null || escaneo.Producto is not { } producto)
         {
-            Avisos.Add(escaneo.Rechazo ?? $"No se reconoció la pieza {escaneo.Uid}.", Severity.Warning);
+            Avisos.Add(escaneo.Rechazo ?? $"No se reconoció la pieza {escaneo.Uid}.", escaneo.Duplicado ? Severity.Warning : Severity.Error);
             return;
         }
         if (_lineas.Any(l => l.Piezas.Contains(escaneo.Uid)))

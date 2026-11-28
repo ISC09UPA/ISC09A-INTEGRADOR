@@ -72,7 +72,8 @@ function aplicarEscaneos(lineas: Linea[], escaneos: Escaneo[], almacenId: string
   for (const e of escaneos) {
     const producto = e.producto;
     if (e.rechazo || !producto) {
-      avisos.push({ id: siguienteAlerta++, tipo: 'error', texto: e.rechazo ?? `No se reconoció la pieza ${e.uid}.` });
+      // Duplicado (ya escaneada o ya en la venta) es alerta amarilla y se quita sola; lo demás es error rojo.
+      avisos.push({ id: siguienteAlerta++, tipo: e.duplicado ? 'alerta' : 'error', texto: e.rechazo ?? `No se reconoció la pieza ${e.uid}.` });
       continue;
     }
     if (resultado.some((l) => l.piezas.includes(e.uid))) {

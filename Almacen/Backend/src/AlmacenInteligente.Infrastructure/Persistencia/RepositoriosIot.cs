@@ -117,19 +117,21 @@ internal sealed class CandadoVentaInteligente(AlmacenDbContext db) : ICandadoVen
             """, ct);
     }
 
-    public async Task<RegistroEscaneo> RegistrarEscaneoAsync(string uid, string familia, Guid? productoId, string? rechazo,
+    public async Task<RegistroEscaneo> RegistrarEscaneoAsync(string uid, string familia, Guid? productoId, string? rechazo, bool duplicado,
         DateTimeOffset ahora, DateTimeOffset venceAntesDe, CancellationToken ct = default)
     {
         // Se arma con el constructor del dominio para aplicar sus límites de longitud.
-        var e = new EscaneoIot(Guid.Empty, uid, familia, productoId, ahora, rechazo);
+        var e = new EscaneoIot(Guid.Empty, uid, familia, productoId, ahora, rechazo, duplicado);
         var (momento, limite) = (ahora.ToUniversalTime(), venceAntesDe.ToUniversalTime());
         var filas = await db.Database.ExecuteSqlAsync($"""
-            INSERT INTO iot_escaneos (id, sesion_id, uid, familia, producto_id, rechazo, fecha, procesado)
-            SELECT {e.Id}, s.sesion_id, {e.Uid}, {e.Familia}, {e.ProductoId}::uuid, {e.Rechazo}::text, {momento}, FALSE
+            INSERT INTO iot_escaneos (id, sesion_id, uid, familia, producto_id, rechazo, duplicado, fecha, procesado)
+            SELECT {e.Id}, s.sesion_id, {e.Uid}, {e.Familia}, {e.ProductoId}::uuid, {e.Rechazo}::text, {e.Duplicado}, {momento}, FALSE
             FROM iot_sesion_venta s
             WHERE s.id = {Id} AND s.usuario_id IS NOT NULL AND s.ultimo_latido >= {limite}
-              -- Una pieza que ya se aceptó en esta sesión (ya está en la venta) es un duplicado.
-              AND NOT EXISTS (SELECT 1 FROM iot_escaneos x WHERE x.sesion_id = s.sesion_id AND x.uid = {e.Uid} AND x.rechazo IS NULL)
+              -- Una pieza que ya se aceptó en esta sesión (ya está en la venta) es un duplicado. Los rechazos (incluido el
+              -- aviso de duplicado) sí se anotan para que la pantalla los muestre.
+              AND ({e.Rechazo}::text IS NOT NULL
+                   OR NOT EXISTS (SELECT 1 FROM iot_escaneos x WHERE x.sesion_id = s.sesion_id AND x.uid = {e.Uid} AND x.rechazo IS NULL))
             ON CONFLICT (sesion_id, uid) WHERE NOT procesado DO NOTHING
             """, ct);
         if (filas == 1)

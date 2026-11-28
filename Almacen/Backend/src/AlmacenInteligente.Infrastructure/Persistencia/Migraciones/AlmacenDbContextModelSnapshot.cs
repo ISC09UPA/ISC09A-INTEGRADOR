@@ -508,6 +508,10 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<bool>("Duplicado")
+                        .HasColumnType("boolean")
+                        .HasColumnName("duplicado");
+
                     b.Property<string>("Familia")
                         .IsRequired()
                         .HasMaxLength(50)

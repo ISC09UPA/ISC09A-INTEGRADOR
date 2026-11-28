@@ -10,4 +10,6 @@ export interface EscaneoDto {
   familia: string;
   producto?: ProductoOpcionDto | null;
   rechazo?: string | null;
+  /** El rechazo es por duplicado: alerta amarilla, no error. */
+  duplicado?: boolean;
 }

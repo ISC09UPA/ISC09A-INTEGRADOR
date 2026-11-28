@@ -93,12 +93,16 @@ public sealed class EscaneoIot : Entity
     public DateTimeOffset Fecha { get; private set; }
     public bool Procesado { get; private set; }
 
+    /// <summary>Rechazo por duplicado (la pieza o el paquete ya se leyó en la sesión): es una alerta, no un error.</summary>
+    public bool Duplicado { get; private set; }
+
     public bool Aceptado => Rechazo is null;
 
     private EscaneoIot() { }
 
-    public EscaneoIot(Guid sesionId, string uid, string familia, Guid? productoId, DateTimeOffset fecha, string? rechazo = null)
+    public EscaneoIot(Guid sesionId, string uid, string familia, Guid? productoId, DateTimeOffset fecha, string? rechazo = null, bool duplicado = false)
     {
+        Duplicado = duplicado && rechazo is not null;
         SesionId = sesionId;
         Uid = Guard.Requerido(uid, "El UID de la pieza", CodigoNfc.LongitudMaxima);
         Familia = Recortar(familia, LongitudMaximaFamilia);
