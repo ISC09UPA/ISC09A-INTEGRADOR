@@ -1,0 +1,446 @@
+@page "/ventas/nueva"
+@attribute [Authorize(Policy = Permisos.Ventas.Crear)]
+@using AlmacenInteligente.Application.Almacenes
+@using AlmacenInteligente.Application.Clientes
+@using AlmacenInteligente.Application.Iot
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Application.Documentos
+@using AlmacenInteligente.Application.Terceros
+@using AlmacenInteligente.Domain.ValueObjects
+@using AlmacenInteligente.Web.Components.Terceros
+@inherits PaginaBase
+@inject NavigationManager Navegacion
+@inject IDialogService Dialogos
+@implements IAsyncDisposable
+
+<PageTitle>Nueva venta · Almacén inteligente</PageTitle>
+
+<Encabezado Titulo="Nueva venta" Volver="ventas" Descripcion="Captura el precio de cada línea y el almacén de donde sale. Al registrarla se descuentan existencias y se registra el ingreso." />
+
+<MudPaper Outlined="true" Elevation="0" Class="pa-4 mb-4">
+    <MudGrid Spacing="3">
+        <MudItem xs="12" md="7">
+            <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2">
+                <div class="flex-grow-1">
+                    <SelectorTercero @bind-Value="_cliente" Clientes="true" Label="Cliente" />
+                </div>
+                @if (Puede(Permisos.Clientes.Crear))
+                {
+                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="NuevoClienteAsync">Nuevo cliente</MudButton>
+                }
+            </MudStack>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudDatePicker DateFormat="dd/MM/yyyy" @bind-Date="_fecha" Label="Fecha" Culture="Formato.Mx" MaxDate="DateTime.Today" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudPaper Outlined="true" Elevation="0" Class="pa-4 mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="3">
+        <MudSwitch T="bool" Value="_modoInteligente" ValueChanged="CambiarModoAsync" Color="Color.Primary" Disabled="_cambiandoModo"
+                   Label="Modo inteligente" />
+        <MudSelect T="Guid?" @bind-Value="_almacenModo" Label="Almacén por defecto" Dense="true" Disabled="_modoInteligente || _cambiandoModo || _almacenFijo"
+                   Style="max-width:260px" ToStringFunc="NombreAlmacen" AnchorOrigin="Origin.BottomCenter">
+            @foreach (var a in _almacenes)
+            {
+                <MudSelectItem T="Guid?" Value="@a.Id">@a.Nombre</MudSelectItem>
+            }
+        </MudSelect>
+        @if (_modoInteligente)
+        {
+            <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Icon="@Icons.Material.Outlined.Nfc">
+                Escuchando el lector NFC · @_escaneados escaneados
+            </MudChip>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Pasa la etiqueta NFC de cada pieza por el lector y se agrega sola (una pieza del almacén por defecto). Una pieza ya vendida se rechaza.
+            </MudText>
+        }
+    </MudStack>
+    @if (_avisoModo is not null)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">@_avisoModo</MudAlert>
+    }
+</MudPaper>
+
+<MudPaper Outlined="true" Elevation="0" Class="pa-4">
+    <MudText Typo="Typo.h6" Class="mb-2">Productos</MudText>
+    @foreach (var linea in _lineas)
+    {
+        <MudGrid Spacing="2" Class="mb-1 align-center">
+            <MudItem xs="12" md="4">
+                <SelectorProducto Value="linea.Producto" ValueChanged="p => linea.ElegirProducto(p)" Dense="true" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="2">
+                <MudSelect T="Guid?" @bind-Value="linea.AlmacenId" Label="Sale de" Dense="true" Disabled="linea.Producto is null"
+                           Error="linea.Excede" ErrorText="No alcanza" ToStringFunc="NombreAlmacen">
+                    @foreach (var e in linea.Producto?.Existencias ?? [])
+                    {
+                        <MudSelectItem T="Guid?" Value="@e.AlmacenId">@e.Almacen (@Formato.Cantidad(e.Cantidad))</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="4" md="1">
+                <MudNumericField T="decimal" @bind-Value="linea.Cantidad" Label="Cantidad" Min="0" Format="0.###" Immediate="true"
+                                 Error="linea.Excede" ErrorText="@($"Hay {Formato.Cantidad(linea.Disponible)}")" />
+            </MudItem>
+            <MudItem xs="4" md="2">
+                <MudNumericField T="decimal" @bind-Value="linea.Precio" Label="Precio unitario" Min="0" Format="0.####" Adornment="Adornment.Start" AdornmentText="$" Immediate="true" />
+            </MudItem>
+            <MudItem xs="4" md="1">
+                <MudSelect T="decimal" @bind-Value="linea.Tasa" Label="IVA" Dense="true">
+                    @foreach (var (valor, texto) in Formato.TasasIva)
+                    {
+                        <MudSelectItem T="decimal" Value="valor">@texto</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="10" md="1" Class="numero">@Formato.Dinero(linea.Importe.Subtotal.Monto)</MudItem>
+            <MudItem xs="2" md="1" Class="d-flex justify-end">
+                <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small" OnClick="() => _lineas.Remove(linea)" Disabled="_lineas.Count == 1" aria-label="Quitar línea" />
+            </MudItem>
+            @if (linea.LlevaUid)
+            {
+                <MudItem xs="12" Class="pt-0">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="1">
+                        <MudText Typo="Typo.caption" Color="@(linea.FaltanUid > 0 ? Color.Warning : Color.Secondary)">
+                            UID de las piezas (@linea.Piezas.Count de @Formato.Cantidad(linea.Cantidad)):
+                        </MudText>
+                        @foreach (var uid in linea.Piezas)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Outlined.Nfc"
+                                     OnClose="() => linea.QuitarPieza(uid)">@uid</MudChip>
+                        }
+                        @if (linea.FaltanUid > 0)
+                        {
+                            <MudTextField T="string" @bind-Value="linea.NuevoUid" Placeholder="UID de la etiqueta" Margin="Margin.Dense"
+                                          Variant="Variant.Outlined" Style="max-width:220px" Immediate="true"
+                                          OnKeyUp="@(e => e.Key == "Enter" ? AgregarUidManual(linea) : Task.CompletedTask)" />
+                            <MudButton Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add" OnClick="() => AgregarUidManual(linea)">Agregar UID</MudButton>
+                            <MudText Typo="Typo.caption" Color="Color.Warning">Faltan @linea.FaltanUid</MudText>
+                        }
+                    </MudStack>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+    <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Text" Color="Color.Primary" OnClick="() => _lineas.Add(new Linea())" Class="mt-2">Agregar producto</MudButton>
+
+    <MudDivider Class="my-4" />
+    <div class="d-flex flex-wrap justify-space-between align-end gap-4">
+        <div>
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@_error</MudAlert>
+            }
+        </div>
+        <MudStack AlignItems="AlignItems.End" Spacing="3">
+            <div class="totales">
+                <div class="fila"><span>Subtotal</span><span>@Formato.Dinero(Total.Subtotal.Monto)</span></div>
+                <div class="fila"><span>IVA</span><span>@Formato.Dinero(Total.Iva.Monto)</span></div>
+                <div class="fila total"><span>Total</span><span>@Formato.Dinero(Total.Total.Monto)</span></div>
+            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="RegistrarAsync" Disabled="_guardando">
+                @(_guardando ? "Registrando…" : "Registrar venta")
+            </MudButton>
+        </MudStack>
+    </div>
+</MudPaper>
+
+@code {
+    private sealed class Linea
+    {
+        public ProductoOpcionDto? Producto { get; private set; }
+        public Guid? AlmacenId { get; set; }
+        public decimal Cantidad { get; set; }
+        public decimal Precio { get; set; }
+        public decimal Tasa { get; set; } = 0.16m;
+
+        /// <summary>UID de la etiqueta NFC de cada pieza: los del lector y los que se capturan a mano. Uno por unidad.</summary>
+        public List<string> Piezas { get; } = [];
+
+        /// <summary>Texto del UID que se está capturando a mano.</summary>
+        public string? NuevoUid { get; set; }
+
+        /// <summary>Los productos por pieza llevan un UID por unidad; los de peso o volumen no.</summary>
+        public bool LlevaUid => Producto is { PermiteFracciones: false };
+        public int FaltanUid => LlevaUid ? Math.Max((int)Math.Ceiling(Cantidad) - Piezas.Count, 0) : 0;
+
+        public decimal Disponible => Producto?.Existencias.FirstOrDefault(e => e.AlmacenId == AlmacenId)?.Cantidad ?? 0;
+        public bool Excede => Producto is not null && AlmacenId is not null && Cantidad > Disponible;
+        public Importe Importe => Cantidad > 0 && Precio >= 0 ? Importe.DeLinea(Cantidad, Precio, new TasaIva(Tasa)) : Importe.Cero;
+
+        /// <summary>Línea que llega del lector NFC: una pieza del almacén por defecto.</summary>
+        public void AsignarEscaneo(ProductoOpcionDto producto, Guid almacenId, string uid)
+        {
+            Producto = producto;
+            AlmacenId = almacenId;
+            Cantidad = 1;
+            Piezas.Clear();
+            Piezas.Add(uid);
+        }
+
+        public void SumarPieza(string uid)
+        {
+            Piezas.Add(uid);
+            Cantidad += 1;
+        }
+
+        public void QuitarPieza(string uid)
+        {
+            if (Piezas.Remove(uid))
+                Cantidad = Math.Max(Cantidad - 1, 0);
+        }
+
+        /// <summary>Al elegir producto propone el almacén con más existencia. Las piezas escaneadas eran de otro producto.</summary>
+        public void ElegirProducto(ProductoOpcionDto? producto)
+        {
+            Piezas.Clear();
+            Producto = producto;
+            AlmacenId = producto?.Existencias.OrderByDescending(e => e.Cantidad).FirstOrDefault()?.AlmacenId;
+        }
+    }
+
+    private OpcionDto? _cliente;
+    private DateTime? _fecha = DateTime.Today;
+    private readonly List<Linea> _lineas = [new()];
+    private string? _error;
+    private bool _guardando;
+
+    private Importe Total => _lineas.Aggregate(Importe.Cero, (t, l) => t + l.Importe);
+
+    // ---- Modo inteligente: el lector NFC del embebido agrega líneas mientras este usuario tiene el candado.
+    private static readonly TimeSpan IntervaloLatido = TimeSpan.FromSeconds(15);
+    private IReadOnlyList<AlmacenDto> _almacenes = [];
+    private Guid? _almacenModo;
+    private bool _almacenFijo;
+    private bool _modoInteligente;
+    private bool _cambiandoModo;
+    private string? _avisoModo;
+    private int _escaneados;
+    private CancellationTokenSource? _escucha;
+
+    protected override async Task AlIniciarAsync()
+    {
+        var (_, almacenes) = await IntentarAsync(new ListarAlmacenes());
+        _almacenes = almacenes ?? [];
+        if (_almacenes.Count == 1)
+            _almacenModo = _almacenes[0].Id;
+        if (await MiAlmacenAsync() is { } mio)
+            (_almacenModo, _almacenFijo) = (mio, true);
+
+        var (sesion, _) = await EjecutarAsync(new ObtenerModoInteligente());
+        if (sesion is { EsMia: false })
+            _avisoModo = $"El modo inteligente lo está usando {sesion.Usuario}.";
+    }
+
+    private string NombreAlmacen(Guid? id) => _almacenes.FirstOrDefault(a => a.Id == id)?.Nombre ?? string.Empty;
+
+    private async Task CambiarModoAsync(bool activar)
+    {
+        _avisoModo = null;
+        _cambiandoModo = true;
+        if (!activar)
+            await DesactivarModoAsync();
+        else if (_almacenModo is null)
+            _avisoModo = "Elige el almacén por defecto antes de activar el modo inteligente.";
+        else
+        {
+            var (_, mensaje) = await EjecutarAsync(new TomarModoInteligente(_almacenModo.Value));
+            if (mensaje is not null)
+                _avisoModo = mensaje;
+            else
+            {
+                _modoInteligente = true;
+                _escucha = new CancellationTokenSource();
+                _ = EscucharAsync(_escucha.Token);
+            }
+        }
+        _cambiandoModo = false;
+    }
+
+    private async Task DesactivarModoAsync()
+    {
+        _escucha?.Cancel();
+        _escucha = null;
+        if (!_modoInteligente)
+            return;
+        _modoInteligente = false;
+        await EjecutarAsync(new LiberarModoInteligente());
+    }
+
+    /// <summary>Cada segundo recoge los escaneos nuevos; cada 15 s renueva el candado.</summary>
+    private async Task EscucharAsync(CancellationToken ct)
+    {
+        _ultimoLatido = DateTime.UtcNow;
+        using var reloj = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        try
+        {
+            while (await reloj.WaitForNextTickAsync(ct))
+                await InvokeAsync(() => RevisarLectorAsync(ct));
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private DateTime _ultimoLatido;
+
+    private async Task RevisarLectorAsync(CancellationToken ct)
+    {
+        if (ct.IsCancellationRequested)
+            return;
+        if (DateTime.UtcNow - _ultimoLatido >= IntervaloLatido)
+        {
+            _ultimoLatido = DateTime.UtcNow;
+            var (_, error) = await EjecutarAsync(new LatidoModoInteligente());
+            if (error is not null)
+            {
+                _escucha?.Cancel();
+                _escucha = null;
+                _modoInteligente = false;
+                _avisoModo = error;
+                StateHasChanged();
+                return;
+            }
+        }
+
+        var (escaneos, _) = await EjecutarAsync(new TomarEscaneosPendientes());
+        if (escaneos is { Count: > 0 } && !ct.IsCancellationRequested)
+        {
+            foreach (var e in escaneos)
+                AgregarEscaneo(e);
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Cada escaneo es una pieza física (UID de su etiqueta). Si la API la rechazó (ya vendida, familia desconocida…)
+    /// solo se avisa. Si ya hay línea del producto en el almacén por defecto suma la pieza; si no, usa una línea vacía o agrega una.
+    /// </summary>
+    private void AgregarEscaneo(EscaneoDto escaneo)
+    {
+        if (escaneo.Rechazo is not null || escaneo.Producto is not { } producto)
+        {
+            Avisos.Add(escaneo.Rechazo ?? $"No se reconoció la pieza {escaneo.Uid}.", escaneo.Duplicado ? Severity.Warning : Severity.Error);
+            return;
+        }
+        if (_lineas.Any(l => l.Piezas.Contains(escaneo.Uid)))
+        {
+            Avisos.Add($"La pieza {escaneo.Uid} ya está en esta venta.", Severity.Warning);
+            return;
+        }
+
+        var almacen = _almacenModo!.Value;
+        _escaneados++;
+        var existente = _lineas.FirstOrDefault(l => l.Producto?.Id == producto.Id && l.AlmacenId == almacen);
+        if (existente is not null)
+        {
+            existente.SumarPieza(escaneo.Uid);
+            return;
+        }
+        var linea = _lineas.FirstOrDefault(l => l.Producto is null);
+        if (linea is null)
+        {
+            linea = new Linea();
+            _lineas.Add(linea);
+        }
+        linea.AsignarEscaneo(producto, almacen, escaneo.Uid);
+        Avisos.Add($"Se agregó {producto}.", Severity.Info);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await DesactivarModoAsync();
+        }
+        catch (Exception)
+        {
+            // El circuito ya se cerró: el candado vence solo al dejar de recibir latidos.
+        }
+    }
+
+    private async Task NuevoClienteAsync()
+    {
+        var parametros = new DialogParameters<TerceroDialog> { { d => d.Solicitud, datos => new CrearCliente(datos) } };
+        var dialogo = await Dialogos.ShowAsync<TerceroDialog>("Nuevo cliente", parametros, new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true });
+        if (await dialogo.Result is { Canceled: false, Data: TerceroDto creado })
+        {
+            _cliente = new OpcionDto(creado.Id, $"{creado.Codigo} · {creado.Nombre}");
+            Avisos.Add($"{creado.Nombre} se dio de alta.", Severity.Success);
+        }
+    }
+
+    /// <summary>UID capturado a mano (pieza que no se pasó por el lector).</summary>
+    private Task AgregarUidManual(Linea linea)
+    {
+        string? uid;
+        try
+        {
+            uid = AlmacenInteligente.Domain.Iot.CodigoNfc.Normalizar(linea.NuevoUid);
+        }
+        catch (AlmacenInteligente.Domain.Common.DomainException ex)
+        {
+            Avisos.Add(ex.Message, Severity.Warning);
+            return Task.CompletedTask;
+        }
+        if (uid is null)
+            return Task.CompletedTask;
+        if (_lineas.Any(l => l.Piezas.Contains(uid)))
+            Avisos.Add($"La pieza {uid} ya está en esta venta.", Severity.Warning);
+        else
+            linea.Piezas.Add(uid);
+        linea.NuevoUid = null;
+        return Task.CompletedTask;
+    }
+
+    private async Task RegistrarAsync()
+    {
+        _error = null;
+        if (_cliente is null || _fecha is null)
+        {
+            _error = "Elige el cliente y la fecha.";
+            return;
+        }
+        if (_lineas.Any(l => l.Producto is null || l.AlmacenId is null || l.Cantidad <= 0))
+        {
+            _error = "Cada línea necesita producto, almacén y cantidad mayor que cero.";
+            return;
+        }
+        if (_lineas.Any(l => l.Cantidad < l.Piezas.Count))
+        {
+            _error = "La cantidad de una línea no puede ser menor que sus piezas escaneadas. Quita las piezas que no salen.";
+            return;
+        }
+        if (_lineas.FirstOrDefault(l => l.FaltanUid > 0) is { } incompleta)
+        {
+            _error = $"A {incompleta.Producto!.Referencia} le faltan {incompleta.FaltanUid} UID: escanea las piezas o captura su UID.";
+            return;
+        }
+        if (_lineas.Any(l => l.Excede))
+        {
+            _error = "Hay líneas con más cantidad de la que hay en el almacén.";
+            return;
+        }
+
+        _guardando = true;
+        var solicitud = new RegistrarVenta(_cliente.Id, DateOnly.FromDateTime(_fecha.Value),
+            _lineas.Select(l => new LineaVentaDto(l.Producto!.Id, l.AlmacenId!.Value, l.Cantidad, l.Precio, l.Tasa,
+                l.Piezas.Count == 0 ? null : l.Piezas.ToList())).ToList());
+        var (registrada, mensaje) = await EjecutarAsync(solicitud);
+        _guardando = false;
+
+        if (mensaje is not null)
+        {
+            _error = mensaje;
+            return;
+        }
+        await DesactivarModoAsync();
+        Avisos.Add($"Venta {Formato.Folio("VTA", registrada!.Folio)} registrada.", Severity.Success);
+        Navegacion.NavigateTo($"ventas/{registrada.Id}");
+    }
+}

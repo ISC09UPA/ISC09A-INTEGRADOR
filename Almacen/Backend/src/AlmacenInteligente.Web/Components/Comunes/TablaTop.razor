@@ -1,0 +1,28 @@
+@using AlmacenInteligente.Application.Consultas
+
+<MudPaper Outlined="true" Elevation="0" Class="pa-4 h-100">
+    <MudText Typo="Typo.subtitle1" Class="mb-2"><b>@Titulo</b></MudText>
+    @if (Puntos.Count == 0)
+    {
+        <MudText Color="Color.Secondary">Sin datos en el periodo.</MudText>
+    }
+    else
+    {
+        var maximo = Puntos.Max(p => p.Valor);
+        @foreach (var (p, i) in Puntos.Select((p, i) => (p, i)))
+        {
+            <div class="mb-2">
+                <div class="d-flex justify-space-between">
+                    <MudText Typo="Typo.body2">@(i + 1). @p.Etiqueta</MudText>
+                    <MudText Typo="Typo.body2" Class="numero"><b>@Formato.Dinero(p.Valor)</b></MudText>
+                </div>
+                <MudProgressLinear Value="@(maximo == 0 ? 0 : (double)(p.Valor / maximo * 100))" Color="Color.Primary" Rounded="true" Size="Size.Small" />
+            </div>
+        }
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string Titulo { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public IReadOnlyList<PuntoDto> Puntos { get; set; } = [];
+}

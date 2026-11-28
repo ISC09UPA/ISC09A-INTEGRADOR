@@ -1,0 +1,86 @@
+@page "/cuenta/ingresar"
+@attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
+@layout CuentaLayout
+@using System.ComponentModel.DataAnnotations
+@using AlmacenInteligente.Infrastructure.Seguridad
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<Usuario> Sesion
+@inject NavigationManager Navegacion
+
+<PageTitle>Iniciar sesión · Almacén inteligente</PageTitle>
+
+<div class="cuenta-tarjeta">
+    <div class="cuenta-marca">
+        <div class="cuenta-marca-icono">AI</div>
+        <strong>Almacén inteligente</strong>
+    </div>
+
+    <h1>Iniciar sesión</h1>
+    <p>Entra con tu correo y contraseña.</p>
+
+    @if (_error is not null)
+    {
+        <div class="cuenta-error" role="alert">@_error</div>
+    }
+
+    <EditForm Model="Datos!" method="post" OnValidSubmit="IngresarAsync" FormName="ingresar">
+        <DataAnnotationsValidator />
+        <div class="cuenta-campo">
+            <label for="correo">Correo</label>
+            <InputText id="correo" @bind-Value="Datos!.Correo" autocomplete="username" autofocus />
+            <ValidationMessage For="() => Datos!.Correo" />
+        </div>
+        <div class="cuenta-campo">
+            <label for="contrasena">Contraseña</label>
+            <InputText id="contrasena" type="password" @bind-Value="Datos!.Contrasena" autocomplete="current-password" />
+            <ValidationMessage For="() => Datos!.Contrasena" />
+        </div>
+        <label class="cuenta-recordar">
+            <InputCheckbox @bind-Value="Datos!.Recordar" />
+            Mantener la sesión iniciada
+        </label>
+        <button type="submit" class="cuenta-boton">Entrar</button>
+    </EditForm>
+</div>
+
+@code {
+    private string? _error;
+
+    [SupplyParameterFromForm]
+    private DatosIngreso? Datos { get; set; }
+
+    [SupplyParameterFromQuery(Name = "ReturnUrl")]
+    private string? Regreso { get; set; }
+
+    protected override void OnInitialized() => Datos ??= new();
+
+    private async Task IngresarAsync()
+    {
+        Datos ??= new();
+        var resultado = await Sesion.PasswordSignInAsync(Datos.Correo.Trim(), Datos.Contrasena, Datos.Recordar, lockoutOnFailure: true);
+        if (resultado.Succeeded)
+        {
+            // Solo rutas locales, para no abrir una redirección a otro sitio.
+            var destino = Regreso is { Length: > 0 } r && r.StartsWith('/') && !r.StartsWith("//") ? r : "/";
+            Navegacion.NavigateTo(destino, forceLoad: true);
+            return;
+        }
+
+        _error = resultado.IsLockedOut
+            ? "La cuenta está bloqueada por varios intentos fallidos. Intenta de nuevo en unos minutos."
+            : "Correo o contraseña incorrectos, o la cuenta está desactivada.";
+    }
+
+    private sealed class DatosIngreso
+    {
+        [Required(ErrorMessage = "Escribe tu correo.")]
+        [EmailAddress(ErrorMessage = "El correo no es válido.")]
+        public string Correo { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Escribe tu contraseña.")]
+        public string Contrasena { get; set; } = string.Empty;
+
+        public bool Recordar { get; set; }
+    }
+}

@@ -1,0 +1,206 @@
+@page "/reportes"
+@attribute [Authorize(Policy = Permisos.Reportes.Ver)]
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Application.Reportes
+@using AlmacenInteligente.Application.Pdf
+@inherits PaginaBase
+
+<PageTitle>Reportes · Almacén inteligente</PageTitle>
+
+<Encabezado Titulo="Reportes" Descripcion="Ventas, compras, inventario, flujo financiero y margen. Las ventas y recepciones canceladas no cuentan.">
+    <Acciones>
+        <MudDateRangePicker DateFormat="dd/MM/yyyy" @bind-DateRange="_rango" Label="Periodo" Culture="Formato.Mx" Style="min-width:260px" />
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CargarAsync" StartIcon="@Icons.Material.Filled.Refresh">Actualizar</MudButton>
+        <MudMenu Label="PDF" StartIcon="@Icons.Material.Outlined.PictureAsPdf" EndIcon="@Icons.Material.Filled.KeyboardArrowDown"
+                 Variant="Variant.Outlined" Color="Color.Primary" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+            <MudMenuItem Href="@UrlPdf(PestanaActual)" Target="_blank" Icon="@Icons.Material.Outlined.Description">Esta pestaña (@NombrePestana)</MudMenuItem>
+            <MudMenuItem Href="@UrlPdf(TipoReporte.General)" Target="_blank" Icon="@Icons.Material.Outlined.LibraryBooks">Reporte general (todas)</MudMenuItem>
+            <MudDivider />
+            <MudMenuItem Href="@($"{UrlPdf(PestanaActual)}&descargar=true")" Icon="@Icons.Material.Outlined.Download">Descargar esta pestaña</MudMenuItem>
+            <MudMenuItem Href="@($"{UrlPdf(TipoReporte.General)}&descargar=true")" Icon="@Icons.Material.Outlined.Download">Descargar el general</MudMenuItem>
+        </MudMenu>
+    </Acciones>
+</Encabezado>
+
+@if (_cargando)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mb-2" />
+}
+
+<MudTabs Elevation="0" Outlined="true" Rounded="true" TabPanelsClass="pa-4" @bind-ActivePanelIndex="_pestana">
+    <MudTabPanel Text="Ventas">
+        @if (_ventas is { } v)
+        {
+            <MudGrid Spacing="3" Class="mb-4">
+                <MudItem xs="6" md="3"><Indicador Titulo="Total vendido" Valor="@Formato.Dinero(v.Total)" Color="Color.Primary" Detalle="@($"IVA {Formato.Dinero(v.Iva)}")" /></MudItem>
+                <MudItem xs="6" md="3"><Indicador Titulo="Ventas" Valor="@v.NumeroVentas.ToString("N0", Formato.Mx)" /></MudItem>
+                <MudItem xs="6" md="3"><Indicador Titulo="Ticket promedio" Valor="@Formato.Dinero(v.TicketPromedio)" /></MudItem>
+                <MudItem xs="6" md="3"><Indicador Titulo="Subtotal" Valor="@Formato.Dinero(v.Subtotal)" /></MudItem>
+            </MudGrid>
+            <Grafica Titulo="Ventas por periodo" Tipo="ChartType.Line" Serie="Total" Puntos="v.PorPeriodo" />
+            <MudGrid Spacing="3" Class="mt-1">
+                <MudItem xs="12" md="6"><TablaTop Titulo="Top 10 clientes (total)" Puntos="v.TopClientes" /></MudItem>
+                <MudItem xs="12" md="6"><TablaTop Titulo="Top 10 productos (subtotal)" Puntos="v.TopProductos" /></MudItem>
+                <MudItem xs="12" md="6"><Grafica Titulo="Ventas por almacén" Tipo="ChartType.Donut" Serie="Subtotal" Puntos="v.PorAlmacen" /></MudItem>
+            </MudGrid>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="Compras">
+        @if (_compras is { } c)
+        {
+            <MudGrid Spacing="3" Class="mb-4">
+                <MudItem xs="6" md="4"><Indicador Titulo="Total comprado" Valor="@Formato.Dinero(c.Total)" Color="Color.Primary" Detalle="@($"IVA {Formato.Dinero(c.Iva)}")" /></MudItem>
+                <MudItem xs="6" md="4"><Indicador Titulo="Recepciones" Valor="@c.NumeroRecepciones.ToString("N0", Formato.Mx)" /></MudItem>
+                <MudItem xs="6" md="4"><Indicador Titulo="Subtotal" Valor="@Formato.Dinero(c.Subtotal)" /></MudItem>
+            </MudGrid>
+            <Grafica Titulo="Compras por periodo" Tipo="ChartType.Bar" Serie="Total" Puntos="c.PorPeriodo" />
+            <MudGrid Spacing="3" Class="mt-1">
+                <MudItem xs="12" md="6"><TablaTop Titulo="Compras por proveedor" Puntos="c.PorProveedor" /></MudItem>
+            </MudGrid>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="Inventario">
+        @if (_inventario is { } i)
+        {
+            <MudGrid Spacing="3" Class="mb-4">
+                <MudItem xs="6" md="4"><Indicador Titulo="Valor del inventario" Valor="@Formato.Dinero(i.ValorTotal)" Color="Color.Primary" Detalle="A costo promedio, hoy" /></MudItem>
+                <MudItem xs="6" md="4"><Indicador Titulo="Productos bajo mínimo" Valor="@i.BajoMinimo.Count.ToString()" Color="@(i.BajoMinimo.Count > 0 ? Color.Warning : Color.Default)" /></MudItem>
+            </MudGrid>
+            <MudGrid Spacing="3">
+                <MudItem xs="12" md="5"><Grafica Titulo="Valor por almacén" Tipo="ChartType.Donut" Serie="Valor" Puntos="i.ValorPorAlmacen" /></MudItem>
+                <MudItem xs="12" md="7">
+                    <MudPaper Outlined="true" Elevation="0" Class="pa-4">
+                        <MudText Typo="Typo.subtitle1" Class="mb-2"><b>Bajo mínimo</b></MudText>
+                        @if (i.BajoMinimo.Count == 0)
+                        {
+                            <MudText Color="Color.Secondary">Ningún producto está en o por debajo de su mínimo.</MudText>
+                        }
+                        else
+                        {
+                            <MudSimpleTable Dense="true" Elevation="0">
+                                <thead><tr><th>Almacén</th><th>Producto</th><th class="numero">Existencia</th><th class="numero">Mínimo</th></tr></thead>
+                                <tbody>
+                                    @foreach (var e in i.BajoMinimo)
+                                    {
+                                        <tr><td>@e.Almacen</td><td><b>@e.Referencia</b> @e.Descripcion</td><td class="numero">@Formato.Cantidad(e.Cantidad)</td><td class="numero">@Formato.Cantidad(e.StockMinimo)</td></tr>
+                                    }
+                                </tbody>
+                            </MudSimpleTable>
+                        }
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="Flujo financiero">
+        @if (_financiero is { } f)
+        {
+            <MudGrid Spacing="3" Class="mb-4">
+                <MudItem xs="6" md="3"><Indicador Titulo="Ingresos" Valor="@Formato.Dinero(f.TotalIngresos)" Color="Color.Success" /></MudItem>
+                <MudItem xs="6" md="3"><Indicador Titulo="Egresos" Valor="@Formato.Dinero(f.TotalEgresos)" Color="Color.Error" /></MudItem>
+                <MudItem xs="6" md="3"><Indicador Titulo="Saldo" Valor="@Formato.Dinero(f.Saldo)" Color="@(f.Saldo >= 0 ? Color.Primary : Color.Error)" /></MudItem>
+                <MudItem xs="6" md="3"><Indicador Titulo="IVA por pagar" Valor="@Formato.Dinero(f.IvaTrasladado - f.IvaAcreditable)"
+                                                   Detalle="@($"Trasladado {Formato.Dinero(f.IvaTrasladado)} · acreditable {Formato.Dinero(f.IvaAcreditable)}")" /></MudItem>
+            </MudGrid>
+            <MudPaper Outlined="true" Elevation="0" Class="pa-4">
+                <MudText Typo="Typo.subtitle1"><b>Compras vs. ventas</b></MudText>
+                <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="SeriesFinancieras(f)" ChartLabels="Etiquetas(f.Periodos)" Width="100%" Height="320px" />
+            </MudPaper>
+        }
+    </MudTabPanel>
+
+    <MudTabPanel Text="Margen">
+        @if (_margen is { } m)
+        {
+            <MudPaper Outlined="true" Elevation="0">
+                <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+                    <thead>
+                        <tr><th>Producto</th><th class="numero">Cantidad</th><th class="numero">Ventas</th><th class="numero">Costo</th><th class="numero">Margen</th><th class="numero">%</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in m)
+                        {
+                            <tr>
+                                <td><b>@p.Referencia</b> <span class="tabla-celda-secundaria">@p.Descripcion</span></td>
+                                <td class="numero">@Formato.Cantidad(p.Cantidad)</td>
+                                <td class="numero">@Formato.Dinero(p.Ventas)</td>
+                                <td class="numero">@Formato.Dinero(p.Costo)</td>
+                                <td class="numero"><b>@Formato.Dinero(p.Margen)</b></td>
+                                <td class="numero" style="@(p.Margen < 0 ? "color:var(--mud-palette-error)" : null)">@p.MargenPorcentaje.ToString("0.0", Formato.Mx) %</td>
+                            </tr>
+                        }
+                        @if (m.Count == 0)
+                        {
+                            <tr><td colspan="6"><MudText Color="Color.Secondary" Class="pa-2">No hay ventas en el periodo.</MudText></td></tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        }
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private DateRange _rango = new(DateTime.Today.AddDays(1 - DateTime.Today.Day).AddMonths(-2), DateTime.Today);
+    private int _pestana;
+    private bool _cargando;
+
+    private ReporteVentasDto? _ventas;
+    private ReporteComprasDto? _compras;
+    private ReporteInventarioDto? _inventario;
+    private ReporteFinancieroDto? _financiero;
+    private IReadOnlyList<MargenProductoDto>? _margen;
+
+    protected override Task AlIniciarAsync() => CargarAsync();
+
+    private static readonly TipoReporte[] Pestanas =
+        [TipoReporte.Ventas, TipoReporte.Compras, TipoReporte.Inventario, TipoReporte.Financiero, TipoReporte.Margen];
+
+    private TipoReporte PestanaActual => Pestanas[Math.Clamp(_pestana, 0, Pestanas.Length - 1)];
+
+    private string NombrePestana => PestanaActual switch
+    {
+        TipoReporte.Ventas => "ventas",
+        TipoReporte.Compras => "compras",
+        TipoReporte.Inventario => "inventario",
+        TipoReporte.Financiero => "flujo financiero",
+        _ => "margen",
+    };
+
+    private string UrlPdf(TipoReporte tipo)
+    {
+        var desde = DateOnly.FromDateTime(_rango.Start ?? DateTime.Today);
+        var hasta = DateOnly.FromDateTime(_rango.End ?? DateTime.Today);
+        return $"pdf/reportes/{tipo}?desde={desde:yyyy-MM-dd}&hasta={hasta:yyyy-MM-dd}";
+    }
+
+    private async Task CargarAsync()
+    {
+        if (_rango.Start is not { } inicio || _rango.End is not { } fin)
+            return;
+        var (desde, hasta) = (DateOnly.FromDateTime(inicio), DateOnly.FromDateTime(fin));
+        _cargando = true;
+        (_, _ventas) = await IntentarAsync(new ReporteVentas(desde, hasta));
+        (_, _compras) = await IntentarAsync(new ReporteCompras(desde, hasta));
+        (_, _inventario) = await IntentarAsync(new ReporteInventario());
+        (_, _financiero) = await IntentarAsync(new ReporteFinanciero(desde, hasta));
+        (_, _margen) = await IntentarAsync(new ReporteMargen(desde, hasta));
+        _cargando = false;
+    }
+
+    private static List<ChartSeries<double>> SeriesFinancieras(ReporteFinancieroDto f) =>
+    [
+        new() { Name = "Ventas (ingresos)", Data = f.Ingresos.Select(x => (double)x).ToArray() },
+        new() { Name = "Compras (egresos)", Data = f.Egresos.Select(x => (double)x).ToArray() },
+    ];
+
+    /// <summary>Con muchos periodos deja ver solo algunas etiquetas para que no se encimen.</summary>
+    internal static string[] Etiquetas(IReadOnlyList<string> periodos)
+    {
+        var paso = Math.Max(1, periodos.Count / 12);
+        return periodos.Select((p, i) => i % paso == 0 ? p : string.Empty).ToArray();
+    }
+}

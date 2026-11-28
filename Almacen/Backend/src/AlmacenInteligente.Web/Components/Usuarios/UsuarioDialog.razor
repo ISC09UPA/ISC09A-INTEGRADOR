@@ -1,0 +1,111 @@
+@using AlmacenInteligente.Application.Usuarios
+@using AlmacenInteligente.Application.Almacenes
+@using AlmacenInteligente.Application.Consultas
+@inherits PaginaBase
+
+<MudDialog>
+    <DialogContent>
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mb-4">@_error</MudAlert>
+        }
+        <MudForm @ref="_form">
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_nombre" Label="Nombre completo" Required="true" RequiredError="Obligatorio" MaxLength="200" />
+                <MudTextField @bind-Value="_correo" Label="Correo" InputType="InputType.Email" Required="true" RequiredError="Obligatorio"
+                              Disabled="EsEdicion" HelperText="@(EsEdicion ? "Es el usuario para iniciar sesión; no se puede cambiar" : "Con este correo inicia sesión")" />
+                <MudSelect @bind-Value="_rol" Label="Rol" Required="true" RequiredError="Obligatorio" AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var rol in Roles.Todos)
+                    {
+                        <MudSelectItem Value="@rol">@Roles.Nombre(rol)</MudSelectItem>
+                    }
+                </MudSelect>
+                @if (_rol != Roles.Superadmin)
+                {
+                    <MudSelect T="Guid?" @bind-Value="_almacenId" Label="Almacén" Required="true" RequiredError="Elige el almacén"
+                               AnchorOrigin="Origin.BottomCenter" HelperText="Solo podrá vender, recibir, traspasar desde y ver el stock de este almacén"
+                               ToStringFunc="@(id => _almacenes.FirstOrDefault(a => a.Id == id)?.Nombre)">
+                        @foreach (var a in _almacenes)
+                        {
+                            <MudSelectItem T="Guid?" Value="@a.Id">@a.Nombre</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">El superadmin no tiene almacén: ve y opera todos.</MudText>
+                }
+                <MudTextField @bind-Value="_codigoNfc" Label="Tarjeta NFC (opcional)" MaxLength="47" Clearable="true"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Nfc"
+                              HelperText="UID de la tarjeta para el acceso IoT, por ejemplo 04:A2:1B:7C" />
+                @if (EsEdicion)
+                {
+                    <MudSwitch @bind-Value="_activo" Color="Color.Primary" Label="@(_activo ? "Activo" : "Desactivado: no puede iniciar sesión")" />
+                }
+                else
+                {
+                    <MudTextField @bind-Value="_contrasena" Label="Contraseña inicial" InputType="InputType.Password" Required="true"
+                                  RequiredError="Obligatorio" HelperText="Mínimo 8 caracteres, con mayúscula, minúscula y número" />
+                }
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="() => Dialogo.Cancel()" Disabled="_guardando">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="GuardarAsync" Disabled="_guardando">
+            @(_guardando ? "Guardando…" : "Guardar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance Dialogo { get; set; } = default!;
+
+    [Parameter] public UsuarioDto? Actual { get; set; }
+
+    private bool EsEdicion => Actual is not null;
+    private MudForm _form = default!;
+    private string _nombre = string.Empty;
+    private string _correo = string.Empty;
+    private string _rol = Roles.AgenteVentas;
+    private string _contrasena = string.Empty;
+    private bool _activo = true;
+    private string? _codigoNfc;
+    private Guid? _almacenId;
+    private IReadOnlyList<AlmacenDto> _almacenes = [];
+    private string? _error;
+    private bool _guardando;
+
+    protected override async Task AlIniciarAsync()
+    {
+        if (Actual is not null)
+            (_nombre, _correo, _rol, _activo, _codigoNfc, _almacenId) = (Actual.Nombre, Actual.Correo, Actual.Rol, Actual.Activo, Actual.CodigoNfc, Actual.AlmacenId);
+        var (_, almacenes) = await IntentarAsync(new ListarAlmacenes());
+        _almacenes = almacenes ?? [];
+        if (_almacenId is null && _almacenes.Count == 1)
+            _almacenId = _almacenes[0].Id;
+    }
+
+    private Guid? Almacen => _rol == Roles.Superadmin ? null : _almacenId;
+
+    private async Task GuardarAsync()
+    {
+        await _form.ValidateAsync();
+        if (!_form.IsValid)
+            return;
+
+        _guardando = true;
+        _error = null;
+        var (valor, mensaje) = Actual is null
+            ? await EjecutarAsync(new CrearUsuario(_nombre, _correo, _rol, _contrasena, _codigoNfc, Almacen))
+            : await EjecutarAsync(new ActualizarUsuario(Actual.Id, _nombre, _rol, _activo, _codigoNfc ?? string.Empty, Almacen));
+        _guardando = false;
+
+        if (mensaje is not null)
+        {
+            _error = mensaje;
+            return;
+        }
+        Dialogo.Close(DialogResult.Ok(valor));
+    }
+}

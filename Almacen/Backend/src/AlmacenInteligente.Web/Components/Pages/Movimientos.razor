@@ -1,0 +1,192 @@
+@page "/movimientos"
+@attribute [Authorize(Policy = Permisos.Almacenes.VerExistencias)]
+@using AlmacenInteligente.Application.Almacenes
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Application.Movimientos
+@using AlmacenInteligente.Domain.Inventario
+@inherits PaginaBase
+
+<PageTitle>Movimientos de inventario · Almacén inteligente</PageTitle>
+
+<Encabezado Titulo="Movimientos de inventario" Descripcion="Todas las entradas y salidas de todos los productos y almacenes, con totales y resumen por producto.">
+    <Acciones>
+        <MudButton Href="@Url("csv/movimientos")" Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.TableView">Exportar CSV</MudButton>
+        <MudButtonGroup Variant="Variant.Outlined" Color="Color.Primary">
+            <MudButton Href="@Url("pdf/movimientos")" Target="_blank" StartIcon="@Icons.Material.Outlined.PictureAsPdf">Ver PDF</MudButton>
+            <MudIconButton Href="@($"{Url("pdf/movimientos")}&descargar=true")" Icon="@Icons.Material.Outlined.Download" aria-label="Descargar PDF" title="Descargar PDF" />
+        </MudButtonGroup>
+    </Acciones>
+</Encabezado>
+
+<MudPaper Outlined="true" Elevation="0" Class="pa-4 mb-4">
+    <MudGrid Spacing="3">
+        <MudItem xs="12" sm="6" md="3">
+            <MudDateRangePicker DateFormat="dd/MM/yyyy" DateRange="_rango" DateRangeChanged="CambiarRangoAsync" Label="Periodo" Culture="Formato.Mx" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudSelect T="Guid?" Value="_almacenId" ValueChanged="CambiarAlmacenAsync" Label="Almacén" Clearable="true">
+                @foreach (var a in _almacenes)
+                {
+                    <MudSelectItem T="Guid?" Value="@a.Id">@a.Nombre</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudSelect T="TipoMovimientoInventario?" Value="_tipo" ValueChanged="CambiarTipoAsync" Label="Tipo de movimiento" Clearable="true">
+                @foreach (var tipo in Enum.GetValues<TipoMovimientoInventario>())
+                {
+                    <MudSelectItem T="TipoMovimientoInventario?" Value="@tipo">@Formato.Movimiento(tipo)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <SelectorProducto Value="_producto" ValueChanged="CambiarProductoAsync" />
+        </MudItem>
+        <MudItem xs="12" md="2">
+            <MudTextField T="string" Value="_busqueda" ValueChanged="BuscarAsync" Label="Texto" Placeholder="Referencia o descripción"
+                          DebounceInterval="350" Immediate="true" Clearable="true" />
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (_reporte is { } r)
+{
+    <MudGrid Spacing="3" Class="mb-4">
+        <MudItem xs="6" md="2"><Indicador Titulo="Movimientos" Valor="@r.NumeroMovimientos.ToString("N0", Formato.Mx)" /></MudItem>
+        <MudItem xs="6" md="2"><Indicador Titulo="Unidades que entraron" Valor="@Formato.Cantidad(r.Entradas)" Color="Color.Success" /></MudItem>
+        <MudItem xs="6" md="3"><Indicador Titulo="Valor de entradas" Valor="@Formato.Dinero(r.ValorEntradas)" Color="Color.Success" /></MudItem>
+        <MudItem xs="6" md="2"><Indicador Titulo="Unidades que salieron" Valor="@Formato.Cantidad(r.Salidas)" Color="Color.Error" /></MudItem>
+        <MudItem xs="12" md="3"><Indicador Titulo="Valor de salidas" Valor="@Formato.Dinero(r.ValorSalidas)" Color="Color.Error" /></MudItem>
+    </MudGrid>
+}
+
+<MudTabs Elevation="0" Outlined="true" Rounded="true">
+    <MudTabPanel Text="Detalle">
+        <MudTable @ref="_tabla" T="MovimientoDto" ServerData="CargarAsync" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm"
+                  RowsPerPage="50" Elevation="0" LoadingProgressColor="Color.Primary">
+            <HeaderContent>
+                <MudTh>Fecha</MudTh>
+                <MudTh>Almacén</MudTh>
+                <MudTh>Producto</MudTh>
+                <MudTh>Movimiento</MudTh>
+                <MudTh>Documento</MudTh>
+                <MudTh Style="text-align:right">Cantidad</MudTh>
+                <MudTh Style="text-align:right">Costo unitario</MudTh>
+                <MudTh Style="text-align:right">Valor</MudTh>
+                <MudTh Style="text-align:right">Saldo</MudTh>
+                <MudTh>Usuario</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Fecha">@Formato.FechaHora(context.Fecha)</MudTd>
+                <MudTd DataLabel="Almacén">@context.Almacen</MudTd>
+                <MudTd DataLabel="Producto"><b>@context.Referencia</b> <span class="tabla-celda-secundaria">@context.Descripcion</span></MudTd>
+                <MudTd DataLabel="Movimiento">@Formato.Movimiento(context.Tipo)</MudTd>
+                <MudTd DataLabel="Documento">
+                    @if (context.DocumentoTipo is { } tipo && context.DocumentoId is { } id)
+                    {
+                        <MudLink Href="@Formato.Ruta(tipo, id)">@Formato.Folio(Formato.Prefijo(tipo), context.Folio ?? 0)</MudLink>
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Cantidad" Class="numero">
+                    <span style="color:@(context.Cantidad > 0 ? "var(--mud-palette-success)" : "var(--mud-palette-error)")">
+                        @(context.Cantidad > 0 ? "+" : "")@Formato.Cantidad(context.Cantidad) @context.Unidad
+                    </span>
+                </MudTd>
+                <MudTd DataLabel="Costo unitario" Class="numero">@Formato.Costo(context.CostoUnitario)</MudTd>
+                <MudTd DataLabel="Valor" Class="numero">@Formato.Dinero(context.Valor)</MudTd>
+                <MudTd DataLabel="Saldo" Class="numero">@Formato.Cantidad(context.Saldo)</MudTd>
+                <MudTd DataLabel="Usuario"><span class="tabla-celda-secundaria">@context.Usuario</span></MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-6" Color="Color.Secondary">No hay movimientos con esos filtros.</MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <MudTablePager RowsPerPageString="Filas por página:" InfoFormat="{first_item}–{last_item} de {all_items}" PageSizeOptions="new[] { 25, 50, 100, 200 }" />
+            </PagerContent>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Resumen por producto">
+        <MudSimpleTable Dense="true" Hover="true" Elevation="0">
+            <thead>
+                <tr>
+                    <th>Almacén</th><th>Producto</th>
+                    <th class="numero">Inicial</th><th class="numero">Entradas</th><th class="numero">Salidas</th><th class="numero">Final</th>
+                    <th class="numero">Valor entradas</th><th class="numero">Valor salidas</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in _reporte?.PorProducto ?? [])
+                {
+                    <tr>
+                        <td>@p.Almacen</td>
+                        <td><b>@p.Referencia</b> <span class="tabla-celda-secundaria">@p.Descripcion</span></td>
+                        <td class="numero">@Formato.Cantidad(p.Inicial)</td>
+                        <td class="numero" style="color:var(--mud-palette-success)">@Formato.Cantidad(p.Entradas)</td>
+                        <td class="numero" style="color:var(--mud-palette-error)">@Formato.Cantidad(p.Salidas)</td>
+                        <td class="numero"><b>@Formato.Cantidad(p.Final)</b> @p.Unidad</td>
+                        <td class="numero">@Formato.Dinero(p.ValorEntradas)</td>
+                        <td class="numero">@Formato.Dinero(p.ValorSalidas)</td>
+                    </tr>
+                }
+                @if (_reporte is { PorProducto.Count: 0 })
+                {
+                    <tr><td colspan="8"><MudText Color="Color.Secondary" Class="pa-2">No hay movimientos con esos filtros.</MudText></td></tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private MudTable<MovimientoDto> _tabla = default!;
+    private IReadOnlyList<AlmacenDto> _almacenes = [];
+    private DateRange _rango = new(DateTime.Today.AddDays(1 - DateTime.Today.Day), DateTime.Today);
+    private Guid? _almacenId;
+    private TipoMovimientoInventario? _tipo;
+    private ProductoOpcionDto? _producto;
+    private string? _busqueda;
+    private ReporteMovimientosDto? _reporte;
+
+    protected override async Task AlIniciarAsync()
+    {
+        var (_, almacenes) = await IntentarAsync(new ListarAlmacenes(IncluirInactivos: true));
+        _almacenes = almacenes ?? [];
+    }
+
+    private FiltroMovimientos Filtro(int pagina = 1, int tamano = 50) => new(
+        DateOnly.FromDateTime(_rango.Start ?? DateTime.Today), DateOnly.FromDateTime(_rango.End ?? DateTime.Today),
+        _almacenId, _producto?.Id, _tipo, _busqueda, pagina, tamano);
+
+    private async Task<TableData<MovimientoDto>> CargarAsync(TableState estado, CancellationToken ct)
+    {
+        var (exito, reporte) = await IntentarAsync(new ReporteMovimientos(Filtro(estado.Page + 1, estado.PageSize)));
+        _reporte = reporte;
+        StateHasChanged(); // los indicadores y el resumen están fuera de la tabla
+        return exito && reporte is not null
+            ? new TableData<MovimientoDto> { Items = reporte.Movimientos.Elementos, TotalItems = reporte.NumeroMovimientos }
+            : new TableData<MovimientoDto> { Items = [], TotalItems = 0 };
+    }
+
+    /// <summary>Misma consulta que la pantalla, para exportar.</summary>
+    private string Url(string ruta)
+    {
+        var f = Filtro();
+        var partes = new List<string> { $"desde={f.Desde:yyyy-MM-dd}", $"hasta={f.Hasta:yyyy-MM-dd}" };
+        if (f.AlmacenId is { } a) partes.Add($"almacen={a}");
+        if (f.ProductoId is { } p) partes.Add($"producto={p}");
+        if (f.Tipo is { } t) partes.Add($"tipo={t}");
+        if (!string.IsNullOrWhiteSpace(f.Busqueda)) partes.Add($"busqueda={Uri.EscapeDataString(f.Busqueda)}");
+        return $"{ruta}?{string.Join("&", partes)}";
+    }
+
+    private async Task CambiarRangoAsync(DateRange rango) { _rango = rango; await _tabla.ReloadServerData(); }
+    private async Task CambiarAlmacenAsync(Guid? id) { _almacenId = id; await _tabla.ReloadServerData(); }
+    private async Task CambiarTipoAsync(TipoMovimientoInventario? tipo) { _tipo = tipo; await _tabla.ReloadServerData(); }
+    private async Task CambiarProductoAsync(ProductoOpcionDto? producto) { _producto = producto; await _tabla.ReloadServerData(); }
+    private async Task BuscarAsync(string? texto) { _busqueda = texto; await _tabla.ReloadServerData(); }
+}

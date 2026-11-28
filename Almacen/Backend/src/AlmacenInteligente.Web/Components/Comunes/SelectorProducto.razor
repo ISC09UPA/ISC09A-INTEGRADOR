@@ -1,0 +1,45 @@
+@using AlmacenInteligente.Application.Consultas
+@using AlmacenInteligente.Application.Productos
+@inherits PaginaBase
+
+@* Busca productos aprobados y activos; muestra lo que hay en cada almacén. *@
+
+<MudAutocomplete T="ProductoOpcionDto" Value="Value" ValueChanged="ValueChanged" Label="@Label" SearchFunc="BuscarAsync"
+                 ToStringFunc="@(p => p is null ? null : $"{p.Referencia} · {p.Descripcion}")" DebounceInterval="300"
+                 ResetValueOnEmptyText="true" Dense="Dense" Variant="Variant" Required="Required" RequiredError="Elige un producto"
+                 MinCharacters="0" MaxItems="20" Strict="true" Placeholder="Referencia o descripción" Class="@Class">
+    <ItemTemplate Context="p">
+        <div>
+            <b>@p.Referencia</b> · @p.Descripcion
+            <div class="tabla-celda-secundaria">
+                @if (p.Existencias.Count == 0)
+                {
+                    <span>Sin existencia</span>
+                }
+                else
+                {
+                    @string.Join(" · ", p.Existencias.Select(e => $"{e.Almacen}: {Formato.Cantidad(e.Cantidad)} {p.Unidad}"))
+                }
+            </div>
+        </div>
+    </ItemTemplate>
+    <NoItemsTemplate>
+        <MudText Class="pa-2" Typo="Typo.body2">No hay productos aprobados con ese texto.</MudText>
+    </NoItemsTemplate>
+</MudAutocomplete>
+
+@code {
+    [Parameter] public ProductoOpcionDto? Value { get; set; }
+    [Parameter] public EventCallback<ProductoOpcionDto?> ValueChanged { get; set; }
+    [Parameter] public string Label { get; set; } = "Producto";
+    [Parameter] public bool Dense { get; set; }
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public Variant Variant { get; set; } = Variant.Text;
+    [Parameter] public string? Class { get; set; }
+
+    private async Task<IEnumerable<ProductoOpcionDto>> BuscarAsync(string? texto, CancellationToken ct)
+    {
+        var (_, productos) = await IntentarAsync(new BuscarProductosDisponibles(texto));
+        return productos ?? [];
+    }
+}

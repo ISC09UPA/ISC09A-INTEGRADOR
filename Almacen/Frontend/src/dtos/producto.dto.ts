@@ -1,0 +1,24 @@
+import type { EstadoAprobacion } from '@/types/enums';
+
+/** Producto del catálogo. Contrato de la API. */
+export interface ProductoDto {
+  id: string;
+  referencia: string;
+  descripcion: string;
+  unidadId: string;
+  unidad: string;
+  permiteFracciones: boolean;
+  imagenRuta?: string | null;
+  activo: boolean;
+  estado: EstadoAprobacion;
+  gerenteAprobadorId?: string | null;
+  gerenteAprobador?: string | null;
+  creadoPor: string;
+  creadoEn: string;
+  motivoRechazo?: string | null;
+  existencia: number;
+  /** Código NFC de la familia (hexadecimal); el lector lo manda como "familia" con cada pieza. */
+  codigoNfc?: string | null;
+  /** Código grabado en los paquetes del proveedor (recepción inteligente). */
+  codigoProveedor?: string | null;
+}

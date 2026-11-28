@@ -1,0 +1,10 @@
+@page "/ventas"
+@attribute [Authorize(Policy = Permisos.Ventas.Ver)]
+@using AlmacenInteligente.Application.Documentos
+@using AlmacenInteligente.Web.Components.Documentos
+
+<PageTitle>Ventas · Almacén inteligente</PageTitle>
+
+<ListaDocumentos Titulo="Ventas" Descripcion="Salidas de mercancía a clientes. Descuentan existencias del almacén elegido en cada línea y registran el ingreso."
+                 Prefijo="VTA" RutaBase="ventas" PermisoCrear="@Permisos.Ventas.Crear" TextoNuevo="Nueva venta"
+                 EtiquetaTercero="Cliente" EtiquetaAlmacen="Almacenes" Listar="f => new ListarVentas(f)" />
