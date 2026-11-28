@@ -1,0 +1,163 @@
+@page "/stock"
+@attribute [Authorize(Policy = Permisos.Almacenes.VerExistencias)]
+@using AlmacenInteligente.Application.Iot
+@using AlmacenInteligente.Domain.Inventario
+@inherits PaginaBase
+
+<PageTitle>Comprobar stock · Almacén inteligente</PageTitle>
+
+<Encabezado Titulo="Comprobar stock"
+            Descripcion="Semáforo por producto con la existencia de todos los almacenes: rojo sin existencia, amarillo en o por debajo del mínimo, verde arriba del mínimo. El lector del embebido muestra el mismo color en sus LEDs." />
+
+<MudGrid Spacing="3" Class="mb-4">
+    @foreach (var (nivel, cuantos) in new[] { (NivelStock.Rojo, _rojos), (NivelStock.Amarillo, _amarillos), (NivelStock.Verde, _verdes) })
+    {
+        <MudItem xs="12" sm="4">
+            <MudPaper Outlined="true" Elevation="0" Class="pa-4 d-flex align-center gap-3" Style="@(_nivel == nivel ? $"border-color:var(--mud-palette-{Paleta(nivel)});border-width:2px;cursor:pointer" : "cursor:pointer")"
+                      @onclick="() => CambiarNivelAsync(_nivel == nivel ? null : nivel)">
+                <span style="@($"width:18px;height:18px;border-radius:50%;background:var(--mud-palette-{Paleta(nivel)});display:inline-block")"></span>
+                <div>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@Nombre(nivel)</MudText>
+                    <MudText Typo="Typo.h5">@cuantos</MudText>
+                </div>
+            </MudPaper>
+        </MudItem>
+    }
+</MudGrid>
+
+<MudTabs Elevation="0" Outlined="true" Rounded="true" TabPanelsClass="pa-0">
+    <MudTabPanel Text="Productos" Icon="@Icons.Material.Outlined.Traffic">
+        <MudTable @ref="_tabla" T="SemaforoProductoDto" ServerData="CargarAsync" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm"
+                  RowsPerPage="50" Elevation="0" LoadingProgressColor="Color.Primary">
+            <ToolBarContent>
+                <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="3" AlignItems="AlignItems.Center" Class="flex-grow-1">
+                    <MudTextField T="string" Value="_busqueda" ValueChanged="BuscarAsync" Placeholder="Buscar producto o familia NFC"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" DebounceInterval="350"
+                                  Clearable="true" Immediate="true" Class="mt-0" Style="max-width:320px" />
+                    <MudSpacer />
+                    @if (_nivel is not null)
+                    {
+                        <MudChip T="string" Color="Color.Default" OnClose="() => CambiarNivelAsync(null)">Solo @Nombre(_nivel.Value).ToLowerInvariant()</MudChip>
+                    }
+                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Refresh" OnClick="() => _tabla.ReloadServerData()">Actualizar</MudButton>
+                </MudStack>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Nivel</MudTh>
+                <MudTh>Producto</MudTh>
+                <MudTh Style="text-align:right">Existencia</MudTh>
+                <MudTh Style="text-align:right">Mínimo</MudTh>
+                <MudTh>Por almacén</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Nivel"><Chip Texto="@Nombre(context.Nivel)" Color="@ColorDe(context.Nivel)" /></MudTd>
+                <MudTd DataLabel="Producto">
+                    <b>@context.Referencia</b> <span class="tabla-celda-secundaria">@context.Descripcion</span>
+                    @if (context.FamiliaNfc is { } familia)
+                    {
+                        <div class="tabla-celda-secundaria">Familia NFC @familia</div>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Existencia" Class="numero">@Formato.Cantidad(context.Existencia) @context.Unidad</MudTd>
+                <MudTd DataLabel="Mínimo" Class="numero">@(context.Minimo > 0 ? Formato.Cantidad(context.Minimo) : "—")</MudTd>
+                <MudTd DataLabel="Por almacén">
+                    @if (context.Almacenes.Count == 0)
+                    {
+                        <span class="tabla-celda-secundaria">Sin existencias</span>
+                    }
+                    @foreach (var a in context.Almacenes)
+                    {
+                        <div>
+                            <span style="@($"width:8px;height:8px;border-radius:50%;background:var(--mud-palette-{Paleta(a.Nivel)});display:inline-block;margin-right:6px")"></span>
+                            @a.Almacen: @Formato.Cantidad(a.Cantidad)@(a.Minimo > 0 ? $" (mín. {Formato.Cantidad(a.Minimo)})" : "")
+                        </div>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-6" Color="Color.Secondary">No hay productos que coincidan.</MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <MudTablePager RowsPerPageString="Filas por página:" InfoFormat="{first_item}–{last_item} de {all_items}" PageSizeOptions="new[] { 25, 50, 100 }" />
+            </PagerContent>
+        </MudTable>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Consultas del lector" Icon="@Icons.Material.Outlined.Nfc">
+        <MudTable @ref="_consultas" T="ConsultaStockIotDto" ServerData="CargarConsultasAsync" Hover="true" Dense="true" Breakpoint="Breakpoint.Sm"
+                  RowsPerPage="50" Elevation="0" LoadingProgressColor="Color.Primary">
+            <ToolBarContent>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Piezas que pasaron por el lector mientras nadie tenía el modo inteligente de venta.</MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Refresh" OnClick="() => _consultas.ReloadServerData()">Actualizar</MudButton>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Fecha</MudTh>
+                <MudTh>Nivel</MudTh>
+                <MudTh>Producto</MudTh>
+                <MudTh Style="text-align:right">Existencia</MudTh>
+                <MudTh>Pieza (UID)</MudTh>
+                <MudTh>Resultado</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Fecha">@Formato.FechaHora(context.Fecha)</MudTd>
+                <MudTd DataLabel="Nivel">
+                    @if (context.Nivel is { } n)
+                    {
+                        <Chip Texto="@Nombre(n)" Color="@ColorDe(n)" />
+                    }
+                    else
+                    {
+                        <span>—</span>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Producto">@(context.Producto ?? $"Familia {context.Familia}")</MudTd>
+                <MudTd DataLabel="Existencia" Class="numero">@(context.Existencia is { } e ? Formato.Cantidad(e) : "—")</MudTd>
+                <MudTd DataLabel="Pieza (UID)"><span class="tabla-celda-secundaria">@context.Uid</span></MudTd>
+                <MudTd DataLabel="Resultado">@context.Motivo</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-6" Color="Color.Secondary">Todavía no se ha comprobado stock desde el lector.</MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <MudTablePager RowsPerPageString="Filas por página:" InfoFormat="{first_item}–{last_item} de {all_items}" PageSizeOptions="new[] { 25, 50, 100 }" />
+            </PagerContent>
+        </MudTable>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private MudTable<SemaforoProductoDto> _tabla = default!;
+    private MudTable<ConsultaStockIotDto> _consultas = default!;
+    private string? _busqueda;
+    private NivelStock? _nivel;
+    private int _verdes, _amarillos, _rojos;
+
+    private async Task<TableData<SemaforoProductoDto>> CargarAsync(TableState estado, CancellationToken ct)
+    {
+        var (exito, r) = await IntentarAsync(new ConsultarSemaforoStock(new FiltroSemaforoStock(_busqueda, _nivel, estado.Page + 1, estado.PageSize)));
+        if (!exito || r is null)
+            return new TableData<SemaforoProductoDto> { Items = [], TotalItems = 0 };
+        (_verdes, _amarillos, _rojos) = (r.Verdes, r.Amarillos, r.Rojos);
+        StateHasChanged();
+        return new TableData<SemaforoProductoDto> { Items = r.Productos.Elementos, TotalItems = r.Productos.Total };
+    }
+
+    private async Task<TableData<ConsultaStockIotDto>> CargarConsultasAsync(TableState estado, CancellationToken ct)
+    {
+        var (exito, pagina) = await IntentarAsync(new ListarConsultasStockIot(new FiltroConsultasStockIot(estado.Page + 1, estado.PageSize)));
+        return exito && pagina is not null
+            ? new TableData<ConsultaStockIotDto> { Items = pagina.Elementos, TotalItems = pagina.Total }
+            : new TableData<ConsultaStockIotDto> { Items = [], TotalItems = 0 };
+    }
+
+    private async Task BuscarAsync(string? texto) { _busqueda = texto; await _tabla.ReloadServerData(); }
+
+    private async Task CambiarNivelAsync(NivelStock? nivel) { _nivel = nivel; await _tabla.ReloadServerData(); }
+
+    private static string Nombre(NivelStock n) => n switch { NivelStock.Verde => "Verde", NivelStock.Amarillo => "Amarillo", _ => "Rojo" };
+
+    private static Color ColorDe(NivelStock n) => n switch { NivelStock.Verde => Color.Success, NivelStock.Amarillo => Color.Warning, _ => Color.Error };
+
+    private static string Paleta(NivelStock n) => n switch { NivelStock.Verde => "success", NivelStock.Amarillo => "warning", _ => "error" };
+}

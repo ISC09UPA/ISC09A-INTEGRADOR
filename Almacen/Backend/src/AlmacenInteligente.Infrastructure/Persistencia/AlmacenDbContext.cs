@@ -39,6 +39,7 @@ public sealed class AlmacenDbContext(DbContextOptions<AlmacenDbContext> options)
     public DbSet<EscaneoIot> EscaneosIot => Set<EscaneoIot>();
     public DbSet<SolicitudInicioSesionIot> SolicitudesInicioSesionIot => Set<SolicitudInicioSesionIot>();
     public DbSet<PiezaVendida> PiezasVendidas => Set<PiezaVendida>();
+    public DbSet<ConsultaStockIot> ConsultasStockIot => Set<ConsultaStockIot>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

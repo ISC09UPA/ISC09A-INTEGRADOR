@@ -59,6 +59,23 @@ internal sealed class EscaneoIotConfiguracion : IEntityTypeConfiguration<Escaneo
     }
 }
 
+internal sealed class ConsultaStockIotConfiguracion : IEntityTypeConfiguration<ConsultaStockIot>
+{
+    public void Configure(EntityTypeBuilder<ConsultaStockIot> b)
+    {
+        b.ToTable("iot_consultas_stock");
+        b.HasKey(c => c.Id);
+        b.Property(c => c.Uid).HasMaxLength(CodigoNfc.LongitudMaxima);
+        b.Property(c => c.Familia).HasMaxLength(EscaneoIot.LongitudMaximaFamilia);
+        b.Property(c => c.Existencia).HasColumnType(Conversiones.TipoCantidad);
+        b.Property(c => c.Minimo).HasColumnType(Conversiones.TipoCantidad);
+        b.Property(c => c.Nivel).HasConversion<string>().HasMaxLength(10);
+        b.Property(c => c.Motivo).HasMaxLength(300);
+        b.HasIndex(c => c.Fecha).IsDescending();
+        // Sin FK al producto: la bitácora se conserva aunque el producto cambie.
+    }
+}
+
 internal sealed class SolicitudInicioSesionIotConfiguracion : IEntityTypeConfiguration<SolicitudInicioSesionIot>
 {
     public void Configure(EntityTypeBuilder<SolicitudInicioSesionIot> b)

@@ -55,6 +55,7 @@ function Navegacion() {
           <Stack.Screen name="traspasos/nuevo" options={{ title: 'Nuevo traspaso' }} />
           <Stack.Screen name="traspasos/[id]" options={{ title: 'Traspaso' }} />
           <Stack.Screen name="existencias" options={{ title: 'Existencias' }} />
+          <Stack.Screen name="stock" options={{ title: 'Comprobar stock' }} />
           <Stack.Screen name="movimientos" options={{ title: 'Movimientos' }} />
           <Stack.Screen name="kardex" options={{ title: 'Kardex' }} />
           <Stack.Screen name="productos/index" options={{ title: 'Productos' }} />

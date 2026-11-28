@@ -15,6 +15,9 @@ public sealed class OpcionesServiceBusIot
     public string ColaRespuestasAuth { get; init; } = "iot-auth-respuestas";
     public string ColaEscaneosVenta { get; init; } = "iot-venta-escaneos";
 
+    /// <summary>Respuesta a cada pieza (venta o comprobación de stock) para la pantalla y los LEDs del embebido.</summary>
+    public string ColaRespuestasEscaneos { get; init; } = "iot-escaneos-respuestas";
+
     /// <summary>Mensajes más viejos ya no tienen a nadie esperando (el embebido espera ~15 s): se descartan.</summary>
     public int AntiguedadMaximaSegundos { get; init; } = 60;
 
@@ -154,20 +157,39 @@ internal sealed class ProcesadorAccesosIot(IServiceProvider servicios, OpcionesS
 }
 
 /// <summary>
-/// Cola iot-venta-escaneos: JSON { "id": "UID de fábrica de la etiqueta", "familia": "referencia del producto" }.
-/// Cada etiqueta es una pieza física. Si alguien tiene el modo inteligente vigente, la pieza se agrega a su venta
-/// (o se le avisa por qué no: ya vendida, familia desconocida…); si nadie lo tiene, solo se registra en el log.
+/// Cola iot-venta-escaneos: JSON { "id": "UID de fábrica de la etiqueta", "familia": "código NFC del producto" }.
+/// Cada etiqueta es una pieza física. Si alguien tiene el modo inteligente vigente, la pieza va a su venta
+/// (o se le avisa por qué no: ya vendida, familia desconocida…). Si nadie lo tiene, es una comprobación de stock.
+/// Si el mensaje trae CorrelationId, se responde en iot-escaneos-respuestas con el resultado y el nivel de stock
+/// (verde / amarillo / rojo) para la pantalla y los LEDs del embebido.
 /// </summary>
 internal sealed class ProcesadorEscaneosIot(IServiceProvider servicios, OpcionesServiceBusIot opciones, ILogger<ProcesadorEscaneosIot> log)
     : WorkerServiceBus(servicios, opciones, log)
 {
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    private ServiceBusSender? _respuestas;
+
     protected override string Cola => Opciones.ColaEscaneosVenta;
+
+    protected override Task AlIniciarAsync(ServiceBusClient cliente)
+    {
+        _respuestas = cliente.CreateSender(Opciones.ColaRespuestasEscaneos);
+        return Task.CompletedTask;
+    }
+
+    public override async Task StopAsync(CancellationToken ct)
+    {
+        await base.StopAsync(ct);
+        if (_respuestas is not null)
+            await _respuestas.DisposeAsync();
+    }
 
     protected override async Task ProcesarAsync(ProcessMessageEventArgs args)
     {
         var m = args.Message;
         if (EsViejo(m))
         {
+            // Nadie sigue esperando frente al lector: no se vende ni se responde.
             Log.LogWarning("Escaneo {Id} descartado por antiguo ({Encolado:O}).", m.MessageId, m.EnqueuedTime);
             await args.CompleteMessageAsync(m, args.CancellationToken);
             return;
@@ -190,10 +212,33 @@ internal sealed class ProcesadorEscaneosIot(IServiceProvider servicios, Opciones
         await using var scope = Scopes.CreateAsyncScope();
         var (resultado, productoId) = await scope.ServiceProvider.GetRequiredService<ServicioEscaneosIot>()
             .RegistrarAsync(uid, familia, args.CancellationToken);
-        if (resultado == ResultadoEscaneo.Registrado)
-            Log.LogInformation("Escaneo NFC {Uid} ({Familia}): producto {Producto} agregado a la venta inteligente.", uid, familia, productoId);
+        var stock = scope.ServiceProvider.GetRequiredService<ServicioConsultaStockIot>();
+        RespuestaEscaneoIot respuesta;
+        if (resultado == ResultadoEscaneo.SinSesion)
+        {
+            // Nadie está vendiendo con el lector: la pieza sirve para comprobar el stock de su producto.
+            respuesta = await stock.ConsultarAsync(uid, familia, args.CancellationToken);
+            Log.LogInformation("Comprobación de stock {Uid} ({Familia}): {Motivo}, existencia {Existencia}, nivel {Nivel}.",
+                uid, familia, respuesta.Motivo, respuesta.Existencia, respuesta.Nivel);
+        }
         else
-            Log.LogWarning("Escaneo NFC {Uid} ({Familia}) no agregado: {Resultado}.", uid, familia, resultado);
+        {
+            respuesta = await stock.RespuestaVentaAsync(resultado, productoId, args.CancellationToken);
+            if (resultado == ResultadoEscaneo.Registrado)
+                Log.LogInformation("Escaneo NFC {Uid} ({Familia}): producto {Producto} agregado a la venta inteligente.", uid, familia, productoId);
+            else
+                Log.LogWarning("Escaneo NFC {Uid} ({Familia}) no agregado: {Resultado}.", uid, familia, resultado);
+        }
+
+        // Solo responde si el embebido lo pidió (CorrelationId); así un lector viejo que no escucha respuestas no llena la cola.
+        if (!string.IsNullOrEmpty(m.CorrelationId))
+            await _respuestas!.SendMessageAsync(new ServiceBusMessage(BinaryData.FromObjectAsJson(respuesta, Json))
+            {
+                CorrelationId = m.CorrelationId,
+                Subject = "escaneo",
+                ContentType = "application/json",
+                TimeToLive = TimeSpan.FromMinutes(1),
+            }, args.CancellationToken);
         await args.CompleteMessageAsync(m, args.CancellationToken);
     }
 

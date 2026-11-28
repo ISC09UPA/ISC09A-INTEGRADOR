@@ -434,6 +434,62 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                     b.ToTable("iot_accesos", (string)null);
                 });
 
+            modelBuilder.Entity("AlmacenInteligente.Domain.Iot.ConsultaStockIot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal?>("Existencia")
+                        .HasColumnType("numeric(18,3)")
+                        .HasColumnName("existencia");
+
+                    b.Property<string>("Familia")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("familia");
+
+                    b.Property<DateTimeOffset>("Fecha")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha");
+
+                    b.Property<decimal?>("Minimo")
+                        .HasColumnType("numeric(18,3)")
+                        .HasColumnName("minimo");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("motivo");
+
+                    b.Property<string>("Nivel")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("nivel");
+
+                    b.Property<Guid?>("ProductoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("producto_id");
+
+                    b.Property<string>("Uid")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("uid");
+
+                    b.HasKey("Id")
+                        .HasName("pk_iot_consultas_stock");
+
+                    b.HasIndex("Fecha")
+                        .IsDescending()
+                        .HasDatabaseName("ix_iot_consultas_stock_fecha");
+
+                    b.ToTable("iot_consultas_stock", (string)null);
+                });
+
             modelBuilder.Entity("AlmacenInteligente.Domain.Iot.EscaneoIot", b =>
                 {
                     b.Property<Guid>("Id")
