@@ -1,0 +1,221 @@
+{
+  "info": {
+    "_postman_id": "b63ac4b2-2e12-4ed6-9d1a-202611270001",
+    "name": "LockerSmart - Backend y Raspberry Pi",
+    "description": "Pruebas de API para crear renta, solicitar apertura y consultar el resultado. Las confirmaciones físicas se publican en locker-events desde la Raspberry Pi.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5106"
+    },
+    {
+      "key": "token",
+      "value": "PEGA_AQUI_TOKEN_FACIAL"
+    },
+    {
+      "key": "rentaId",
+      "value": "1"
+    },
+    {
+      "key": "commandId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Salud / API",
+      "item": [
+        {
+          "name": "OpenAPI disponible (opcional)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/openapi/v1.json"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Autenticación",
+      "item": [
+        {
+          "name": "Login con correo y contraseña (solo acceso app; no autoriza apertura)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"usuario@ejemplo.com\",\n  \"password\": \"CAMBIAR_EN_POSTMAN\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.token) pm.collectionVariables.set('token', body.token);",
+                  "}",
+                  "// Este token normalmente no incluye face_verified=true; úsalo para /me, no para abrir."
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login facial (usar form-data, campo Foto tipo File)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Foto",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/api/auth/login-rostro"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.token) pm.collectionVariables.set('token', body.token);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Renta y apertura",
+      "item": [
+        {
+          "name": "Crear renta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.id) pm.collectionVariables.set('rentaId', body.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pesoDeclaradoKg\": 2.5,\n  \"duracionHoras\": 2\n}"
+            },
+            "url": "{{baseUrl}}/api/rentas/"
+          }
+        },
+        {
+          "name": "Solicitar apertura (requiere token facial)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 202) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.commandId) pm.collectionVariables.set('commandId', body.commandId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/dispositivos/rentas/{{rentaId}}/abrir"
+          }
+        },
+        {
+          "name": "Consultar resultado del comando",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/dispositivos/comandos/{{commandId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Administración (token administrador)",
+      "item": [
+        {
+          "name": "Listar últimos comandos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/dispositivos/comandos?cantidad=50"
+          }
+        },
+        {
+          "name": "Listar últimos eventos",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{baseUrl}}/api/dispositivos/eventos?cantidad=50"
+          }
+        }
+      ]
+    }
+  ]
+}

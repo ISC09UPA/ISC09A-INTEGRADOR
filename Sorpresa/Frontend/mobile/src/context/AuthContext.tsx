@@ -1,9 +1,8 @@
 import {
   createContext, useCallback, useContext, useEffect, useState, type ReactNode,
 } from 'react';
-import * as SecureStore from 'expo-secure-store';
 import * as authApi from '@/api/authService';
-import { setAlExpirarSesion } from '@/api/client';
+import { borrarToken, guardarToken, leerToken, setAlExpirarSesion } from '@/api/client';
 import type { AuthResponse, Usuario } from '@/types';
 
 interface AuthCtx {
@@ -27,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [cargando, setCargando] = useState(true);
 
   const cerrarSesion = useCallback(async () => {
-    await SecureStore.deleteItemAsync('token');
+    await borrarToken().catch(() => undefined);
     setUsuario(null);
   }, []);
 
@@ -36,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAlExpirarSesion(cerrarSesion);
     (async () => {
       try {
-        const token = await SecureStore.getItemAsync('token');
+        const token = await leerToken();
         if (token) setUsuario(await authApi.me());
       } catch {
         // sin sesión válida: se queda en login
@@ -47,7 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [cerrarSesion]);
 
   const guardar = async ({ token, usuario }: AuthResponse) => {
-    await SecureStore.setItemAsync('token', token);
+    if (!token || !usuario) throw new Error('La respuesta del servidor no es válida');
+    await guardarToken(token);
     setUsuario(usuario);
   };
 

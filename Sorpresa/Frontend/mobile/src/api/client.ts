@@ -1,7 +1,35 @@
+import { Platform } from 'react-native';
 import { create } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:5000';
+const CLAVE_TOKEN = 'token';
+let tokenEnMemoria: string | null = null;
+
+const urlBase = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:5106';
+export const API_URL = Platform.OS === 'web'
+  ? urlBase.replace('10.0.2.2', 'localhost').replace('192.168.56.1', 'localhost')
+  : urlBase;
+
+export const guardarToken = async (token: string) => {
+  if (Platform.OS === 'web') {
+    tokenEnMemoria = token;
+    return;
+  }
+  await SecureStore.setItemAsync(CLAVE_TOKEN, token);
+};
+
+export const leerToken = async (): Promise<string | null> => {
+  if (Platform.OS === 'web') return tokenEnMemoria;
+  return SecureStore.getItemAsync(CLAVE_TOKEN);
+};
+
+export const borrarToken = async () => {
+  if (Platform.OS === 'web') {
+    tokenEnMemoria = null;
+    return;
+  }
+  await SecureStore.deleteItemAsync(CLAVE_TOKEN);
+};
 
 let alExpirar: (() => void) | null = null;
 export const setAlExpirarSesion = (fn: () => void) => {
@@ -11,7 +39,7 @@ export const setAlExpirarSesion = (fn: () => void) => {
 const client = create({ baseURL: API_URL, timeout: 10000 });
 
 client.interceptors.request.use(async (config) => {
-  const token = await SecureStore.getItemAsync('token');
+  const token = await leerToken().catch(() => null);
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });

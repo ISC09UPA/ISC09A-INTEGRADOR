@@ -20,7 +20,7 @@ export default function Login() {
     setError('');
     setCargando(true);
     try {
-      await iniciarSesion(email, password);
+      await iniciarSesion(email.trim(), password.trim());
     } catch (e) {
       setError(mensajeError(e));
     } finally {
