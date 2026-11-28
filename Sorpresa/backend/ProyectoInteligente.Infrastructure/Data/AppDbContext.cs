@@ -10,6 +10,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<Renta> Rentas => Set<Renta>();
     public DbSet<EventoDispositivo> EventosDispositivo => Set<EventoDispositivo>();
+    public DbSet<ComandoDispositivo> ComandosDispositivo => Set<ComandoDispositivo>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -45,6 +46,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasIndex(r => r.LockerId);
         });
         b.Entity<Renta>().Property(r => r.Estado).HasConversion<string>().HasMaxLength(20);
+        b.Entity<ComandoDispositivo>(e =>
+        {
+            e.Property(x => x.CommandId).HasMaxLength(100).IsRequired();
+            e.HasIndex(x => x.CommandId).IsUnique();
+            e.Property(x => x.LockerCodigo).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Accion).HasMaxLength(30).IsRequired();
+            e.Property(x => x.Estado).HasConversion<string>().HasMaxLength(20);
+            e.Property(x => x.Motivo).HasMaxLength(500);
+            e.Property(x => x.RespuestaDispositivo).HasMaxLength(1000);
+            e.HasIndex(x => x.UsuarioId);
+            e.HasIndex(x => x.RentaId);
+        });
         b.Entity<EventoDispositivo>(e =>
         {
             e.Property(x => x.EventId)

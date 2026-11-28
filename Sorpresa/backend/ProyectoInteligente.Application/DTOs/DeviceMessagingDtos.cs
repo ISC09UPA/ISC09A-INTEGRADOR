@@ -10,7 +10,8 @@ public sealed record DeviceEventMessage(
     bool? PuertaCerrada = null,
     bool? PresenciaDetectada = null,
     int? RentaId = null,
-    string? Detalle = null);
+    string? Detalle = null,
+    string? CommandId = null);
 
 /// <summary>Comando que el backend publica para que Raspberry Pi lo ejecute.</summary>
 public sealed record DeviceCommandMessage(
