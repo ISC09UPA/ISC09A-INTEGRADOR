@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { AppState, Pressable, ScrollView, View } from 'react-native';
 
 import type { Escaneo } from '@/models/escaneo.model';
 import type { Opcion } from '@/models/opcion.model';
@@ -122,8 +122,14 @@ export default function NuevaVenta() {
     }
   }, []);
 
-  // Al salir de la pantalla se libera el lector.
+  // Al salir de la pantalla o pasar la app a segundo plano se libera el lector.
   useEffect(() => () => void desactivarModo(), [desactivarModo]);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (estado) => {
+      if (estado === 'background') void desactivarModo();
+    });
+    return () => sub.remove();
+  }, [desactivarModo]);
 
   useEffect(() => {
     if (!modo || !almacenModo) return;

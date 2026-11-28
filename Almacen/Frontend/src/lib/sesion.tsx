@@ -7,7 +7,8 @@ import { cuentaService } from '@/services';
 interface ContextoSesion {
   sesion: Sesion | null;
   cargando: boolean;
-  ingresar: (correo: string, contrasena: string) => Promise<void>;
+  /** Aplica la sesión que entregó el inicio de sesión con el lector (ya guardada por CuentaService). */
+  ingresar: (sesion: Sesion) => void;
   salir: () => void;
   puede: (permiso: string) => boolean;
   rol: string;
@@ -49,12 +50,7 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     return () => clearTimeout(t);
   }, [sesion, salir]);
 
-  const ingresar = useCallback(
-    async (correo: string, contrasena: string) => {
-      aplicar(await cuentaService.ingresar({ correo, contrasena }));
-    },
-    [aplicar],
-  );
+  const ingresar = useCallback((s: Sesion) => aplicar(s), [aplicar]);
 
   const valor = useMemo<ContextoSesion>(
     () => ({

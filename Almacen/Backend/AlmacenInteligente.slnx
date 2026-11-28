@@ -10,4 +10,7 @@
     <Project Path="tests/AlmacenInteligente.Application.Tests/AlmacenInteligente.Application.Tests.csproj" />
     <Project Path="tests/AlmacenInteligente.Domain.Tests/AlmacenInteligente.Domain.Tests.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/iot-simulador/IotSimulador.csproj" />
+  </Folder>
 </Solution>

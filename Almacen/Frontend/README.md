@@ -9,7 +9,8 @@ embebido. La app sondea `GET /api/iot/login/{id}` cada segundo hasta recibir el 
 del rechazo. Solo una persona puede estar iniciando sesión a la vez (hay un solo lector).
 
 **Modo inteligente de venta.** En *Nueva venta*, quien puede crear ventas elige un almacén por defecto y activa
-el interruptor: cada producto que pasa por el lector NFC se agrega como línea (cantidad 1, o suma 1 si ya está).
+el interruptor: cada pieza que pasa por el lector NFC (UID de su etiqueta + familia NFC del producto) se suma a la
+línea de su producto, y al registrar la venta se guarda el UID de cada pieza. Una pieza ya vendida se rechaza con aviso.
 El lector se libera al registrar, al apagar el interruptor, al salir de la pantalla y al pasar la app a segundo plano.
 
 | Sección | Pantallas |

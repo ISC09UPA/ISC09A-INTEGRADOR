@@ -359,13 +359,23 @@ public class ServicioAccesoIotTests
         }
     }
 
+    /// <summary>Nadie está iniciando sesión en la app: el acceso no resuelve ninguna solicitud.</summary>
+    private sealed class SinInicioDeSesion : ISolicitudesInicioSesionIot
+    {
+        public Task<bool> IntentarCrearAsync(SolicitudInicioSesionIot solicitud, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<SolicitudInicioSesionIot?> ObtenerAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task ResolverConAccesoAsync(bool permitido, Guid? usuarioId, string motivo, DateTimeOffset fechaAcceso, CancellationToken ct = default) => Task.CompletedTask;
+        public Task<Guid?> ConsumirAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task CancelarAsync(Guid id, CancellationToken ct = default) => throw new NotSupportedException();
+    }
+
     private static (ServicioAccesoIot Servicio, ReconocimientoFalso Reconocimiento, BitacoraEnMemoria Bitacora) Crear(bool activo = true)
     {
         var usuarios = new GestorUsuariosEnMemoria();
         usuarios.Usuarios.Add(new UsuarioDto(Ana, "Ana López", "ana@x.mx", Roles.AgenteVentas, activo, "04A21B7C"));
         var reconocimiento = new ReconocimientoFalso();
         var bitacora = new BitacoraEnMemoria();
-        var servicio = new ServicioAccesoIot(usuarios, reconocimiento, bitacora, bitacora, new RelojFijo(), new OpcionesIot { UmbralConfianza = 0.8 });
+        var servicio = new ServicioAccesoIot(usuarios, reconocimiento, bitacora, new SinInicioDeSesion(), bitacora, new RelojFijo(), new OpcionesIot { UmbralConfianza = 0.8 });
         return (servicio, reconocimiento, bitacora);
     }
 
