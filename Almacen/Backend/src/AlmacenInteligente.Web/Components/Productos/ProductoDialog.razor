@@ -15,9 +15,9 @@
                 <MudTextField @bind-Value="_referencia" Label="Referencia interna" Required="true" RequiredError="Obligatorio"
                               MaxLength="50" Disabled="EsEdicion" HelperText="@(EsEdicion ? "No se puede cambiar" : "Código único del producto, por ejemplo TOR-001")" />
                 <MudTextField @bind-Value="_descripcion" Label="Descripción" Required="true" RequiredError="Obligatorio" MaxLength="500" Lines="2" />
-                <MudTextField @bind-Value="_codigoNfc" Label="Etiqueta NFC (opcional)" MaxLength="47" Clearable="true"
+                <MudTextField @bind-Value="_codigoNfc" Label="Familia NFC (opcional)" MaxLength="47" Clearable="true"
                               Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Outlined.Nfc"
-                              HelperText="UID de la etiqueta pegada al producto, para el modo inteligente de venta" />
+                              HelperText="Código hexadecimal que el lector manda como familia de cada pieza, para el modo inteligente de venta" />
                 <MudSelect T="Guid?" @bind-Value="_unidadId" Label="Unidad" Required="true" RequiredError="Elige la unidad" AnchorOrigin="Origin.BottomCenter"
                            ToStringFunc="@(id => _unidades.FirstOrDefault(u => u.Id == id) is { } u ? $"{u.Nombre} ({u.Clave})" : null)">
                     @foreach (var u in _unidades)

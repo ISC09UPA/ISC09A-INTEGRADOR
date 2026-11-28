@@ -14,7 +14,7 @@ namespace AlmacenInteligente.Api;
 // Cuerpos de las peticiones que no son un caso de uso completo (el id va en la ruta).
 public sealed record CambioEstado(bool Activo);
 public sealed record Motivo(string Texto);
-/// <param name="CodigoNfc">UID de la etiqueta NFC: si no se envía se conserva; "" la quita.</param>
+/// <param name="CodigoNfc">Código NFC de la familia del producto (lo manda el lector como "familia"): si no se envía se conserva; "" lo quita.</param>
 public sealed record DatosProducto(string Descripcion, Guid UnidadId, string? CodigoNfc = null);
 public sealed record DatosAlmacen(string Nombre, string Ubicacion);
 /// <param name="CodigoNfc">UID de la tarjeta NFC: si no se envía se conserva; "" la quita.</param>

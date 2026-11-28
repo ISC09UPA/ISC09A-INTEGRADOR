@@ -38,6 +38,7 @@ public sealed class AlmacenDbContext(DbContextOptions<AlmacenDbContext> options)
     public DbSet<SesionVentaInteligente> SesionVentaInteligente => Set<SesionVentaInteligente>();
     public DbSet<EscaneoIot> EscaneosIot => Set<EscaneoIot>();
     public DbSet<SolicitudInicioSesionIot> SolicitudesInicioSesionIot => Set<SolicitudInicioSesionIot>();
+    public DbSet<PiezaVendida> PiezasVendidas => Set<PiezaVendida>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -97,6 +98,11 @@ public sealed class AlmacenDbContext(DbContextOptions<AlmacenDbContext> options)
         catch (DbUpdateConcurrencyException)
         {
             throw new DomainException("Otra persona modificó las existencias al mismo tiempo. Revisa y vuelve a intentarlo.");
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException
+            { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation, ConstraintName: Configuraciones.PiezaVendidaConfiguracion.IndiceEnStock })
+        {
+            throw new DomainException("Una de las piezas escaneadas se acaba de vender en otra venta. Revisa y vuelve a intentarlo.");
         }
         catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
         {

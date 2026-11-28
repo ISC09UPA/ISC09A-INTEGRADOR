@@ -88,7 +88,13 @@
             @foreach (var l in Detalle.Lineas)
             {
                 <tr>
-                    <td><b>@l.Referencia</b> <span class="tabla-celda-secundaria">@l.Descripcion</span></td>
+                    <td>
+                        <b>@l.Referencia</b> <span class="tabla-celda-secundaria">@l.Descripcion</span>
+                        @if (l.Piezas is { Count: > 0 } piezas)
+                        {
+                            <div class="tabla-celda-secundaria">Piezas NFC: @string.Join(", ", piezas)</div>
+                        }
+                    </td>
                     @if (AlmacenPorLinea)
                     {
                         <td>@l.Almacen</td>

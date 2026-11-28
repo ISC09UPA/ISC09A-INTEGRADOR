@@ -91,7 +91,12 @@ internal sealed class AlmacenRepositorio(AlmacenDbContext db) : Repositorio<Alma
 
 internal sealed class RecepcionRepositorio(AlmacenDbContext db) : Repositorio<Recepcion>(db), IRecepcionRepositorio;
 
-internal sealed class VentaRepositorio(AlmacenDbContext db) : Repositorio<Venta>(db), IVentaRepositorio;
+internal sealed class VentaRepositorio(AlmacenDbContext db) : Repositorio<Venta>(db), IVentaRepositorio
+{
+    public async Task<IReadOnlyList<string>> PiezasVendidasAsync(IReadOnlyCollection<string> uids, CancellationToken ct = default) =>
+        await Db.PiezasVendidas.AsNoTracking().Where(p => !p.Devuelta && uids.Contains(p.Uid))
+            .Select(p => p.Uid).Distinct().OrderBy(u => u).ToListAsync(ct);
+}
 
 internal sealed class TraspasoRepositorio(AlmacenDbContext db) : Repositorio<Traspaso>(db), ITraspasoRepositorio;
 

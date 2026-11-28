@@ -50,6 +50,7 @@ export class DocumentoMapper {
       iva: dto.iva,
       costoUnitario: dto.costoUnitario,
       total: dto.total,
+      piezas: dto.piezas ?? [],
     };
   }
 
@@ -96,6 +97,7 @@ export class DocumentoMapper {
         cantidad: l.cantidad,
         precioUnitario: l.precioUnitario,
         tasaIva: l.tasaIva,
+        piezas: l.piezas?.length ? l.piezas : null,
       })),
     };
   }

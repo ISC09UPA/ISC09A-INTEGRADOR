@@ -71,22 +71,43 @@ public sealed class AccesoIot : Entity
     }
 }
 
-/// <summary>Un producto que pasó por el lector NFC mientras alguien tenía el modo inteligente de venta.</summary>
+/// <summary>
+/// Una pieza que pasó por el lector NFC mientras alguien tenía el modo inteligente de venta. El embebido manda el UID
+/// de fábrica de la etiqueta (cada etiqueta es una pieza física) y la familia (el código NFC grabado en el producto del catálogo).
+/// Los escaneos rechazados (pieza ya vendida, familia desconocida…) también se guardan con su motivo, para avisarle al agente.
+/// </summary>
 public sealed class EscaneoIot : Entity
 {
+    public const int LongitudMaximaFamilia = 50;
+    public const int LongitudMaximaRechazo = 200;
+
     public Guid SesionId { get; private set; }
-    public Guid ProductoId { get; private set; }
+    public string Uid { get; private set; } = null!;
+    public string Familia { get; private set; } = null!;
+
+    /// <summary>Producto de la familia; null si la familia no existe en el catálogo.</summary>
+    public Guid? ProductoId { get; private set; }
+
+    /// <summary>Por qué no se agregó a la venta; null si se aceptó.</summary>
+    public string? Rechazo { get; private set; }
     public DateTimeOffset Fecha { get; private set; }
     public bool Procesado { get; private set; }
 
+    public bool Aceptado => Rechazo is null;
+
     private EscaneoIot() { }
 
-    public EscaneoIot(Guid sesionId, Guid productoId, DateTimeOffset fecha)
+    public EscaneoIot(Guid sesionId, string uid, string familia, Guid? productoId, DateTimeOffset fecha, string? rechazo = null)
     {
         SesionId = sesionId;
+        Uid = Guard.Requerido(uid, "El UID de la pieza", CodigoNfc.LongitudMaxima);
+        Familia = Recortar(familia, LongitudMaximaFamilia);
         ProductoId = productoId;
         Fecha = fecha;
+        Rechazo = rechazo is null ? null : Recortar(rechazo, LongitudMaximaRechazo);
     }
 
     public void MarcarProcesado() => Procesado = true;
+
+    private static string Recortar(string valor, int maximo) => valor.Length > maximo ? valor[..maximo] : valor;
 }

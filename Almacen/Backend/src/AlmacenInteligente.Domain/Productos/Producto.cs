@@ -21,7 +21,10 @@ public sealed class Producto : AggregateRoot
     public bool PermiteFracciones { get; private set; }
     public string? ImagenRuta { get; private set; }
 
-    /// <summary>UID de la etiqueta NFC pegada al producto, para el modo inteligente de venta. Único.</summary>
+    /// <summary>
+    /// Código NFC de la familia del producto (hexadecimal, único). En el modo inteligente de venta el lector manda este
+    /// código como "familia" junto con el UID de cada pieza.
+    /// </summary>
     public string? CodigoNfc { get; private set; }
     public bool Activo { get; private set; } = true;
 

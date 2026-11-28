@@ -120,6 +120,40 @@ public class InventarioTests
     }
 
     [Fact]
+    public void Venta_guarda_el_uid_de_cada_pieza_y_al_cancelar_las_devuelve()
+    {
+        var lote = new LoteExistencias([]);
+        Recibir(lote, 10, 5m);
+        var venta = new Venta(Fabrica.Cliente(), Fabrica.Hoy, Fabrica.Registro());
+        venta.AgregarLinea(_tornillo, _central.Id, 3, 20m, TasaIva.General, ["53:2b:84:e5:03:00:01", "532B84E5030002"]);
+        ServicioInventario.ConfirmarVenta(venta, lote, Fabrica.Registro());
+
+        Assert.Equal(["532B84E5030001", "532B84E5030002"], venta.UidsPiezas);
+        Assert.All(venta.Lineas.Single().Piezas, p => Assert.False(p.Devuelta));
+
+        ServicioInventario.CancelarVenta(venta, lote, Fabrica.Registro(), "Cliente desistió");
+        Assert.All(venta.Lineas.Single().Piezas, p => Assert.True(p.Devuelta));
+    }
+
+    [Fact]
+    public void Una_pieza_no_puede_ir_dos_veces_en_la_venta()
+    {
+        var venta = new Venta(Fabrica.Cliente(), Fabrica.Hoy, Fabrica.Registro());
+        venta.AgregarLinea(_tornillo, _central.Id, 1, 20m, TasaIva.General, ["532B84E5030001"]);
+        var error = Assert.Throws<DomainException>(() =>
+            venta.AgregarLinea(_tornillo, _norte.Id, 1, 20m, TasaIva.General, ["532b84e5030001"]));
+        Assert.Contains("dos veces", error.Message);
+    }
+
+    [Fact]
+    public void Cantidad_menor_que_las_piezas_escaneadas_falla()
+    {
+        var venta = new Venta(Fabrica.Cliente(), Fabrica.Hoy, Fabrica.Registro());
+        Assert.Throws<DomainException>(() =>
+            venta.AgregarLinea(_tornillo, _central.Id, 1, 20m, TasaIva.General, ["532B84E5030001", "532B84E5030002"]));
+    }
+
+    [Fact]
     public void Cancelar_recepcion_quita_su_aporte_al_costo()
     {
         var lote = new LoteExistencias([]);

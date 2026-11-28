@@ -18,7 +18,9 @@ namespace AlmacenInteligente.Application.Documentos;
 
 public sealed record LineaRecepcionDto(Guid ProductoId, decimal Cantidad, decimal CostoUnitario, decimal TasaIva);
 
-public sealed record LineaVentaDto(Guid ProductoId, Guid AlmacenId, decimal Cantidad, decimal PrecioUnitario, decimal TasaIva);
+/// <param name="Piezas">UID de la etiqueta NFC de cada pieza escaneada en el modo inteligente (opcional, a lo más la cantidad).</param>
+public sealed record LineaVentaDto(Guid ProductoId, Guid AlmacenId, decimal Cantidad, decimal PrecioUnitario, decimal TasaIva,
+    IReadOnlyList<string>? Piezas = null);
 
 public sealed record LineaTraspasoDto(Guid ProductoId, decimal Cantidad);
 
@@ -95,6 +97,7 @@ internal sealed class RegistrarVentaValidador : AbstractValidator<RegistrarVenta
             l.RuleFor(x => x.AlmacenId).NotEmpty().WithMessage("Elige el almacén de salida de cada línea.");
             l.RuleFor(x => x.Cantidad).GreaterThan(0).WithMessage("Las cantidades deben ser mayores que cero.");
             l.RuleFor(x => x.PrecioUnitario).GreaterThanOrEqualTo(0).WithMessage("Los precios no pueden ser negativos.");
+            l.RuleForEach(x => x.Piezas).NotEmpty().WithMessage("Hay una pieza sin UID de etiqueta NFC.");
         });
     }
 }
@@ -205,7 +208,15 @@ internal sealed class DocumentosManejador(
 
         var venta = new Venta(cliente, s.Fecha, Ahora);
         foreach (var l in s.Lineas)
-            venta.AgregarLinea(catalogo[l.ProductoId], l.AlmacenId, l.Cantidad, l.PrecioUnitario, new TasaIva(l.TasaIva));
+            venta.AgregarLinea(catalogo[l.ProductoId], l.AlmacenId, l.Cantidad, l.PrecioUnitario, new TasaIva(l.TasaIva), l.Piezas);
+
+        // Cada UID es una pieza física: si ya salió en otra venta no está en stock. El índice único de la base
+        // cubre la carrera entre dos ventas simultáneas; esta revisión da el mensaje con los UID.
+        var uids = venta.UidsPiezas.ToList();
+        if (uids.Count > 0 && await ventas.PiezasVendidasAsync(uids, ct) is { Count: > 0 } vendidas)
+            throw new DomainException(vendidas.Count == 1
+                ? $"La pieza {vendidas[0]} ya se vendió. Quítala de la venta."
+                : $"Estas piezas ya se vendieron: {string.Join(", ", vendidas)}. Quítalas de la venta.");
 
         var lote = await existencias.CargarLoteAsync(s.Lineas.Select(l => (l.AlmacenId, l.ProductoId)), ct);
         var resultado = ServicioInventario.ConfirmarVenta(venta, lote, Ahora);

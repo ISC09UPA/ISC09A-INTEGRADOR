@@ -37,6 +37,7 @@ export class ProductoMapper {
       creadoEn: dto.creadoEn,
       motivoRechazo: opcional(dto.motivoRechazo),
       existencia: dto.existencia,
+      codigoNfc: opcional(dto.codigoNfc),
       texto: `${dto.referencia} · ${dto.descripcion}`,
     };
   }
@@ -68,10 +69,11 @@ export class ProductoMapper {
       descripcion: model.descripcion.trim(),
       unidadId: model.unidadId,
       gerenteAprobadorId: model.gerenteAprobadorId ?? null,
+      codigoNfc: model.codigoNfc?.trim() || null,
     };
   }
 
   static cambios(model: CambiosProducto): DatosProductoDto {
-    return { descripcion: model.descripcion.trim(), unidadId: model.unidadId };
+    return { descripcion: model.descripcion.trim(), unidadId: model.unidadId, codigoNfc: model.codigoNfc.trim() };
   }
 }

@@ -56,7 +56,7 @@
         else
         {
             <MudText Typo="Typo.body2" Color="Color.Secondary">
-                Pasa las etiquetas NFC de los productos por el lector y se agregan solas (cantidad 1 del almacén por defecto).
+                Pasa la etiqueta NFC de cada pieza por el lector y se agrega sola (una pieza del almacén por defecto). Una pieza ya vendida se rechaza.
             </MudText>
         }
     </MudStack>
@@ -102,6 +102,19 @@
             <MudItem xs="2" md="1" Class="d-flex justify-end">
                 <MudIconButton Icon="@Icons.Material.Outlined.Delete" Size="Size.Small" OnClick="() => _lineas.Remove(linea)" Disabled="_lineas.Count == 1" aria-label="Quitar línea" />
             </MudItem>
+            @if (linea.Piezas.Count > 0)
+            {
+                <MudItem xs="12" Class="pt-0">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="1">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Piezas escaneadas:</MudText>
+                        @foreach (var uid in linea.Piezas)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Outlined.Nfc"
+                                     OnClose="() => linea.QuitarPieza(uid)">@uid</MudChip>
+                        }
+                    </MudStack>
+                </MudItem>
+            }
         </MudGrid>
     }
     <MudButton StartIcon="@Icons.Material.Filled.Add" Variant="Variant.Text" Color="Color.Primary" OnClick="() => _lineas.Add(new Linea())" Class="mt-2">Agregar producto</MudButton>
@@ -136,21 +149,39 @@
         public decimal Precio { get; set; }
         public decimal Tasa { get; set; } = 0.16m;
 
+        /// <summary>UID de la etiqueta NFC de cada pieza que llegó del lector; la cantidad nunca es menor.</summary>
+        public List<string> Piezas { get; } = [];
+
         public decimal Disponible => Producto?.Existencias.FirstOrDefault(e => e.AlmacenId == AlmacenId)?.Cantidad ?? 0;
         public bool Excede => Producto is not null && AlmacenId is not null && Cantidad > Disponible;
         public Importe Importe => Cantidad > 0 && Precio >= 0 ? Importe.DeLinea(Cantidad, Precio, new TasaIva(Tasa)) : Importe.Cero;
 
         /// <summary>Línea que llega del lector NFC: una pieza del almacén por defecto.</summary>
-        public void AsignarEscaneo(ProductoOpcionDto producto, Guid almacenId)
+        public void AsignarEscaneo(ProductoOpcionDto producto, Guid almacenId, string uid)
         {
             Producto = producto;
             AlmacenId = almacenId;
             Cantidad = 1;
+            Piezas.Clear();
+            Piezas.Add(uid);
         }
 
-        /// <summary>Al elegir producto propone el almacén con más existencia.</summary>
+        public void SumarPieza(string uid)
+        {
+            Piezas.Add(uid);
+            Cantidad += 1;
+        }
+
+        public void QuitarPieza(string uid)
+        {
+            if (Piezas.Remove(uid))
+                Cantidad = Math.Max(Cantidad - 1, 0);
+        }
+
+        /// <summary>Al elegir producto propone el almacén con más existencia. Las piezas escaneadas eran de otro producto.</summary>
         public void ElegirProducto(ProductoOpcionDto? producto)
         {
+            Piezas.Clear();
             Producto = producto;
             AlmacenId = producto?.Existencias.OrderByDescending(e => e.Cantidad).FirstOrDefault()?.AlmacenId;
         }
@@ -261,20 +292,34 @@
         if (escaneos is { Count: > 0 } && !ct.IsCancellationRequested)
         {
             foreach (var e in escaneos)
-                AgregarEscaneo(e.Producto);
+                AgregarEscaneo(e);
             StateHasChanged();
         }
     }
 
-    /// <summary>Suma 1 si ya hay línea del producto en el almacén por defecto; si no, usa una línea vacía o agrega una.</summary>
-    private void AgregarEscaneo(ProductoOpcionDto producto)
+    /// <summary>
+    /// Cada escaneo es una pieza física (UID de su etiqueta). Si la API la rechazó (ya vendida, familia desconocida…)
+    /// solo se avisa. Si ya hay línea del producto en el almacén por defecto suma la pieza; si no, usa una línea vacía o agrega una.
+    /// </summary>
+    private void AgregarEscaneo(EscaneoDto escaneo)
     {
+        if (escaneo.Rechazo is not null || escaneo.Producto is not { } producto)
+        {
+            Avisos.Add(escaneo.Rechazo ?? $"No se reconoció la pieza {escaneo.Uid}.", Severity.Warning);
+            return;
+        }
+        if (_lineas.Any(l => l.Piezas.Contains(escaneo.Uid)))
+        {
+            Avisos.Add($"La pieza {escaneo.Uid} ya está en esta venta.", Severity.Warning);
+            return;
+        }
+
         var almacen = _almacenModo!.Value;
         _escaneados++;
         var existente = _lineas.FirstOrDefault(l => l.Producto?.Id == producto.Id && l.AlmacenId == almacen);
         if (existente is not null)
         {
-            existente.Cantidad += 1;
+            existente.SumarPieza(escaneo.Uid);
             return;
         }
         var linea = _lineas.FirstOrDefault(l => l.Producto is null);
@@ -283,7 +328,7 @@
             linea = new Linea();
             _lineas.Add(linea);
         }
-        linea.AsignarEscaneo(producto, almacen);
+        linea.AsignarEscaneo(producto, almacen, escaneo.Uid);
         Avisos.Add($"Se agregó {producto}.", Severity.Info);
     }
 
@@ -323,6 +368,11 @@
             _error = "Cada línea necesita producto, almacén y cantidad mayor que cero.";
             return;
         }
+        if (_lineas.Any(l => l.Cantidad < l.Piezas.Count))
+        {
+            _error = "La cantidad de una línea no puede ser menor que sus piezas escaneadas. Quita las piezas que no salen.";
+            return;
+        }
         if (_lineas.Any(l => l.Excede))
         {
             _error = "Hay líneas con más cantidad de la que hay en el almacén.";
@@ -331,7 +381,8 @@
 
         _guardando = true;
         var solicitud = new RegistrarVenta(_cliente.Id, DateOnly.FromDateTime(_fecha.Value),
-            _lineas.Select(l => new LineaVentaDto(l.Producto!.Id, l.AlmacenId!.Value, l.Cantidad, l.Precio, l.Tasa)).ToList());
+            _lineas.Select(l => new LineaVentaDto(l.Producto!.Id, l.AlmacenId!.Value, l.Cantidad, l.Precio, l.Tasa,
+                l.Piezas.Count == 0 ? null : l.Piezas.ToList())).ToList());
         var (registrada, mensaje) = await EjecutarAsync(solicitud);
         _guardando = false;
 

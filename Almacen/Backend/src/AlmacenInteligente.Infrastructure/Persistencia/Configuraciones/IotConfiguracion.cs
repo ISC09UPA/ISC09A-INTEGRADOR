@@ -44,11 +44,17 @@ internal sealed class SesionVentaInteligenteConfiguracion : IEntityTypeConfigura
 
 internal sealed class EscaneoIotConfiguracion : IEntityTypeConfiguration<EscaneoIot>
 {
+    public const string IndicePendiente = "ux_iot_escaneos_sesion_uid_pendiente";
+
     public void Configure(EntityTypeBuilder<EscaneoIot> b)
     {
         b.ToTable("iot_escaneos");
         b.HasKey(e => e.Id);
-        b.HasIndex(e => e.SesionId).HasFilter("NOT procesado");
+        b.Property(e => e.Uid).HasMaxLength(CodigoNfc.LongitudMaxima);
+        b.Property(e => e.Familia).HasMaxLength(EscaneoIot.LongitudMaximaFamilia);
+        b.Property(e => e.Rechazo).HasMaxLength(EscaneoIot.LongitudMaximaRechazo);
+        // Una pieza solo puede estar pendiente una vez por sesión: el lector a veces la lee dos veces seguidas.
+        b.HasIndex(e => new { e.SesionId, e.Uid }).IsUnique().HasFilter("NOT procesado").HasDatabaseName(IndicePendiente);
         b.HasOne<Producto>().WithMany().HasForeignKey(e => e.ProductoId).OnDelete(DeleteBehavior.Cascade);
     }
 }

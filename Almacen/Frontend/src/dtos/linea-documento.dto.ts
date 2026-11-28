@@ -12,4 +12,6 @@ export interface LineaDocumentoDto {
   iva: number;
   costoUnitario: number;
   total: number;
+  /** UID de la etiqueta NFC de cada pieza vendida (solo ventas del modo inteligente). */
+  piezas?: string[] | null;
 }

@@ -1,14 +1,17 @@
-import * as Sharing from 'expo-sharing';
-import { Platform } from 'react-native';
+import { router } from 'expo-router';
 
 import type { ArchivoLocal } from '@/models/archivo-local.model';
+import { archivosService } from '@/services';
 
-/** Muestra un archivo descargado: en el navegador lo abre en otra pestaña; en el teléfono, con el visor del sistema. */
-export async function mostrarArchivo(archivo: ArchivoLocal) {
-  if (Platform.OS === 'web') {
-    globalThis.open?.(archivo.uri, '_blank');
+/**
+ * Muestra lo que devolvió ArchivosService: los PDF en el visor de la app; lo demás (CSV) en la hoja de compartir.
+ * En el navegador el servicio ya lo abrió en otra pestaña y llega null.
+ */
+export async function mostrarArchivo(archivo: ArchivoLocal | null) {
+  if (!archivo) return;
+  if (archivo.tipo === 'application/pdf') {
+    router.push({ pathname: '/visor-pdf', params: { nombre: archivo.nombre } });
     return;
   }
-  if (!(await Sharing.isAvailableAsync())) throw new Error('Este dispositivo no puede abrir el archivo.');
-  await Sharing.shareAsync(archivo.uri, { mimeType: archivo.tipo, dialogTitle: archivo.nombre, UTI: archivo.tipo === 'application/pdf' ? 'com.adobe.pdf' : undefined });
+  await archivosService.compartir(archivo);
 }

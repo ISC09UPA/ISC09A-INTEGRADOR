@@ -17,6 +17,8 @@ export interface Producto {
   creadoEn: string;
   motivoRechazo?: string;
   existencia: number;
+  /** Familia NFC: el lector la manda con el UID de cada pieza en el modo inteligente de venta. */
+  codigoNfc?: string;
   /** "REF · descripción". */
   texto: string;
 }

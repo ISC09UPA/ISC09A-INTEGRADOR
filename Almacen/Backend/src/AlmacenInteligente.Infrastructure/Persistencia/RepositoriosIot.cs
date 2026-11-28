@@ -115,15 +115,25 @@ internal sealed class CandadoVentaInteligente(AlmacenDbContext db) : ICandadoVen
             """, ct);
     }
 
-    public async Task<bool> RegistrarEscaneoAsync(Guid productoId, DateTimeOffset ahora, DateTimeOffset venceAntesDe, CancellationToken ct = default)
+    public async Task<RegistroEscaneo> RegistrarEscaneoAsync(string uid, string familia, Guid? productoId, string? rechazo,
+        DateTimeOffset ahora, DateTimeOffset venceAntesDe, CancellationToken ct = default)
     {
-        var (momento, limite, id) = (ahora.ToUniversalTime(), venceAntesDe.ToUniversalTime(), Guid.CreateVersion7());
-        return await db.Database.ExecuteSqlAsync($"""
-            INSERT INTO iot_escaneos (id, sesion_id, producto_id, fecha, procesado)
-            SELECT {id}, s.sesion_id, {productoId}, {momento}, FALSE
+        // Se arma con el constructor del dominio para aplicar sus límites de longitud.
+        var e = new EscaneoIot(Guid.Empty, uid, familia, productoId, ahora, rechazo);
+        var (momento, limite) = (ahora.ToUniversalTime(), venceAntesDe.ToUniversalTime());
+        var filas = await db.Database.ExecuteSqlAsync($"""
+            INSERT INTO iot_escaneos (id, sesion_id, uid, familia, producto_id, rechazo, fecha, procesado)
+            SELECT {e.Id}, s.sesion_id, {e.Uid}, {e.Familia}, {e.ProductoId}::uuid, {e.Rechazo}::text, {momento}, FALSE
             FROM iot_sesion_venta s
             WHERE s.id = {Id} AND s.usuario_id IS NOT NULL AND s.ultimo_latido >= {limite}
-            """, ct) == 1;
+            ON CONFLICT (sesion_id, uid) WHERE NOT procesado DO NOTHING
+            """, ct);
+        if (filas == 1)
+            return RegistroEscaneo.Registrado;
+        var sesion = await ObtenerAsync(ct);
+        return sesion is not null && sesion.UsuarioId is not null && sesion.UltimoLatido >= limite
+            ? RegistroEscaneo.Repetido
+            : RegistroEscaneo.SinSesion;
     }
 
     public async Task<IReadOnlyList<EscaneoIot>> TomarEscaneosPendientesAsync(Guid usuarioId, CancellationToken ct = default)

@@ -84,12 +84,17 @@ internal sealed class VentaInteligenteManejador(
         var escaneos = await candado.TomarEscaneosPendientesAsync(UsuarioId, ct);
         if (escaneos.Count == 0)
             return [];
-        var productos = (await consultas.ObtenerProductosDisponiblesAsync(escaneos.Select(e => e.ProductoId).Distinct().ToList(), ct))
-            .ToDictionary(p => p.Id);
+        var ids = escaneos.Where(e => e.Aceptado && e.ProductoId is not null).Select(e => e.ProductoId!.Value).Distinct().ToList();
+        var productos = ids.Count == 0 ? [] : (await consultas.ObtenerProductosDisponiblesAsync(ids, ct)).ToDictionary(p => p.Id);
         return escaneos
-            .Where(e => productos.ContainsKey(e.ProductoId))
             .OrderBy(e => e.Fecha)
-            .Select(e => new EscaneoDto(e.Id, e.Fecha, productos[e.ProductoId]))
+            .Select(e =>
+            {
+                var producto = e.ProductoId is { } id ? productos.GetValueOrDefault(id) : null;
+                // Pudo desactivarse entre el escaneo y ahora.
+                var rechazo = e.Rechazo ?? (producto is null ? $"El producto de la familia {e.Familia} ya no está disponible." : null);
+                return new EscaneoDto(e.Id, e.Fecha, e.Uid, e.Familia, producto, rechazo);
+            })
             .ToList();
     }
 
@@ -110,38 +115,68 @@ internal sealed class VentaInteligenteManejador(
 public enum ResultadoEscaneo
 {
     Registrado = 1,
+    /// <summary>El UID no es hexadecimal o viene vacío.</summary>
     CodigoInvalido = 2,
+    /// <summary>Falta la familia o no hay producto con esa referencia.</summary>
     ProductoNoEncontrado = 3,
     ProductoNoDisponible = 4,
     SinSesion = 5,
+    /// <summary>La pieza (UID) ya salió en una venta no cancelada: no está en stock.</summary>
+    PiezaYaVendida = 6,
+    /// <summary>La pieza ya estaba pendiente en la misma sesión (lectura doble del lector).</summary>
+    PiezaRepetida = 7,
 }
 
-/// <summary>Recibe un escaneo NFC del embebido (cola iot-venta-escaneos). Sin usuario en sesión: lo llama el worker.</summary>
-public sealed class ServicioEscaneosIot(IProductoRepositorio productos, ICandadoVentaInteligente candado, IReloj reloj, OpcionesIot opciones)
+/// <summary>
+/// Recibe un escaneo NFC del embebido (cola iot-venta-escaneos). Sin usuario en sesión: lo llama el worker.
+/// <paramref name="uidRecibido"/> es el UID de fábrica de la etiqueta (una por pieza física) y <c>familia</c> la
+/// referencia del producto en el catálogo. Los rechazos también se anotan en la sesión para que el agente los vea.
+/// </summary>
+public sealed class ServicioEscaneosIot(
+    IProductoRepositorio productos, IVentaRepositorio ventas, ICandadoVentaInteligente candado, IReloj reloj, OpcionesIot opciones)
 {
-    public async Task<(ResultadoEscaneo Resultado, Guid? ProductoId)> RegistrarAsync(string? nfcRecibido, CancellationToken ct = default)
+    public async Task<(ResultadoEscaneo Resultado, Guid? ProductoId)> RegistrarAsync(string? uidRecibido, string? familiaRecibida, CancellationToken ct = default)
     {
-        string? nfc;
+        string? uid;
         try
         {
-            nfc = CodigoNfc.Normalizar(nfcRecibido);
+            uid = CodigoNfc.Normalizar(uidRecibido);
         }
         catch (DomainException)
         {
             return (ResultadoEscaneo.CodigoInvalido, null);
         }
-        if (nfc is null)
+        if (uid is null)
             return (ResultadoEscaneo.CodigoInvalido, null);
 
-        var producto = await productos.ObtenerPorCodigoNfcAsync(nfc, ct);
-        if (producto is null)
-            return (ResultadoEscaneo.ProductoNoEncontrado, null);
-        if (!producto.EstaDisponible)
-            return (ResultadoEscaneo.ProductoNoDisponible, producto.Id);
+        // La familia es el código NFC del producto: mismo formato hexadecimal que su campo en el catálogo.
+        string? familia;
+        bool familiaValida = true;
+        try
+        {
+            familia = CodigoNfc.Normalizar(familiaRecibida);
+        }
+        catch (DomainException)
+        {
+            (familia, familiaValida) = (familiaRecibida!.Trim(), false);
+        }
+        var producto = familia is null || !familiaValida ? null : await productos.ObtenerPorCodigoNfcAsync(familia, ct);
+
+        var (resultado, rechazo) =
+            familia is null ? (ResultadoEscaneo.ProductoNoEncontrado, $"La pieza {uid} llegó sin familia.")
+            : !familiaValida ? (ResultadoEscaneo.ProductoNoEncontrado, $"La familia {familia} no es un código NFC válido (hexadecimal).")
+            : producto is null ? (ResultadoEscaneo.ProductoNoEncontrado, $"La familia {familia} no existe en el catálogo.")
+            : !producto.EstaDisponible ? (ResultadoEscaneo.ProductoNoDisponible, $"El producto {producto.Referencia} no está aprobado o activo.")
+            : (await ventas.PiezasVendidasAsync([uid], ct)).Count > 0 ? (ResultadoEscaneo.PiezaYaVendida, $"La pieza {uid} ({producto.Referencia}) ya se vendió.")
+            : (ResultadoEscaneo.Registrado, (string?)null);
 
         var ahora = reloj.Ahora;
-        return await candado.RegistrarEscaneoAsync(producto.Id, ahora, ahora - opciones.TimeoutSesion, ct)
-            ? (ResultadoEscaneo.Registrado, producto.Id)
-            : (ResultadoEscaneo.SinSesion, producto.Id);
+        var registro = await candado.RegistrarEscaneoAsync(uid, familia ?? string.Empty, producto?.Id, rechazo, ahora, ahora - opciones.TimeoutSesion, ct);
+        return registro switch
+        {
+            RegistroEscaneo.SinSesion => (ResultadoEscaneo.SinSesion, producto?.Id),
+            RegistroEscaneo.Repetido => (ResultadoEscaneo.PiezaRepetida, producto?.Id),
+            _ => (resultado, producto?.Id),
+        };
     }
 }

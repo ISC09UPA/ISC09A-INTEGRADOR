@@ -188,6 +188,7 @@ export function DetalleDocumento({ config, id }: { config: ConfigDocumento; id: 
                   {l.referencia} <Texto tipo="secundario">{l.descripcion}</Texto>
                 </Texto>
                 {config.almacenPorLinea && l.almacen ? <Texto tipo="pequeno">Sale de {l.almacen}</Texto> : null}
+                {l.piezas.length ? <Texto tipo="pequeno">Piezas NFC: {l.piezas.join(', ')}</Texto> : null}
                 <Fila style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
                   <Texto tipo="secundario">
                     {Formato.cantidad(l.cantidad)} {l.unidad}
