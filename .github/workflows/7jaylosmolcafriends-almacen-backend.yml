@@ -2,14 +2,14 @@ name: Backend CI (API y Blazor)
 
 on:
   push:
-    branches: [7jaylosmolcafriends-almacen-develop, 7jaylosmolcafriends-almacen-main]
+    branches: [main, 7jaylosmolcafriends-almacen-develop, 7jaylosmolcafriends-almacen-main]
     paths:
       - "Almacen/Backend/src/**"
       - "Almacen/Backend/Directory.Build.props"
       - "Almacen/Backend/global.json"
       - ".github/workflows/7jaylosmolcafriends-almacen-backend.yml"
   pull_request:
-    branches: [7jaylosmolcafriends-almacen-develop, 7jaylosmolcafriends-almacen-main]
+    branches: [main, 7jaylosmolcafriends-almacen-develop, 7jaylosmolcafriends-almacen-main]
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "Almacen/Backend/src/**"
