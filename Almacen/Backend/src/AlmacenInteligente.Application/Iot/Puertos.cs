@@ -87,7 +87,8 @@ public interface ICandadoVentaInteligente
     /// Registra el escaneo (aceptado o con su motivo de rechazo) en la sesión vigente. No lo duplica si la misma
     /// pieza ya está pendiente en esa sesión.
     /// </summary>
-    Task<RegistroEscaneo> RegistrarEscaneoAsync(string uid, string familia, Guid? productoId, string? rechazo,
+    /// <param name="duplicado">El rechazo es por duplicado: la pantalla lo muestra como alerta amarilla.</param>
+    Task<RegistroEscaneo> RegistrarEscaneoAsync(string uid, string familia, Guid? productoId, string? rechazo, bool duplicado,
         DateTimeOffset ahora, DateTimeOffset venceAntesDe, CancellationToken ct = default);
 
     /// <summary>Devuelve los escaneos no procesados de la sesión del usuario y los marca procesados.</summary>
@@ -123,4 +124,6 @@ public enum RegistroEscaneo
 /// Un escaneo para la pantalla de venta. Si <see cref="Rechazo"/> trae texto la pieza no se agrega
 /// (ya vendida, familia desconocida…) y <see cref="Producto"/> puede venir vacío.
 /// </summary>
-public sealed record EscaneoDto(Guid Id, DateTimeOffset Fecha, string Uid, string Familia, Consultas.ProductoOpcionDto? Producto, string? Rechazo);
+/// <param name="Duplicado">El rechazo es por duplicado (alerta amarilla, no error).</param>
+public sealed record EscaneoDto(Guid Id, DateTimeOffset Fecha, string Uid, string Familia, Consultas.ProductoOpcionDto? Producto, string? Rechazo,
+    bool Duplicado = false);

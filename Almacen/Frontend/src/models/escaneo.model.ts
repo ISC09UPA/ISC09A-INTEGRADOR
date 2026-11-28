@@ -7,4 +7,6 @@ export interface Escaneo {
   familia: string;
   producto?: ProductoOpcion;
   rechazo?: string;
+  /** La pieza o el paquete ya se había leído: alerta amarilla. */
+  duplicado: boolean;
 }

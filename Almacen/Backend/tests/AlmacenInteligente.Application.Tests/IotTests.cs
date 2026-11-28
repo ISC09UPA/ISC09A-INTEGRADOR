@@ -82,14 +82,18 @@ internal sealed class CandadoEnMemoria(TimeSpan limite) : ICandadoVentaInteligen
         return Task.CompletedTask;
     }
 
-    public Task<RegistroEscaneo> RegistrarEscaneoAsync(string uid, string familia, Guid? productoId, string? rechazo,
+    public Task<RegistroEscaneo> RegistrarEscaneoAsync(string uid, string familia, Guid? productoId, string? rechazo, bool duplicado,
         DateTimeOffset ahora, DateTimeOffset venceAntesDe, CancellationToken ct = default)
     {
         if (!Sesion.EstaVigente(ahora, limite))
             return Task.FromResult(RegistroEscaneo.SinSesion);
-        if (Escaneos.Any(e => e.SesionId == Sesion.SesionId && e.Uid == uid && (!e.Procesado || e.Aceptado)))
+        // Mismas reglas que el SQL: un rechazo siempre se anota; uno aceptado no si ya hay otro aceptado de esa pieza.
+        if (rechazo is null && Escaneos.Any(e => e.SesionId == Sesion.SesionId && e.Uid == uid && e.Aceptado))
             return Task.FromResult(RegistroEscaneo.Repetido);
-        Escaneos.Add(new EscaneoIot(Sesion.SesionId!.Value, uid, familia, productoId, ahora, rechazo));
+        // Índice único (sesión, uid) de los pendientes.
+        if (Escaneos.Any(e => e.SesionId == Sesion.SesionId && e.Uid == uid && !e.Procesado))
+            return Task.FromResult(RegistroEscaneo.Repetido);
+        Escaneos.Add(new EscaneoIot(Sesion.SesionId!.Value, uid, familia, productoId, ahora, rechazo, duplicado));
         return Task.FromResult(RegistroEscaneo.Registrado);
     }
 
@@ -349,6 +353,11 @@ public class ServicioEscaneosIotTests
         c.Candado.Escaneos.ForEach(e => e.MarcarProcesado()); // la pantalla ya la agregó a la venta
         var (resultado, _) = await c.Servicio.RegistrarAsync("532B84E5030001", "A1B2C3");
         Assert.Equal(ResultadoEscaneo.PiezaRepetida, resultado);
+
+        // Queda un aviso de duplicado para que el agente vea la alerta amarilla.
+        var aviso = c.Candado.Escaneos.Single(e => !e.Procesado);
+        Assert.True(aviso.Duplicado);
+        Assert.Contains("ya está en esta venta", aviso.Rechazo);
     }
 
     [Fact]

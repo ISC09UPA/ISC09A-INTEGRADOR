@@ -30,7 +30,7 @@ public class PermisosTests
     [InlineData(Roles.AgenteVentas, P.Recepciones.Crear, false)]
     [InlineData(Roles.AgenteVentas, P.Almacenes.VerExistencias, true)]
     [InlineData(Roles.EncargadoRecepciones, P.Recepciones.Crear, true)]
-    [InlineData(Roles.EncargadoRecepciones, P.Recepciones.Cancelar, false)]
+    [InlineData(Roles.EncargadoRecepciones, P.Recepciones.Cancelar, true)]
     [InlineData(Roles.EncargadoRecepciones, P.Productos.Aprobar, false)]
     [InlineData(Roles.EncargadoRecepciones, P.Traspasos.Crear, true)]
     [InlineData(Roles.EncargadoRecepciones, P.Ventas.Crear, false)]

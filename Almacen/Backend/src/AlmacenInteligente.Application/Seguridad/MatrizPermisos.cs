@@ -23,7 +23,7 @@ public static class MatrizPermisos
             P.Proveedores.Ver, P.Proveedores.Crear, P.Proveedores.Editar,
             P.Productos.Ver, P.Productos.Crear, P.Productos.Editar,
             P.Almacenes.Ver, P.Almacenes.Gestionar, P.Almacenes.VerExistencias,
-            P.Recepciones.Ver, P.Recepciones.Crear,
+            P.Recepciones.Ver, P.Recepciones.Crear, P.Recepciones.Cancelar,
             P.Traspasos.Ver, P.Traspasos.Crear,
             P.Alertas.RecibirBajoStock,
         },
