@@ -53,7 +53,25 @@ public class ServicioConsultaStockIotTests
         usuarios.Usuarios.Add(new UsuarioDto(Ana, "Ana López", "ana@x.mx", Roles.AgenteVentas, true, AlmacenId: AlmacenDeAna, Almacen: "Central"));
         usuarios.Usuarios.Add(new UsuarioDto(SinAlmacen, "Beto", "beto@x.mx", Roles.AgenteVentas, true));
         var candado = new CandadoEnMemoria(TimeSpan.FromMinutes(2));
+        _candado = candado;
         return (new ServicioConsultaStockIot(productos, ventas, stock, usuarios, candado, stock, reloj), stock, ventas, tornillo);
+    }
+
+    private static CandadoEnMemoria _candado = null!;
+
+    [Fact]
+    public async Task En_recepcion_responde_paquete_leido()
+    {
+        var (servicio, stock, _, tornillo) = Crear();
+        _candado.Sesion.Tomar(Ana, AlmacenDeAna, new RelojFijo().Ahora, TimeSpan.FromMinutes(2), ModoLector.Recepcion);
+        stock.Totales[tornillo.Id] = (30, 5);
+
+        var r = await servicio.RespuestaVentaAsync(ResultadoEscaneo.Registrado, tornillo.Id);
+
+        Assert.Equal(ServicioConsultaStockIot.ModoRecepcion, r.Modo);
+        Assert.Equal("Paquete leído", r.Motivo);
+        Assert.Equal("verde", r.Nivel);
+        Assert.Equal(AlmacenDeAna, stock.AlmacenesPedidos.Single());
     }
 
     [Theory]

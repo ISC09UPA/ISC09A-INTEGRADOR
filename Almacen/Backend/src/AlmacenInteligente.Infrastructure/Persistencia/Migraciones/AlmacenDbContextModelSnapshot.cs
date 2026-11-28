@@ -608,6 +608,14 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("inicio");
 
+                    b.Property<string>("Modo")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("Venta")
+                        .HasColumnName("modo");
+
                     b.Property<Guid?>("SesionId")
                         .HasColumnType("uuid")
                         .HasColumnName("sesion_id");
@@ -688,6 +696,11 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         .HasColumnType("character varying(32)")
                         .HasColumnName("codigo_nfc");
 
+                    b.Property<string>("CodigoProveedor")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("codigo_proveedor");
+
                     b.Property<string>("Descripcion")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -759,6 +772,11 @@ namespace AlmacenInteligente.Infrastructure.Persistencia.Migraciones
                         .IsUnique()
                         .HasDatabaseName("ix_productos_codigo_nfc")
                         .HasFilter("codigo_nfc IS NOT NULL");
+
+                    b.HasIndex("CodigoProveedor")
+                        .IsUnique()
+                        .HasDatabaseName("ix_productos_codigo_proveedor")
+                        .HasFilter("codigo_proveedor IS NOT NULL");
 
                     b.HasIndex("Referencia")
                         .IsUnique()

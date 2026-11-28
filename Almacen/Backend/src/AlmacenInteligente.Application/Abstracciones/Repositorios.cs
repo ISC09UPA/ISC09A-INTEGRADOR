@@ -41,6 +41,10 @@ public interface IProductoRepositorio : IRepositorio<Producto>
 
     /// <summary>El producto con ese código NFC (ya normalizado). Es la "familia" que manda el lector NFC con cada pieza.</summary>
     Task<Producto?> ObtenerPorCodigoNfcAsync(string codigoNfc, CancellationToken ct = default);
+
+    /// <summary>El producto con ese código proveedor (ya normalizado): el que se graba en los paquetes.</summary>
+    Task<Producto?> ObtenerPorCodigoProveedorAsync(string codigo, CancellationToken ct = default);
+    Task<bool> ExisteCodigoProveedorAsync(string codigo, Guid? excepto, CancellationToken ct = default);
     Task<IReadOnlyDictionary<Guid, Producto>> ObtenerVariosAsync(IEnumerable<Guid> ids, CancellationToken ct = default);
 }
 

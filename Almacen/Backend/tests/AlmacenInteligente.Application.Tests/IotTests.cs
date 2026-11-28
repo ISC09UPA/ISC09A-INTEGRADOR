@@ -65,11 +65,11 @@ internal sealed class CandadoEnMemoria(TimeSpan limite) : ICandadoVentaInteligen
     public Task<SesionVentaInteligente?> ObtenerAsync(CancellationToken ct = default) =>
         Task.FromResult<SesionVentaInteligente?>(Sesion.UsuarioId is null ? null : Sesion);
 
-    public Task<bool> IntentarTomarAsync(Guid usuarioId, Guid almacenId, DateTimeOffset ahora, DateTimeOffset venceAntesDe, CancellationToken ct = default)
+    public Task<bool> IntentarTomarAsync(Guid usuarioId, Guid almacenId, ModoLector modo, DateTimeOffset ahora, DateTimeOffset venceAntesDe, CancellationToken ct = default)
     {
         if (!Sesion.PuedeTomar(usuarioId, ahora, limite))
             return Task.FromResult(false);
-        Sesion.Tomar(usuarioId, almacenId, ahora, limite);
+        Sesion.Tomar(usuarioId, almacenId, ahora, limite, modo);
         return Task.FromResult(true);
     }
 
@@ -215,6 +215,10 @@ internal sealed class ProductosEnMemoria : IProductoRepositorio
     public Task<bool> ExisteCodigoNfcAsync(string codigoNfc, Guid? excepto, CancellationToken ct = default) => Task.FromResult(false);
     public Task<Producto?> ObtenerPorCodigoNfcAsync(string codigoNfc, CancellationToken ct = default) =>
         Task.FromResult(Productos.SingleOrDefault(p => p.CodigoNfc == codigoNfc));
+    public Task<Producto?> ObtenerPorCodigoProveedorAsync(string codigo, CancellationToken ct = default) =>
+        Task.FromResult(Productos.SingleOrDefault(p => p.CodigoProveedor == codigo));
+    public Task<bool> ExisteCodigoProveedorAsync(string codigo, Guid? excepto, CancellationToken ct = default) =>
+        Task.FromResult(Productos.Any(p => p.CodigoProveedor == codigo && p.Id != excepto));
     public Task<IReadOnlyDictionary<Guid, Producto>> ObtenerVariosAsync(IEnumerable<Guid> ids, CancellationToken ct = default) =>
         Task.FromResult<IReadOnlyDictionary<Guid, Producto>>(Productos.Where(p => ids.Contains(p.Id)).ToDictionary(p => p.Id));
 }
@@ -235,15 +239,16 @@ public class ServicioEscaneosIotTests
 
     private sealed record Contexto(ServicioEscaneosIot Servicio, CandadoEnMemoria Candado, ProductosEnMemoria Productos, VentasEnMemoria Ventas);
 
-    private static Contexto Crear(bool conSesion = true)
+    private static Contexto Crear(bool conSesion = true, ModoLector modo = ModoLector.Venta)
     {
         var reloj = new RelojFijo();
         var candado = new CandadoEnMemoria(Opciones.TimeoutSesion);
         if (conSesion)
-            candado.Sesion.Tomar(Ana, Guid.NewGuid(), reloj.Ahora, Opciones.TimeoutSesion);
+            candado.Sesion.Tomar(Ana, Guid.NewGuid(), reloj.Ahora, Opciones.TimeoutSesion, modo);
         var productos = new ProductosEnMemoria();
         var tornillo = Producto.CrearAprobado("TOR-001", "Tornillo", new Unidad("PZA", "Pieza", permiteFracciones: false), new Auditoria(Ana, reloj.Ahora));
         tornillo.AsignarCodigoNfc("A1B2C3");
+        tornillo.AsignarCodigoProveedor("BEEF01");
         productos.Agregar(tornillo);
         var ventas = new VentasEnMemoria();
         return new Contexto(new ServicioEscaneosIot(productos, ventas, candado, reloj, Opciones), candado, productos, ventas);
@@ -262,6 +267,35 @@ public class ServicioEscaneosIotTests
         Assert.Equal("A1B2C3", escaneo.Familia);
         Assert.Equal(c.Productos.Productos[0].Id, productoId);
         Assert.True(escaneo.Aceptado);
+    }
+
+    [Fact]
+    public async Task En_recepcion_el_paquete_se_reconoce_por_su_codigo_proveedor()
+    {
+        var c = Crear(modo: ModoLector.Recepcion);
+
+        var (resultado, productoId) = await c.Servicio.RegistrarAsync("04AABBCC", "be:ef:01");
+
+        Assert.Equal(ResultadoEscaneo.Registrado, resultado);
+        Assert.Equal(c.Productos.Productos[0].Id, productoId);
+        Assert.Equal("BEEF01", Assert.Single(c.Candado.Escaneos).Familia);
+    }
+
+    [Fact]
+    public async Task En_recepcion_una_familia_de_pieza_no_es_un_paquete()
+    {
+        var c = Crear(modo: ModoLector.Recepcion);
+        var (resultado, _) = await c.Servicio.RegistrarAsync("04AABBCC", "A1B2C3");
+        Assert.Equal(ResultadoEscaneo.ProductoNoEncontrado, resultado);
+        Assert.Contains("código proveedor", Assert.Single(c.Candado.Escaneos).Rechazo);
+    }
+
+    [Fact]
+    public async Task En_recepcion_no_importa_si_el_uid_ya_se_vendio()
+    {
+        var c = Crear(modo: ModoLector.Recepcion);
+        c.Ventas.Vendidas.Add("04AABBCC");
+        Assert.Equal(ResultadoEscaneo.Registrado, (await c.Servicio.RegistrarAsync("04AABBCC", "BEEF01")).Resultado);
     }
 
     [Fact]

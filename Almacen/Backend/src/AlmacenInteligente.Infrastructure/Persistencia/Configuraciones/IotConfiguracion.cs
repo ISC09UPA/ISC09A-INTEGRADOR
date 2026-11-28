@@ -38,6 +38,7 @@ internal sealed class SesionVentaInteligenteConfiguracion : IEntityTypeConfigura
     {
         b.ToTable("iot_sesion_venta", t => t.HasCheckConstraint("ck_iot_sesion_venta_unica", $"id = {SesionVentaInteligente.IdUnico}"));
         b.HasKey(s => s.Id);
+        b.Property(s => s.Modo).HasConversion<string>().HasMaxLength(10).HasDefaultValue(ModoLector.Venta);
         b.Property(s => s.Id).ValueGeneratedNever();
     }
 }

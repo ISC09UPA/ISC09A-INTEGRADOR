@@ -192,7 +192,8 @@ Qué hace la API:
 - **Modo recepción** (un agente tiene el modo inteligente de recepción): el código proveedor identifica el producto
   y en la pantalla del agente sale un modal para decir de cuántas piezas es el paquete.
 - **Comprobar stock** (nadie tiene un modo activo): responde la existencia del producto en el almacén del usuario y
-  lo anota en la bitácora *Comprobar stock › Consultas del lector* de la web y la app.
+  lo anota en la bitácora *Comprobar stock › Consultas del lector* de la web y la app. Sirve con una pieza (familia)
+  o con un paquete (código proveedor).
 
 ### Respuesta ← cola `iot-escaneos-respuestas`
 
@@ -231,6 +232,9 @@ Valores de `motivo`:
   `Producto no disponible para venta`, `Familia no registrada`, `Etiqueta sin familia NFC válida`.
 - Venta: `Agregada a la venta`, `Pieza duplicada`, `Pieza ya vendida`, `Producto no disponible`,
   `Familia no registrada`, `UID inválido`.
+- Recepción: `Paquete leído`, `Paquete duplicado` (ese mismo paquete ya se leyó), `Producto no disponible`,
+  `Código proveedor no registrado`, `UID inválido`.
+- Consulta sin sesión o usuario sin almacén: `Inicia sesión en el lector`, `Usuario sin almacén`.
 
 ### Qué mostrar en el hardware
 
@@ -238,7 +242,7 @@ Valores de `motivo`:
 |-----------|-------------------------------------------|------|--------|
 | Sin sesión y llega pieza/paquete | `Pase su credencial` | Rojo ~1 s | 1 largo |
 | Consulta reconocida | `REF` / `Stock: 4 (min 5)` | El del `nivel` | 1 corto |
-| Venta/recepción agregada | `Agregada a venta` / `REF · stock 4` | Verde | 2 cortos |
+| Venta/recepción agregada | `Agregada a venta` o `Paquete leido` / `REF` | Verde | 2 cortos |
 | Duplicada | `Pieza duplicada` / `REF` | **Amarillo** | 2 cortos rápidos |
 | Rechazada | `motivo` / `REF` | Rojo | 1 largo |
 | Sin respuesta en 5 s | `Sin respuesta` / `Revisa la red` | Amarillo parpadeando | 1 largo |
@@ -386,7 +390,11 @@ Recomendaciones:
   dotnet run --project tools/iot-simulador -- auth 11E40DB1 ./rostro.jpg
   dotnet run --project tools/iot-simulador -- escanear 532B84E5030001 A1B2C3
   ```
-- Venta: web o app → *Nueva venta* → almacén → activar **Modo inteligente** → pasar piezas.
+- Venta: web o app → *Nueva venta* → activar **Modo inteligente** → pasar piezas.
+- Recepción: web o app → *Nueva recepción* → activar **Recepción inteligente** → pasar paquetes; en la pantalla
+  del agente sale un modal para elegir de cuántas piezas es cada paquete (10, 20, 25, 50, 100 u otro número).
+- Para grabar los paquetes: en *Productos* captura el **Código proveedor NFC** (hexadecimal) y grábalo como texto
+  NDEF en la etiqueta del paquete.
 - Comprobar stock: con los modos apagados, pasa una pieza. La pantalla y los LEDs deben coincidir con el color de
   *Comprobar stock* en la web o la app, y la consulta aparece sola en *Consultas del lector*.
 - La cola `iot-escaneos-respuestas` hay que crearla en el namespace si no existe:

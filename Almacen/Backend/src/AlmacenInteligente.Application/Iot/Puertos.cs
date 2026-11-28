@@ -76,7 +76,7 @@ public interface ICandadoVentaInteligente
     Task<SesionVentaInteligente?> ObtenerAsync(CancellationToken ct = default);
 
     /// <summary>Toma el candado si está libre, vencido (latido anterior a <paramref name="venceAntesDe"/>) o ya es del usuario.</summary>
-    Task<bool> IntentarTomarAsync(Guid usuarioId, Guid almacenId, DateTimeOffset ahora, DateTimeOffset venceAntesDe, CancellationToken ct = default);
+    Task<bool> IntentarTomarAsync(Guid usuarioId, Guid almacenId, ModoLector modo, DateTimeOffset ahora, DateTimeOffset venceAntesDe, CancellationToken ct = default);
 
     /// <summary>Renueva el latido; false si el candado ya no es del usuario.</summary>
     Task<bool> LatidoAsync(Guid usuarioId, DateTimeOffset ahora, CancellationToken ct = default);
@@ -108,7 +108,7 @@ public sealed record RespuestaAccesoIot(bool Permitido, Guid? UsuarioId, string?
 
 public sealed record SesionVentaDto(
     Guid SesionId, Guid UsuarioId, string Usuario, Guid AlmacenId, string Almacen,
-    DateTimeOffset Inicio, DateTimeOffset UltimoLatido, bool EsMia);
+    DateTimeOffset Inicio, DateTimeOffset UltimoLatido, bool EsMia, ModoLector Modo = ModoLector.Venta);
 
 public enum RegistroEscaneo
 {

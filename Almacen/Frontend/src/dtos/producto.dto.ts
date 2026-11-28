@@ -19,4 +19,6 @@ export interface ProductoDto {
   existencia: number;
   /** Código NFC de la familia (hexadecimal); el lector lo manda como "familia" con cada pieza. */
   codigoNfc?: string | null;
+  /** Código grabado en los paquetes del proveedor (recepción inteligente). */
+  codigoProveedor?: string | null;
 }

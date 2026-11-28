@@ -16,7 +16,8 @@ namespace AlmacenInteligente.Api;
 public sealed record CambioEstado(bool Activo);
 public sealed record Motivo(string Texto);
 /// <param name="CodigoNfc">Código NFC de la familia del producto (lo manda el lector como "familia"): si no se envía se conserva; "" lo quita.</param>
-public sealed record DatosProducto(string Descripcion, Guid UnidadId, string? CodigoNfc = null);
+/// <param name="CodigoProveedor">Código NFC de los paquetes del proveedor: si no se envía se conserva; "" lo quita.</param>
+public sealed record DatosProducto(string Descripcion, Guid UnidadId, string? CodigoNfc = null, string? CodigoProveedor = null);
 public sealed record DatosAlmacen(string Nombre, string Ubicacion);
 /// <param name="CodigoNfc">UID de la tarjeta NFC: si no se envía se conserva; "" la quita.</param>
 /// <param name="AlmacenId">Almacén donde trabaja (obligatorio salvo superadmin); si no se envía se conserva.</param>
@@ -95,7 +96,7 @@ internal static class EndpointsCatalogos
         }).WithName("CrearProducto")
             .WithSummary("Si el usuario no puede aprobar, envía gerenteAprobadorId y el producto queda pendiente.");
         g.MapPut("/{id:guid}", (Guid id, DatosProducto d, IMediador m, CancellationToken ct) =>
-            m.EnviarAsync(new EditarProducto(id, d.Descripcion, d.UnidadId, d.CodigoNfc), ct)).WithName("EditarProducto");
+            m.EnviarAsync(new EditarProducto(id, d.Descripcion, d.UnidadId, d.CodigoNfc, d.CodigoProveedor), ct)).WithName("EditarProducto");
         g.MapPatch("/{id:guid}/estado", (Guid id, CambioEstado c, IMediador m, CancellationToken ct) =>
             m.EnviarAsync(new CambiarEstadoProducto(id, c.Activo), ct)).WithName("CambiarEstadoProducto");
         g.MapPost("/{id:guid}/imagen", async (Guid id, IFormFile imagen, IMediador m, CancellationToken ct) =>

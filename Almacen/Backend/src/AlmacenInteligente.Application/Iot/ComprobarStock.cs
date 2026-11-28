@@ -75,7 +75,7 @@ internal sealed class ComprobarStockManejador(IConsultasStock stock, AlcanceAlma
 
 /// <summary>
 /// Lo que el embebido recibe en la cola iot-escaneos-respuestas por cada pieza que pasó por el lector.
-/// <c>Modo</c> es "venta" (alguien tiene el modo inteligente) o "consulta" (comprobar stock).
+/// <c>Modo</c> es "venta" o "recepcion" (alguien tiene ese modo inteligente) o "consulta" (comprobar stock).
 /// <c>Nivel</c> ("verde", "amarillo", "rojo") indica qué LED prender. En consulta es el nivel de stock (null si no se
 /// reconoció el producto); en venta es el resultado: verde agregada, amarillo pieza duplicada, rojo rechazada.
 /// </summary>
@@ -89,6 +89,7 @@ public sealed class ServicioConsultaStockIot(
 {
     public const string ModoVenta = "venta";
     public const string ModoConsulta = "consulta";
+    public const string ModoRecepcion = "recepcion";
 
     /// <summary>
     /// Comprobar stock: responde la existencia en el almacén del usuario que tiene sesión en el embebido
@@ -103,7 +104,9 @@ public sealed class ServicioConsultaStockIot(
 
         var usuario = usuarioId is { } u ? await usuarios.ObtenerAsync(u, ct) : null;
         var almacenId = usuario is null ? null : AlcanceAlmacen.De(usuario);
-        var producto = familia is null ? null : await productos.ObtenerPorCodigoNfcAsync(familia, ct);
+        // Una pieza trae su familia; un paquete, el código proveedor. Para comprobar stock sirven los dos.
+        var producto = familia is null ? null
+            : await productos.ObtenerPorCodigoNfcAsync(familia, ct) ?? await productos.ObtenerPorCodigoProveedorAsync(familia, ct);
         RespuestaEscaneoIot respuesta;
         if (usuario is not { Activo: true })
             respuesta = new RespuestaEscaneoIot(ModoConsulta, false, "Inicia sesión en el lector", null, null, null, null);
@@ -129,21 +132,25 @@ public sealed class ServicioConsultaStockIot(
         return respuesta;
     }
 
-    /// <summary>La pieza fue al modo inteligente de venta: se le dice al embebido qué pasó y la existencia del producto.</summary>
+    /// <summary>
+    /// La lectura fue a un modo inteligente (venta o recepción): se le dice al embebido qué pasó y la existencia del
+    /// producto en el almacén de quien tiene el lector.
+    /// </summary>
     public async Task<RespuestaEscaneoIot> RespuestaVentaAsync(ResultadoEscaneo resultado, Guid? productoId, CancellationToken ct = default)
     {
+        var sesion = await candado.ObtenerAsync(ct);
+        var recepcion = sesion?.Modo == ModoLector.Recepcion;
         var producto = productoId is { } id ? await productos.ObtenerAsync(id, ct) : null;
         decimal? existencia = null, minimo = null;
-        // La existencia es la del almacén con que vende el agente que tiene el lector.
         if (producto is not null)
-            (existencia, minimo) = await stock.TotalesAsync(producto.Id, (await candado.ObtenerAsync(ct))?.AlmacenId, ct);
+            (existencia, minimo) = await stock.TotalesAsync(producto.Id, sesion?.AlmacenId, ct);
         var motivo = resultado switch
         {
-            ResultadoEscaneo.Registrado => "Agregada a la venta",
+            ResultadoEscaneo.Registrado => recepcion ? "Paquete leído" : "Agregada a la venta",
             ResultadoEscaneo.PiezaYaVendida => "Pieza ya vendida",
-            ResultadoEscaneo.PiezaRepetida => "Pieza duplicada",
+            ResultadoEscaneo.PiezaRepetida => recepcion ? "Paquete duplicado" : "Pieza duplicada",
             ResultadoEscaneo.ProductoNoDisponible => "Producto no disponible",
-            ResultadoEscaneo.ProductoNoEncontrado => "Familia no registrada",
+            ResultadoEscaneo.ProductoNoEncontrado => recepcion ? "Código proveedor no registrado" : "Familia no registrada",
             ResultadoEscaneo.CodigoInvalido => "UID inválido",
             _ => "Sin venta activa",
         };
@@ -154,7 +161,7 @@ public sealed class ServicioConsultaStockIot(
             ResultadoEscaneo.PiezaRepetida => NivelStock.Amarillo,
             _ => NivelStock.Rojo,
         };
-        return new RespuestaEscaneoIot(ModoVenta, resultado == ResultadoEscaneo.Registrado, motivo,
+        return new RespuestaEscaneoIot(recepcion ? ModoRecepcion : ModoVenta, resultado == ResultadoEscaneo.Registrado, motivo,
             producto is null ? null : $"{producto.Referencia} · {producto.Descripcion}",
             existencia, minimo, Color(nivel));
     }

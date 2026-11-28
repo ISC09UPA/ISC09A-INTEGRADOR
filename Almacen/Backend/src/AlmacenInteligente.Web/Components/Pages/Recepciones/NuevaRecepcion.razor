@@ -3,9 +3,11 @@
 @using AlmacenInteligente.Application.Almacenes
 @using AlmacenInteligente.Application.Consultas
 @using AlmacenInteligente.Application.Documentos
+@using AlmacenInteligente.Application.Iot
 @using AlmacenInteligente.Domain.ValueObjects
 @inherits PaginaBase
 @inject NavigationManager Navegacion
+@implements IAsyncDisposable
 
 <PageTitle>Nueva recepción · Almacén inteligente</PageTitle>
 
@@ -17,7 +19,7 @@
             <SelectorTercero @bind-Value="_proveedor" Clientes="false" Label="Proveedor" />
         </MudItem>
         <MudItem xs="12" sm="6" md="4">
-            <MudSelect T="Guid?" @bind-Value="_almacenId" Label="Almacén de destino" AnchorOrigin="Origin.BottomCenter" Disabled="_almacenFijo">
+            <MudSelect T="Guid?" @bind-Value="_almacenId" Label="Almacén de destino" AnchorOrigin="Origin.BottomCenter" Disabled="_almacenFijo || _modoInteligente">
                 @foreach (var a in _almacenes)
                 {
                     <MudSelectItem T="Guid?" Value="@a.Id">@a.Nombre</MudSelectItem>
@@ -29,6 +31,57 @@
         </MudItem>
     </MudGrid>
 </MudPaper>
+
+<MudPaper Outlined="true" Elevation="0" Class="pa-4 mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="3">
+        <MudSwitch T="bool" Value="_modoInteligente" ValueChanged="CambiarModoAsync" Color="Color.Primary" Disabled="_cambiandoModo"
+                   Label="Recepción inteligente" />
+        @if (_modoInteligente)
+        {
+            <MudChip T="string" Color="Color.Success" Variant="Variant.Outlined" Icon="@Icons.Material.Outlined.Nfc">
+                Escuchando el lector NFC · @_paquetes paquetes
+            </MudChip>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Pasa la etiqueta de cada paquete por el lector (su código proveedor) y di de cuántas piezas es: se suma a la línea del producto en el almacén de destino.
+            </MudText>
+        }
+    </MudStack>
+    @if (_avisoModo is not null)
+    {
+        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-3">@_avisoModo</MudAlert>
+    }
+</MudPaper>
+
+<MudDialog @bind-Visible="_mostrarPaquete" Options="new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true, BackdropClick = false }">
+    <TitleContent>
+        <MudText Typo="Typo.h6">¿De cuántas piezas es el paquete?</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_paqueteActual is { } p)
+        {
+            <MudText Class="mb-3"><b>@p.Producto!.Referencia</b> <span class="tabla-celda-secundaria">@p.Producto.Descripcion</span></MudText>
+            <MudChipSet T="int" SelectedValue="_tamanoPaquete" SelectedValueChanged="v => (_tamanoPaquete, _tamanoOtro) = (v, null)" SelectionMode="SelectionMode.SingleSelection">
+                @foreach (var t in TamanosPaquete)
+                {
+                    <MudChip T="int" Value="t" Variant="Variant.Outlined" Color="Color.Primary">@t</MudChip>
+                }
+            </MudChipSet>
+            <MudNumericField T="int?" @bind-Value="_tamanoOtro" Label="Otro tamaño" Min="1" Immediate="true" Class="mt-3"
+                             HelperText="Si el paquete no es de ninguno de los de arriba" />
+            @if (_colaPaquetes.Count > 1)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">Faltan @(_colaPaquetes.Count - 1) paquetes más por confirmar.</MudText>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="DescartarPaquete">Descartar paquete</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="ConfirmarPaquete" Disabled="TamanoElegido is null">Agregar</MudButton>
+    </DialogActions>
+</MudDialog>
 
 <MudPaper Outlined="true" Elevation="0" Class="pa-4">
     <MudText Typo="Typo.h6" Class="mb-2">Productos recibidos</MudText>
@@ -102,6 +155,151 @@
 
     private Importe Total => _lineas.Aggregate(Importe.Cero, (t, l) => t + l.Importe);
 
+    // ---- Recepción inteligente: el lector NFC del embebido manda paquetes (código proveedor) mientras este usuario
+    // tiene el candado. Cada paquete pregunta de cuántas piezas es y se suma a la línea de su producto.
+    private static readonly int[] TamanosPaquete = [10, 20, 25, 50, 100];
+    private static readonly TimeSpan IntervaloLatido = TimeSpan.FromSeconds(15);
+    private bool _modoInteligente;
+    private bool _cambiandoModo;
+    private string? _avisoModo;
+    private int _paquetes;
+    private CancellationTokenSource? _escucha;
+    private DateTime _ultimoLatido;
+    private readonly Queue<EscaneoDto> _colaPaquetes = new();
+    private EscaneoDto? _paqueteActual;
+    private bool _mostrarPaquete;
+    private int _tamanoPaquete;
+    private int? _tamanoOtro;
+
+    private int? TamanoElegido => _tamanoOtro is > 0 ? _tamanoOtro : _tamanoPaquete > 0 ? _tamanoPaquete : null;
+
+    private async Task CambiarModoAsync(bool activar)
+    {
+        _avisoModo = null;
+        _cambiandoModo = true;
+        if (!activar)
+            await DesactivarModoAsync();
+        else if (_almacenId is null)
+            _avisoModo = "Elige el almacén de destino antes de activar la recepción inteligente.";
+        else
+        {
+            var (_, mensaje) = await EjecutarAsync(new TomarModoRecepcion(_almacenId.Value));
+            if (mensaje is not null)
+                _avisoModo = mensaje;
+            else
+            {
+                _modoInteligente = true;
+                _escucha = new CancellationTokenSource();
+                _ = EscucharAsync(_escucha.Token);
+            }
+        }
+        _cambiandoModo = false;
+    }
+
+    private async Task DesactivarModoAsync()
+    {
+        _escucha?.Cancel();
+        _escucha = null;
+        if (!_modoInteligente)
+            return;
+        _modoInteligente = false;
+        await EjecutarAsync(new LiberarModoInteligente());
+    }
+
+    /// <summary>Cada segundo recoge los paquetes nuevos; cada 15 s renueva el candado (también con el modal abierto).</summary>
+    private async Task EscucharAsync(CancellationToken ct)
+    {
+        _ultimoLatido = DateTime.UtcNow;
+        using var reloj = new PeriodicTimer(TimeSpan.FromSeconds(1));
+        try
+        {
+            while (await reloj.WaitForNextTickAsync(ct))
+                await InvokeAsync(() => RevisarLectorAsync(ct));
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task RevisarLectorAsync(CancellationToken ct)
+    {
+        if (ct.IsCancellationRequested)
+            return;
+        if (DateTime.UtcNow - _ultimoLatido >= IntervaloLatido)
+        {
+            _ultimoLatido = DateTime.UtcNow;
+            var (_, error) = await EjecutarAsync(new LatidoModoInteligente());
+            if (error is not null)
+            {
+                _escucha?.Cancel();
+                _escucha = null;
+                _modoInteligente = false;
+                _avisoModo = error;
+                StateHasChanged();
+                return;
+            }
+        }
+
+        var (escaneos, _) = await EjecutarAsync(new TomarEscaneosPendientes());
+        if (escaneos is not { Count: > 0 } || ct.IsCancellationRequested)
+            return;
+        foreach (var e in escaneos)
+        {
+            if (e.Rechazo is not null || e.Producto is null)
+                Avisos.Add(e.Rechazo ?? $"No se reconoció el paquete {e.Uid}.", Severity.Warning);
+            else
+                _colaPaquetes.Enqueue(e);
+        }
+        SiguientePaquete();
+        StateHasChanged();
+    }
+
+    private void SiguientePaquete()
+    {
+        if (_mostrarPaquete || !_colaPaquetes.TryPeek(out var siguiente))
+            return;
+        (_paqueteActual, _tamanoPaquete, _tamanoOtro, _mostrarPaquete) = (siguiente, 0, null, true);
+    }
+
+    private void ConfirmarPaquete()
+    {
+        if (TamanoElegido is not { } piezas || _paqueteActual?.Producto is not { } producto)
+            return;
+        var linea = _lineas.FirstOrDefault(l => l.Producto?.Id == producto.Id)
+            ?? _lineas.FirstOrDefault(l => l.Producto is null);
+        if (linea is null)
+        {
+            linea = new Linea();
+            _lineas.Add(linea);
+        }
+        linea.Producto = producto;
+        linea.Cantidad += piezas;
+        _paquetes++;
+        Avisos.Add($"Se agregaron {piezas} piezas de {producto.Referencia}.", Severity.Info);
+        CerrarPaquete();
+    }
+
+    private void DescartarPaquete() => CerrarPaquete();
+
+    private void CerrarPaquete()
+    {
+        _colaPaquetes.TryDequeue(out _);
+        (_paqueteActual, _mostrarPaquete) = (null, false);
+        SiguientePaquete();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await DesactivarModoAsync();
+        }
+        catch (Exception)
+        {
+            // El circuito ya se cerró: el candado vence solo al dejar de recibir latidos.
+        }
+    }
+
     protected override async Task AlIniciarAsync()
     {
         var (_, almacenes) = await IntentarAsync(new ListarAlmacenes());
@@ -137,6 +335,7 @@
             _error = mensaje;
             return;
         }
+        await DesactivarModoAsync();
         Avisos.Add($"Recepción {Formato.Folio("REC", registrada!.Folio)} registrada.", Severity.Success);
         Navegacion.NavigateTo($"recepciones/{registrada.Id}");
     }
