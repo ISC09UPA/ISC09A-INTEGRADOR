@@ -8,6 +8,9 @@ public sealed record DatosModoInteligente(Guid AlmacenId);
 /// <summary>Embebido IoT: fotos de rostro, modelo de reconocimiento, bitácora de accesos y modo inteligente de venta.</summary>
 internal static class EndpointsIot
 {
+    /// <summary>Política de rate limiting para crear solicitudes de inicio de sesión (ver Program.cs).</summary>
+    public const string LimiteInicioSesionIot = "inicio-sesion-iot";
+
     public static void MapIot(this IEndpointRouteBuilder app)
     {
         var fotos = app.MapGroup("/api/usuarios/{id:guid}/fotos").RequireAuthorization().WithTags("IoT · Reconocimiento facial");
@@ -27,6 +30,22 @@ internal static class EndpointsIot
             await m.EnviarAsync(new EliminarFotoRostro(id, fotoId), ct);
             return Results.NoContent();
         }).WithName("EliminarFotoRostro");
+
+        // Inicio de sesión de la app móvil con el embebido: anónimo porque todavía no hay token.
+        var login = app.MapGroup("/api/iot/login").AllowAnonymous().WithTags("IoT · Inicio de sesión con el embebido");
+        login.MapPost("", async (ServicioInicioSesionIot servicio, CancellationToken ct) =>
+                Results.Ok(await servicio.CrearAsync(ct)))
+            .RequireRateLimiting(LimiteInicioSesionIot)
+            .WithName("CrearInicioSesionIot")
+            .WithSummary("Crea una solicitud que dura 60 s: la persona pasa su tarjeta y su rostro por el lector. 409 si ya hay otra pendiente; 429 si se abusa.");
+        login.MapGet("/{id:guid}", (Guid id, ServicioInicioSesionIot servicio, CancellationToken ct) => servicio.ConsultarAsync(id, ct))
+            .WithName("ConsultarInicioSesionIot")
+            .WithSummary("Sondeo (cada ~1 s). estado: pendiente, completada, negada, expirada, consumida o cancelada. Con completada trae token (el mismo de /api/cuenta/token) una sola vez.");
+        login.MapDelete("/{id:guid}", async (Guid id, ServicioInicioSesionIot servicio, CancellationToken ct) =>
+        {
+            await servicio.CancelarAsync(id, ct);
+            return Results.NoContent();
+        }).WithName("CancelarInicioSesionIot");
 
         var iot = app.MapGroup("/api/iot").RequireAuthorization().WithTags("IoT");
         iot.MapPost("/modelo/entrenar", (IMediador m, CancellationToken ct) => m.EnviarAsync(new EntrenarModeloRostros(), ct))
