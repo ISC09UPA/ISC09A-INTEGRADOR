@@ -5,4 +5,6 @@ export interface LineaNuevaVenta {
   cantidad: number;
   precioUnitario: number;
   tasaIva: number;
+  /** UID de cada pieza escaneada en el modo inteligente. */
+  piezas?: string[];
 }

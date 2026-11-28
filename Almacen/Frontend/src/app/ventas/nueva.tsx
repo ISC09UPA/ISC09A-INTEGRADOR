@@ -1,20 +1,20 @@
 import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, View } from 'react-native';
 
-import type { Almacen } from '@/models/almacen.model';
+import type { Escaneo } from '@/models/escaneo.model';
 import type { Opcion } from '@/models/opcion.model';
 import type { ProductoOpcion } from '@/models/producto-opcion.model';
 import type { Tercero } from '@/models/tercero.model';
-import type { Escaneo, SesionVenta } from '@/models/venta-inteligente.model';
-import { almacenesService, ventasService } from '@/services';
+import { almacenesService, iotService, ventasService } from '@/services';
 import { BotonAgregarLinea, CampoPrecio, SelectorIva, TarjetaLinea, errorCantidad, nuevaClave, type LineaBase } from '@/components/captura';
 import { CampoFecha } from '@/components/fechas';
 import { SelectorTercero } from '@/components/selectores';
 import { FormularioTercero, Terceros } from '@/components/terceros';
-import { Aviso, Boton, Encabezado, Hoja, Interruptor, Pantalla, Selector, Tarjeta, Texto, Totales, avisar, mensajeDe } from '@/components/ui';
+import { Aviso, Boton, Chip, Encabezado, Fila, Hoja, Icono, Interruptor, Pantalla, Selector, Tarjeta, Texto, Totales, avisar, mensajeDe } from '@/components/ui';
 import { Spacing } from '@/constants/theme';
-import { useVentaInteligente } from '@/hooks/use-venta-inteligente';
+import { useColores } from '@/hooks/use-colores';
+import { useDatos } from '@/hooks/use-datos';
 import { Fechas, Formato, importeLinea, leerNumero, redondear } from '@/lib/formato';
 import { Permisos } from '@/lib/permisos';
 import { useSesion } from '@/lib/sesion';
@@ -23,34 +23,57 @@ interface Linea extends LineaBase {
   almacenId: string | null;
   precio: string;
   tasa: number;
+  /** UID de la etiqueta NFC de cada pieza que llegó del lector; la cantidad nunca es menor. */
+  piezas: string[];
 }
 
-const lineaVacia = (): Linea => ({ clave: nuevaClave(), producto: null, almacenId: null, cantidad: '', precio: '', tasa: 0.16 });
+const lineaVacia = (): Linea => ({ clave: nuevaClave(), producto: null, almacenId: null, cantidad: '', precio: '', tasa: 0.16, piezas: [] });
+const sumar = (cantidad: string, delta: number) => {
+  const n = leerNumero(cantidad);
+  return String(Math.max((Number.isNaN(n) ? 0 : n) + delta, 0));
+};
+
+/** El lector NFC se consulta cada segundo; el candado se renueva cada 15 s. */
+const INTERVALO_LECTOR_MS = 1000;
+const INTERVALO_LATIDO_MS = 15000;
+
+/**
+ * Cada escaneo es una pieza física (UID). Los rechazados solo se avisan. Si ya hay línea del producto en el almacén
+ * por defecto suma la pieza; si no, usa una línea vacía o agrega una. Igual que Ventas/NuevaVenta.razor.
+ */
+function aplicarEscaneos(lineas: Linea[], escaneos: Escaneo[], almacenId: string) {
+  let resultado = lineas;
+  const avisos: string[] = [];
+  let agregados = 0;
+  for (const e of escaneos) {
+    const producto = e.producto;
+    if (e.rechazo || !producto) {
+      avisos.push(e.rechazo ?? `No se reconoció la pieza ${e.uid}.`);
+      continue;
+    }
+    if (resultado.some((l) => l.piezas.includes(e.uid))) {
+      avisos.push(`La pieza ${e.uid} ya está en esta venta.`);
+      continue;
+    }
+    agregados++;
+    const existente = resultado.find((l) => l.producto?.id === producto.id && l.almacenId === almacenId);
+    if (existente) {
+      resultado = resultado.map((l) => (l === existente ? { ...l, cantidad: sumar(l.cantidad, 1), piezas: [...l.piezas, e.uid] } : l));
+      continue;
+    }
+    const nueva: Linea = { ...(resultado.find((l) => !l.producto) ?? lineaVacia()), producto, almacenId, cantidad: '1', piezas: [e.uid] };
+    resultado = resultado.some((l) => l.clave === nueva.clave) ? resultado.map((l) => (l.clave === nueva.clave ? nueva : l)) : [...resultado, nueva];
+  }
+  return { lineas: resultado, avisos, agregados };
+}
 
 const disponible = (l: Linea) => l.producto?.existencias.find((e) => e.almacenId === l.almacenId)?.cantidad ?? 0;
 const importe = (l: Linea) => importeLinea(leerNumero(l.cantidad), leerNumero(l.precio), l.tasa);
 
 /**
- * Agrega los productos escaneados como en la web: suma 1 si ya hay línea del producto en el almacén por defecto;
- * si no, usa la primera línea vacía o agrega una. El precio lo sigue capturando el usuario.
+ * Captura de venta (Ventas/NuevaVenta.razor): cliente, fecha y por línea el almacén de salida y el precio.
+ * Con el modo inteligente, cada pieza que pasa por el lector NFC se agrega sola y su UID se registra con la venta.
  */
-function agregarEscaneos(lineas: Linea[], escaneos: Escaneo[], almacenId: string): Linea[] {
-  let resultado = lineas;
-  for (const { producto } of escaneos) {
-    const existente = resultado.find((l) => l.producto?.id === producto.id && l.almacenId === almacenId);
-    if (existente) {
-      const cantidad = String(redondear(leerNumero(existente.cantidad || '0') + 1));
-      resultado = resultado.map((l) => (l === existente ? { ...l, cantidad } : l));
-      continue;
-    }
-    const vacia = resultado.find((l) => !l.producto);
-    const nueva: Linea = { ...(vacia ?? lineaVacia()), producto, almacenId, cantidad: '1' };
-    resultado = vacia ? resultado.map((l) => (l === vacia ? nueva : l)) : [...resultado, nueva];
-  }
-  return resultado;
-}
-
-/** Captura de venta (Ventas/NuevaVenta.razor): cliente, fecha y por línea el almacén de salida y el precio. */
 export default function NuevaVenta() {
   const { puede } = useSesion();
   const [cliente, setCliente] = useState<Opcion | null>(null);
@@ -59,32 +82,103 @@ export default function NuevaVenta() {
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [altaCliente, setAltaCliente] = useState(false);
-  const [almacenes, setAlmacenes] = useState<Almacen[]>([]);
-  const [almacenModo, setAlmacenModo] = useState<string | null>(null);
-  const [escaneados, setEscaneados] = useState(0);
-  const puedeModo = puede(Permisos.Ventas.Crear);
+  const c = useColores();
 
-  const alEscanear = useCallback((escaneos: Escaneo[], s: SesionVenta) => {
-    setLineas((ls) => agregarEscaneos(ls, escaneos, s.almacenId));
-    setEscaneados((n) => n + escaneos.length);
-  }, []);
-  const modo = useVentaInteligente(alEscanear);
+  // ---- Modo inteligente: el lector NFC del embebido agrega piezas mientras este usuario tiene el candado.
+  const almacenes = useDatos(() => almacenesService.listar());
+  const [almacenElegido, setAlmacenModo] = useState<string | undefined>();
+  const [modo, setModo] = useState(false);
+  const [cambiandoModo, setCambiandoModo] = useState(false);
+  const [avisoModo, setAvisoModo] = useState<string | null>(null);
+  const [rechazos, setRechazos] = useState<string[]>([]);
+  const [escaneados, setEscaneados] = useState(0);
+  const lineasRef = useRef(lineas);
+  useEffect(() => {
+    lineasRef.current = lineas;
+  }, [lineas]);
+  const modoRef = useRef(false);
+
+  const opcionesAlmacen = (almacenes.datos ?? []).filter((a) => a.activo).map((a) => ({ valor: a.id, texto: a.nombre }));
+  // Con un solo almacén se propone ese.
+  const almacenModo = almacenElegido ?? (opcionesAlmacen.length === 1 ? opcionesAlmacen[0].valor : undefined);
 
   useEffect(() => {
-    if (!puedeModo) return;
-    almacenesService
-      .listar()
-      .then((as) => setAlmacenes(as.filter((a) => a.activo)))
-      .catch(() => setAlmacenes([]));
-  }, [puedeModo]);
+    iotService
+      .sesionVenta()
+      .then((s) => {
+        if (s && !s.esMia) setAvisoModo(`El modo inteligente lo está usando ${s.usuario}.`);
+      })
+      .catch(() => {});
+  }, []);
 
-  const cambiarModo = (encender: boolean) => {
-    if (!encender) return void modo.desactivar();
-    if (!almacenModo) return setError('Elige el almacén por defecto para el modo inteligente.');
-    setError(null);
-    setEscaneados(0);
-    void modo.activar(almacenModo);
+  const desactivarModo = useCallback(async () => {
+    if (!modoRef.current) return;
+    modoRef.current = false;
+    setModo(false);
+    try {
+      await iotService.liberarModo();
+    } catch {
+      // Si no se pudo avisar, el candado vence solo al dejar de recibir latidos.
+    }
+  }, []);
+
+  // Al salir de la pantalla se libera el lector.
+  useEffect(() => () => void desactivarModo(), [desactivarModo]);
+
+  useEffect(() => {
+    if (!modo || !almacenModo) return;
+    let ocupado = false;
+    let ultimoLatido = Date.now();
+    const reloj = setInterval(async () => {
+      if (ocupado || !modoRef.current) return;
+      ocupado = true;
+      try {
+        if (Date.now() - ultimoLatido >= INTERVALO_LATIDO_MS) {
+          ultimoLatido = Date.now();
+          try {
+            await iotService.latido();
+          } catch (e) {
+            modoRef.current = false;
+            setModo(false);
+            setAvisoModo(mensajeDe(e));
+            return;
+          }
+        }
+        const escaneos = await iotService.escaneos();
+        if (escaneos.length && modoRef.current) {
+          const r = aplicarEscaneos(lineasRef.current, escaneos, almacenModo);
+          setLineas(r.lineas);
+          setEscaneados((n) => n + r.agregados);
+          if (r.avisos.length) setRechazos((ant) => [...r.avisos.reverse(), ...ant].slice(0, 5));
+        }
+      } catch {
+        // Falla de red pasajera: se reintenta en el siguiente segundo.
+      } finally {
+        ocupado = false;
+      }
+    }, INTERVALO_LECTOR_MS);
+    return () => clearInterval(reloj);
+  }, [modo, almacenModo]);
+
+  const cambiarModo = async (activar: boolean) => {
+    setAvisoModo(null);
+    if (!activar) return desactivarModo();
+    if (!almacenModo) return setAvisoModo('Elige el almacén por defecto antes de activar el modo inteligente.');
+    setCambiandoModo(true);
+    try {
+      await iotService.tomarModo(almacenModo);
+      modoRef.current = true;
+      setModo(true);
+      setRechazos([]);
+    } catch (e) {
+      setAvisoModo(mensajeDe(e));
+    } finally {
+      setCambiandoModo(false);
+    }
   };
+
+  const quitarPieza = (clave: number, uid: string) =>
+    setLineas((ls) => ls.map((l) => (l.clave === clave && l.piezas.includes(uid) ? { ...l, piezas: l.piezas.filter((p) => p !== uid), cantidad: sumar(l.cantidad, -1) } : l)));
 
   const cambiar = (clave: number, cambios: Partial<Linea>) => setLineas((ls) => ls.map((l) => (l.clave === clave ? { ...l, ...cambios } : l)));
   const total = lineas.map(importe).reduce((t, i) => ({ subtotal: t.subtotal + i.subtotal, iva: t.iva + i.iva }), { subtotal: 0, iva: 0 });
@@ -93,18 +187,26 @@ export default function NuevaVenta() {
     setError(null);
     if (!cliente || !Fechas.valida(fecha)) return setError('Elige el cliente y la fecha.');
     if (lineas.some((l) => !l.producto || !l.almacenId || !(leerNumero(l.cantidad) > 0))) return setError('Cada línea necesita producto, almacén y cantidad mayor que cero.');
+    if (lineas.some((l) => leerNumero(l.cantidad) < l.piezas.length))
+      return setError('La cantidad de una línea no puede ser menor que sus piezas escaneadas. Quita las piezas que no salen.');
     if (lineas.some((l) => leerNumero(l.cantidad) > disponible(l))) return setError('Hay líneas con más cantidad de la que hay en el almacén.');
     if (lineas.some((l) => Number.isNaN(leerNumero(l.precio)) || leerNumero(l.precio) < 0)) return setError('Captura el precio unitario de cada línea.');
 
     setGuardando(true);
     try {
-      // El lector queda libre en cuanto se registra; los escaneos que no alcanzaron a llegar se descartan.
-      await modo.desactivar();
       const r = await ventasService.registrar({
         clienteId: cliente.id,
         fecha,
-        lineas: lineas.map((l) => ({ productoId: l.producto!.id, almacenId: l.almacenId!, cantidad: leerNumero(l.cantidad), precioUnitario: leerNumero(l.precio), tasaIva: l.tasa })),
+        lineas: lineas.map((l) => ({
+          productoId: l.producto!.id,
+          almacenId: l.almacenId!,
+          cantidad: leerNumero(l.cantidad),
+          precioUnitario: leerNumero(l.precio),
+          tasaIva: l.tasa,
+          piezas: l.piezas.length ? l.piezas : undefined,
+        })),
       });
+      await desactivarModo();
       avisar(`Venta ${Formato.folio('VTA', r.folio)} registrada.`);
       router.replace(`/ventas/${r.id}`);
     } catch (e) {
@@ -129,26 +231,29 @@ export default function NuevaVenta() {
           <CampoFecha etiqueta="Fecha" valor={fecha} alCambiar={setFecha} />
         </Tarjeta>
 
-        {puedeModo ? (
-          <Tarjeta style={{ gap: Spacing.three }}>
-            <Interruptor etiqueta="Modo inteligente" valor={modo.activo || modo.tomando} alCambiar={cambiarModo} />
-            <Texto tipo="secundario">
-              Pasa los productos por el lector NFC del almacén y se agregan solos con cantidad 1. El precio lo capturas tú.
+        <Tarjeta style={{ gap: Spacing.two }}>
+          <Interruptor etiqueta="Modo inteligente (lector NFC)" valor={modo} alCambiar={(v) => !cambiandoModo && cambiarModo(v)} />
+          <Selector<string>
+            etiqueta="Almacén por defecto"
+            valor={almacenModo}
+            opciones={opcionesAlmacen}
+            alCambiar={setAlmacenModo}
+            deshabilitado={modo || cambiandoModo}
+          />
+          {modo ? (
+            <Fila style={{ flexWrap: 'wrap' }}>
+              <Chip texto={`Escuchando el lector NFC · ${escaneados} escaneadas`} color="success" />
+            </Fila>
+          ) : (
+            <Texto tipo="pequeno">
+              Pasa la etiqueta NFC de cada pieza por el lector y se agrega sola (una pieza del almacén por defecto). Una pieza ya vendida se rechaza.
             </Texto>
-            <Selector<string>
-              etiqueta="Almacén por defecto"
-              valor={modo.sesion?.almacenId ?? almacenModo ?? undefined}
-              opciones={almacenes.map((a) => ({ valor: a.id, texto: a.nombre, detalle: a.ubicacion }))}
-              alCambiar={setAlmacenModo}
-              placeholder="Elige el almacén de donde sale lo escaneado"
-              deshabilitado={modo.activo || modo.tomando}
-            />
-            {modo.error ? <Aviso tipo="error" texto={modo.error} /> : null}
-            {modo.activo && modo.sesion ? (
-              <Aviso tipo="exito" texto={`Escuchando el lector NFC · ${modo.sesion.almacen} · ${escaneados} escaneados`} />
-            ) : null}
-          </Tarjeta>
-        ) : null}
+          )}
+          {avisoModo ? <Aviso tipo="alerta" texto={avisoModo} /> : null}
+          {rechazos.map((t, i) => (
+            <Aviso key={`${i}-${t}`} tipo="alerta" texto={t} />
+          ))}
+        </Tarjeta>
 
         {lineas.map((l, i) => (
           <TarjetaLinea
@@ -157,10 +262,12 @@ export default function NuevaVenta() {
             producto={l.producto}
             alElegirProducto={(p: ProductoOpcion) =>
               // Propone el almacén con más existencia, como la web.
-              cambiar(l.clave, { producto: p, almacenId: [...p.existencias].sort((a, b) => b.cantidad - a.cantidad)[0]?.almacenId ?? null })
+              // Las piezas escaneadas eran de otro producto.
+              cambiar(l.clave, { producto: p, piezas: [], almacenId: [...p.existencias].sort((a, b) => b.cantidad - a.cantidad)[0]?.almacenId ?? null })
             }
             debajoProducto={
               l.producto ? (
+                <View style={{ gap: Spacing.two }}>
                 <Selector<string>
                   etiqueta="Sale de"
                   valor={l.almacenId ?? undefined}
@@ -169,6 +276,25 @@ export default function NuevaVenta() {
                   placeholder="Sin existencias en ningún almacén"
                   deshabilitado={!l.producto.existencias.length}
                 />
+                {l.piezas.length ? (
+                  <View style={{ gap: 4 }}>
+                    <Texto tipo="pequeno">Piezas escaneadas (toca una para quitarla):</Texto>
+                    <Fila style={{ flexWrap: 'wrap' }} gap={6}>
+                      {l.piezas.map((uid) => (
+                        <Pressable
+                          key={uid}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Quitar pieza ${uid}`}
+                          onPress={() => quitarPieza(l.clave, uid)}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 4, borderWidth: 1, borderColor: c.line, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 2 }}>
+                          <Texto tipo="pequeno">{uid}</Texto>
+                          <Icono nombre="close" tamano={14} />
+                        </Pressable>
+                      ))}
+                    </Fila>
+                  </View>
+                ) : null}
+                </View>
               ) : null
             }
             cantidad={l.cantidad}

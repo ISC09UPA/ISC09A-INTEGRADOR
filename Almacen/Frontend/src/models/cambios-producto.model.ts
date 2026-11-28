@@ -2,4 +2,6 @@
 export interface CambiosProducto {
   descripcion: string;
   unidadId: string;
+  /** Familia NFC; vacía la quita. */
+  codigoNfc: string;
 }

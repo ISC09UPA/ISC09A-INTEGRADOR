@@ -5,4 +5,6 @@ export interface LineaVentaDto {
   cantidad: number;
   precioUnitario: number;
   tasaIva: number;
+  /** UID de la etiqueta NFC de cada pieza escaneada (a lo más la cantidad). */
+  piezas?: string[] | null;
 }

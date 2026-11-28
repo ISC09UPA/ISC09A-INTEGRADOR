@@ -1,6 +1,6 @@
-import type { EstadoInicioSesionIotDto, SolicitudInicioSesionIotDto } from '@/dtos/inicio-sesion-iot.dto';
+import type { CredencialesDto } from '@/dtos/credenciales.dto';
 import type { TokenApiDto } from '@/dtos/token-api.dto';
-import type { EstadoInicioSesionIot, SolicitudInicioSesionIot } from '@/models/inicio-sesion-iot.model';
+import type { Credenciales } from '@/models/credenciales.model';
 import type { Sesion } from '@/models/sesion.model';
 
 const CLAIM_ID = 'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier';
@@ -18,21 +18,8 @@ export class SesionMapper {
     };
   }
 
-  static solicitudIot(dto: SolicitudInicioSesionIotDto): SolicitudInicioSesionIot {
-    return { id: dto.id, expira: new Date(dto.expira), vigenciaSegundos: dto.vigenciaSegundos };
-  }
-
-  static estadoIot(dto: EstadoInicioSesionIotDto): EstadoInicioSesionIot {
-    switch (dto.estado) {
-      case 'pendiente':
-        return { estado: 'pendiente' };
-      case 'completada':
-        return dto.token
-          ? { estado: 'completada', sesion: SesionMapper.aModel(dto.token) }
-          : { estado: 'consumida', motivo: 'El inicio de sesión ya se usó.' };
-      default:
-        return { estado: dto.estado, motivo: dto.motivo ?? 'No se pudo iniciar sesión.' };
-    }
+  static credenciales(model: Credenciales): CredencialesDto {
+    return { correo: model.correo.trim(), contrasena: model.contrasena };
   }
 
   /** Id del usuario dentro del JWT (claim nameidentifier); sirve para saber qué aprobaciones le tocan. */
